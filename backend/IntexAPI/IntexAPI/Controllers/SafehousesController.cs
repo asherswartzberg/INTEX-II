@@ -18,7 +18,9 @@ public class SafehousesController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Safehouse>>> GetAll(CancellationToken cancellationToken)
     {
-        var list = await _db.Safehouses.AsNoTracking().ToListAsync(cancellationToken);
+        var list = await _db.Safehouses.AsNoTracking()
+            .OrderBy(s => s.SafehouseCode)
+            .ToListAsync(cancellationToken);
         return Ok(list);
     }
 
@@ -27,8 +29,42 @@ public class SafehousesController : ControllerBase
     {
         var safehouse = await _db.Safehouses.AsNoTracking()
             .FirstOrDefaultAsync(s => s.SafehouseId == id, cancellationToken);
-        if (safehouse is null)
+        return safehouse is null ? NotFound() : Ok(safehouse);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Safehouse>> Create([FromBody] Safehouse entity, CancellationToken cancellationToken)
+    {
+        entity.SafehouseId = 0;
+        _db.Safehouses.Add(entity);
+        await _db.SaveChangesAsync(cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = entity.SafehouseId }, entity);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] Safehouse entity, CancellationToken cancellationToken)
+    {
+        if (id != entity.SafehouseId)
+            return BadRequest();
+
+        var existing = await _db.Safehouses.FindAsync(new object[] { id }, cancellationToken);
+        if (existing is null)
             return NotFound();
-        return Ok(safehouse);
+
+        _db.Entry(existing).CurrentValues.SetValues(entity);
+        await _db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var existing = await _db.Safehouses.FindAsync(new object[] { id }, cancellationToken);
+        if (existing is null)
+            return NotFound();
+
+        _db.Safehouses.Remove(existing);
+        await _db.SaveChangesAsync(cancellationToken);
+        return NoContent();
     }
 }

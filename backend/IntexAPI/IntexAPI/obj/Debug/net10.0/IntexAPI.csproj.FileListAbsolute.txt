@@ -74,4 +74,3 @@ C:\Users\agswa\OneDrive\Desktop\INTEX II\backend\IntexAPI\IntexAPI\obj\Debug\net
 C:\Users\agswa\OneDrive\Desktop\INTEX II\backend\IntexAPI\IntexAPI\obj\Debug\net10.0\IntexAPI.pdb
 C:\Users\agswa\OneDrive\Desktop\INTEX II\backend\IntexAPI\IntexAPI\obj\Debug\net10.0\IntexAPI.genruntimeconfig.cache
 C:\Users\agswa\OneDrive\Desktop\INTEX II\backend\IntexAPI\IntexAPI\obj\Debug\net10.0\ref\IntexAPI.dll
-C:\Users\agswa\OneDrive\Desktop\INTEX II\backend\IntexAPI\IntexAPI\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt

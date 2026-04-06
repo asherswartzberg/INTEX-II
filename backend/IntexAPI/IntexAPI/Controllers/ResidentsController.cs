@@ -1,9 +1,11 @@
 using IntexAPI.Data;
+using IntexAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace IntexAPI.Controllers;
 
+/// <summary>Caseload inventory — residents with search/filter and CRUD.</summary>
 [ApiController]
 [Route("api/[controller]")]
 public class ResidentsController : ControllerBase
@@ -16,9 +18,42 @@ public class ResidentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Resident>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<Resident>>> GetList(
+        [FromQuery] string? caseStatus,
+        [FromQuery] int? safehouseId,
+        [FromQuery] string? caseCategory,
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = Pagination.DefaultPageSize,
+        CancellationToken cancellationToken = default)
     {
-        var list = await _db.Residents.AsNoTracking().Take(500).ToListAsync(cancellationToken);
+        var (skip, take) = Pagination.ToSkipTake(page, pageSize);
+        var q = _db.Residents.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(caseStatus))
+            q = q.Where(r => r.CaseStatus == caseStatus);
+
+        if (safehouseId is int sh)
+            q = q.Where(r => r.SafehouseId == sh);
+
+        if (!string.IsNullOrWhiteSpace(caseCategory))
+            q = q.Where(r => r.CaseCategory == caseCategory);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            q = q.Where(r =>
+                (r.CaseControlNo != null && r.CaseControlNo.Contains(s))
+                || (r.InternalCode != null && r.InternalCode.Contains(s))
+                || (r.ReferralSource != null && r.ReferralSource.Contains(s)));
+        }
+
+        var list = await q
+            .OrderBy(r => r.CaseControlNo)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
         return Ok(list);
     }
 
@@ -27,8 +62,42 @@ public class ResidentsController : ControllerBase
     {
         var resident = await _db.Residents.AsNoTracking()
             .FirstOrDefaultAsync(r => r.ResidentId == id, cancellationToken);
-        if (resident is null)
+        return resident is null ? NotFound() : Ok(resident);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Resident>> Create([FromBody] Resident resident, CancellationToken cancellationToken)
+    {
+        resident.ResidentId = 0;
+        _db.Residents.Add(resident);
+        await _db.SaveChangesAsync(cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = resident.ResidentId }, resident);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, [FromBody] Resident resident, CancellationToken cancellationToken)
+    {
+        if (id != resident.ResidentId)
+            return BadRequest();
+
+        var existing = await _db.Residents.FindAsync(new object[] { id }, cancellationToken);
+        if (existing is null)
             return NotFound();
-        return Ok(resident);
+
+        _db.Entry(existing).CurrentValues.SetValues(resident);
+        await _db.SaveChangesAsync(cancellationToken);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var existing = await _db.Residents.FindAsync(new object[] { id }, cancellationToken);
+        if (existing is null)
+            return NotFound();
+
+        _db.Residents.Remove(existing);
+        await _db.SaveChangesAsync(cancellationToken);
+        return NoContent();
     }
 }
