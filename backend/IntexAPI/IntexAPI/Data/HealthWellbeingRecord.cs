@@ -16,26 +16,26 @@ public class HealthWellbeingRecord
     [Column("record_date")]
     public DateOnly? RecordDate { get; set; }
 
-    [Column("general_health_score", TypeName = "decimal(18,4)")]
-    public decimal? GeneralHealthScore { get; set; }
+    [Column("general_health_score")]
+    public double? GeneralHealthScore { get; set; }
 
-    [Column("nutrition_score", TypeName = "decimal(18,4)")]
-    public decimal? NutritionScore { get; set; }
+    [Column("nutrition_score")]
+    public double? NutritionScore { get; set; }
 
-    [Column("sleep_quality_score", TypeName = "decimal(18,4)")]
-    public decimal? SleepQualityScore { get; set; }
+    [Column("sleep_quality_score")]
+    public double? SleepQualityScore { get; set; }
 
-    [Column("energy_level_score", TypeName = "decimal(18,4)")]
-    public decimal? EnergyLevelScore { get; set; }
+    [Column("energy_level_score")]
+    public double? EnergyLevelScore { get; set; }
 
-    [Column("height_cm", TypeName = "decimal(18,4)")]
-    public decimal? HeightCm { get; set; }
+    [Column("height_cm")]
+    public double? HeightCm { get; set; }
 
-    [Column("weight_kg", TypeName = "decimal(18,4)")]
-    public decimal? WeightKg { get; set; }
+    [Column("weight_kg")]
+    public double? WeightKg { get; set; }
 
-    [Column("bmi", TypeName = "decimal(18,4)")]
-    public decimal? Bmi { get; set; }
+    [Column("bmi")]
+    public double? Bmi { get; set; }
 
     [Column("medical_checkup_done")]
     public bool? MedicalCheckupDone { get; set; }

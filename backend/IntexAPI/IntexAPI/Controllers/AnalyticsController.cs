@@ -35,7 +35,7 @@ public class AnalyticsController : ControllerBase
             .Select(g => new DonationTrendPointDto(
                 g.Key.Year,
                 g.Key.Month,
-                g.Sum(x => x.Amount ?? 0m),
+                g.Sum(x => x.Amount ?? 0d),
                 g.Count()))
             .OrderBy(p => p.Year)
             .ThenBy(p => p.Month)
@@ -117,7 +117,7 @@ public class AnalyticsController : ControllerBase
     }
 
     [HttpGet("education-progress-by-resident")]
-    public async Task<ActionResult<Dictionary<int, decimal?>>> GetLatestEducationProgressByResident(
+    public async Task<ActionResult<Dictionary<int, double?>>> GetLatestEducationProgressByResident(
         CancellationToken cancellationToken)
     {
         var rows = await _db.EducationRecords.AsNoTracking()

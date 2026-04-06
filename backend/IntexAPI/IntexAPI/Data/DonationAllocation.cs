@@ -20,8 +20,8 @@ public class DonationAllocation
     [MaxLength(128)]
     public string? ProgramArea { get; set; }
 
-    [Column("amount_allocated", TypeName = "decimal(18,4)")]
-    public decimal? AmountAllocated { get; set; }
+    [Column("amount_allocated")]
+    public double? AmountAllocated { get; set; }
 
     [Column("allocation_date")]
     public DateOnly? AllocationDate { get; set; }
