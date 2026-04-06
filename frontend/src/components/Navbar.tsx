@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'react-router'
 
 const navLinks = [
   { label: 'About', href: '#about' },
@@ -34,16 +35,16 @@ export default function Navbar() {
         className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl bg-warm-white/95 backdrop-blur-md shadow-lg px-6 py-3 md:px-8 md:py-4"
       >
         {/* Logo */}
-        <a
-          href="#"
+        <Link
+          to="/"
           className="text-xl font-bold tracking-tight text-dark"
           aria-label="Faro Safehouse - Home"
         >
           Faro Safehouse
-        </a>
+        </Link>
 
         {/* Desktop links */}
-        <ul className="hidden md:flex items-center gap-8 list-none m-0 p-0">
+        <ul className="hidden md:flex items-center gap-6 list-none m-0 p-0">
           {navLinks.map((link) => (
             <li key={link.href}>
               <a
@@ -54,6 +55,18 @@ export default function Navbar() {
               </a>
             </li>
           ))}
+          <li>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 rounded-lg border border-soft-gray px-4 py-2.5 text-sm font-medium text-dark transition-colors hover:border-amber-500 hover:text-amber-500 focus-visible:outline-amber-500"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Log in
+            </Link>
+          </li>
           <li>
             <a
               href="#donate"
@@ -108,6 +121,13 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
+            <Link
+              to="/login"
+              onClick={() => setMenuOpen(false)}
+              className="text-2xl font-semibold text-white hover:text-amber-500 transition-colors"
+            >
+              Log in
+            </Link>
             <a
               href="#donate"
               onClick={() => setMenuOpen(false)}
