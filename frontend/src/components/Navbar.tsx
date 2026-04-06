@@ -38,18 +38,12 @@ export default function Navbar() {
     >
       <nav
         aria-label="Main navigation"
-        className={`mx-auto flex max-w-7xl items-center justify-between rounded-2xl px-6 py-3 md:px-8 md:py-4 transition-all duration-500 ${
-          scrolled
-            ? 'bg-warm-white/95 backdrop-blur-md shadow-lg'
-            : 'bg-white/10 backdrop-blur-sm'
-        }`}
+        className="mx-auto flex max-w-7xl items-center justify-between rounded-2xl bg-warm-white/95 backdrop-blur-md shadow-lg px-6 py-3 md:px-8 md:py-4"
       >
         {/* Logo */}
         <a
           href="#"
-          className={`text-xl font-bold tracking-tight transition-colors duration-300 ${
-            scrolled ? 'text-dark' : 'text-white'
-          }`}
+          className="text-xl font-bold tracking-tight text-dark"
           aria-label="Faro Safehouse - Home"
         >
           Faro Safehouse
@@ -61,9 +55,7 @@ export default function Navbar() {
             <li key={link.href}>
               <a
                 href={link.href}
-                className={`text-sm font-medium transition-colors duration-300 hover:text-amber-500 ${
-                  scrolled ? 'text-dark' : 'text-white'
-                }`}
+                className="text-sm font-medium text-dark transition-colors duration-300 hover:text-amber-500"
               >
                 {link.label}
               </a>
@@ -89,19 +81,13 @@ export default function Navbar() {
           aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
         >
           <span
-            className={`block h-0.5 w-6 transition-all duration-300 ${
-              scrolled ? 'bg-dark' : 'bg-white'
-            } ${menuOpen ? 'translate-y-2 rotate-45' : ''}`}
+            className={`block h-0.5 w-6 bg-dark transition-all duration-300 ${menuOpen ? 'translate-y-2 rotate-45' : ''}`}
           />
           <span
-            className={`block h-0.5 w-6 transition-all duration-300 ${
-              scrolled ? 'bg-dark' : 'bg-white'
-            } ${menuOpen ? 'opacity-0' : ''}`}
+            className={`block h-0.5 w-6 bg-dark transition-all duration-300 ${menuOpen ? 'opacity-0' : ''}`}
           />
           <span
-            className={`block h-0.5 w-6 transition-all duration-300 ${
-              scrolled ? 'bg-dark' : 'bg-white'
-            } ${menuOpen ? '-translate-y-2 -rotate-45' : ''}`}
+            className={`block h-0.5 w-6 bg-dark transition-all duration-300 ${menuOpen ? '-translate-y-2 -rotate-45' : ''}`}
           />
         </button>
       </nav>
