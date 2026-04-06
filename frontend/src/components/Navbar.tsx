@@ -57,6 +57,14 @@ export default function Navbar() {
           ))}
           <li>
             <Link
+              to="/admin"
+              className="text-sm font-medium text-dark transition-colors duration-300 hover:text-amber-500"
+            >
+              Admin
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/login"
               className="inline-flex items-center gap-2 rounded-lg border border-soft-gray px-4 py-2.5 text-sm font-medium text-dark transition-colors hover:border-amber-500 hover:text-amber-500 focus-visible:outline-amber-500"
             >
@@ -121,6 +129,13 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
+            <Link
+              to="/admin"
+              onClick={() => setMenuOpen(false)}
+              className="text-2xl font-semibold text-white hover:text-amber-500 transition-colors"
+            >
+              Admin
+            </Link>
             <Link
               to="/login"
               onClick={() => setMenuOpen(false)}
