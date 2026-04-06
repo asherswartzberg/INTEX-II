@@ -1,37 +1,39 @@
 @import "tailwindcss";
 
 @theme {
-  /* --- Color Palette --- */
-  --color-warm-white: #FAF8F5;
-  --color-warm-gray: #F2EFEB;
-  --color-soft-gray: #E8E4DF;
-  --color-medium-gray: #6B6B6B;
-  --color-dark: #1A1A1A;
-  --color-charcoal: #2A2C2F;
+  /* --- Color Palette (Black & White Base) --- */
+  --color-white: #ffffff;
+  --color-off-white: #f7f7f7;
+  --color-light-gray: #edf0ff;
+  --color-border: #dde0e6;
+  --color-medium-gray: #888888;
+  --color-dark-gray: #444444;
+  --color-dark: #111111;
+  --color-black: #000000;
 
+  /* Accent — kept for CTAs and highlights */
+  --color-accent: #286ffa;
   --color-amber-500: #F59E0B;
   --color-amber-600: #D97706;
-  --color-amber-700: #B45309;
-  --color-gold: #E8A317;
-  --color-orange-accent: #EA580C;
 
   /* --- Typography --- */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, serif;
+
+  /* --- Letter spacing --- */
+  --tracking-tight: -0.03em;
+  --tracking-tighter: -0.05em;
 }
 
-/* Reduced motion global toggle */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
 }
 
-/* Smooth scroll */
 html {
   scroll-behavior: smooth;
 }
@@ -39,33 +41,66 @@ html {
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: var(--color-warm-white);
+  background-color: var(--color-white);
   color: var(--color-dark);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Focus visible for ADA compliance */
+/* Custom selection */
+::selection {
+  background: #e3e4ed;
+  color: var(--color-black);
+}
+
+/* Focus visible — ADA */
 *:focus-visible {
-  outline: 3px solid var(--color-amber-500);
+  outline: 2px solid var(--color-black);
   outline-offset: 2px;
 }
 
-/* Skip to main content link (ADA) */
+/* Skip link — ADA */
 .skip-link {
   position: absolute;
   top: -100%;
   left: 16px;
   z-index: 100;
   padding: 12px 24px;
-  background: var(--color-amber-500);
+  background: var(--color-black);
   color: white;
   font-weight: 700;
   border-radius: 0 0 8px 8px;
   text-decoration: none;
   transition: top 0.2s;
 }
-
 .skip-link:focus {
   top: 0;
+}
+
+/* Radiating Hope style button hover — text slides up */
+.btn-slide {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-slide .btn-text {
+  display: block;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-slide .btn-text-hover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-slide:hover .btn-text {
+  transform: translateY(-100%);
+}
+.btn-slide:hover .btn-text-hover {
+  transform: translateY(0);
 }

@@ -1,112 +1,173 @@
+import { useRef } from 'react'
+import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion'
 import { useAnimateInView } from '../hooks/useAnimateInView'
-import { motion } from 'framer-motion'
-import ServiceCard from './ServiceCard'
+import girlsCircle from '../assets/lighthouseGirlsInCircle.jpg'
+import girlsLearning from '../assets/lighthouseGirlsOutsideLearning.jpg'
+import girlWriting from '../assets/490528890_720752160301656_5838193252817757157_n.jpg'
 
-const services = [
+const pillars = [
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
-      </svg>
-    ),
+    num: '01',
     title: 'Safety',
-    description:
-      'Creating safe environments where healing can begin. Our homes provide 24/7 care, nutrition, and stability.',
-    detail:
-      'Each safehouse provides around-the-clock supervision, nutritious meals, secure sleeping quarters, and a family-like atmosphere. Safety is the foundation that enables every other step in recovery.',
+    text: 'Creating safe environments where healing can begin. Our homes provide around-the-clock care, nutrition, secure sleeping quarters, and a family-like atmosphere.',
+    image: girlWriting,
+    imageAlt: 'A girl finding safety and peace at the safehouse',
   },
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-      </svg>
-    ),
+    num: '02',
     title: 'Healing',
-    description:
-      'Building trust through counseling, therapy, and individualized care plans that address each child\'s unique needs.',
-    detail:
-      'Licensed counselors provide individual and group therapy, process recordings track each girl\'s journey, and personalized intervention plans ensure holistic mental, emotional, and physical recovery.',
+    text: 'Licensed counselors provide individual and group therapy. Personalized intervention plans ensure holistic mental, emotional, and physical recovery for every child.',
+    image: girlsCircle,
+    imageAlt: 'Girls in a group therapy circle at the safehouse',
   },
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-        <line x1="9" y1="9" x2="9.01" y2="9" />
-        <line x1="15" y1="9" x2="15.01" y2="9" />
-      </svg>
-    ),
+    num: '03',
     title: 'Justice',
-    description:
-      'Supporting survivors in their pursuit of justice through legal advocacy and court accompaniment.',
-    detail:
-      'We partner with legal professionals to ensure every child has representation. Our staff accompanies girls to court hearings and advocates for their rights throughout the judicial process.',
+    text: 'We partner with legal professionals to ensure every child has representation. Our staff accompanies girls to court hearings and advocates for their rights.',
+    image: girlsLearning,
+    imageAlt: 'Girls attending an educational session',
   },
   {
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M18 20V10" />
-        <path d="M12 20V4" />
-        <path d="M6 20v-6" />
-      </svg>
-    ),
+    num: '04',
     title: 'Empowerment',
-    description:
-      'Transforming survivors into leaders through education, life skills training, and community reintegration.',
-    detail:
-      'Education programs, vocational training, and mentorship prepare each girl for independent life. We walk alongside them through reintegration, ensuring lasting transformation from survivor to leader.',
+    text: 'Education, vocational training, and mentorship prepare each girl for independent life. We walk alongside them through reintegration — from survivor to leader.',
+    image: girlsCircle,
+    imageAlt: 'Girls building community together',
   },
 ]
 
-export default function SolutionSection() {
-  const { ref, isInView } = useAnimateInView({ amount: 0.15 })
+/* ─── Desktop: sticky scroll card ─── */
+function PillarCard({ pillar, progress, index }: {
+  pillar: typeof pillars[0]
+  progress: MotionValue<number>
+  index: number
+}) {
+  const opacity = useTransform(progress, [0, 0.15, 0.85, 1], [0, 1, 1, 0])
+  const textY = useTransform(progress, [0, 0.15, 0.85, 1], [80, 0, 0, -80])
+  const imageX = useTransform(
+    progress,
+    [0, 0.2, 0.8, 1],
+    [index % 2 === 0 ? 40 : -40, 0, 0, index % 2 === 0 ? -20 : 20]
+  )
+  const imageScale = useTransform(progress, [0, 0.2, 0.8, 1], [0.8, 1, 1, 0.9])
 
   return (
-    <section
-      ref={ref}
-      id="work"
-      aria-labelledby="solution-heading"
-      className="bg-warm-white py-24 md:py-32"
-    >
-      <div className="mx-auto max-w-7xl px-6 md:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.7, ease: 'easeOut' }}
-          className="mx-auto mb-16 max-w-2xl text-center"
-        >
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-amber-500">
-            Our Approach
-          </p>
-          <h2
-            id="solution-heading"
-            className="mb-4 text-3xl font-bold tracking-tight text-dark md:text-4xl lg:text-5xl"
-          >
-            Four Pillars of Transformation
-          </h2>
-          <p className="text-base leading-relaxed text-medium-gray md:text-lg">
-            Inspired by Lighthouse Sanctuary, our model guides each child from
-            crisis to confidence through a proven progression of care.
-          </p>
+    <motion.div style={{ opacity }} className="absolute inset-0 flex items-center px-16">
+      <div className="mx-auto grid w-full max-w-6xl gap-12 xl:grid-cols-2 xl:items-center xl:gap-16">
+        <motion.div style={{ y: textY }} className={index % 2 === 1 ? 'xl:order-2' : ''}>
+          <span className="font-mono text-xs tracking-[0.3em] text-medium-gray">{pillar.num}</span>
+          <h3 className="mt-3 font-display text-5xl leading-[1.05] tracking-[-0.03em] text-black xl:text-6xl">
+            {pillar.title}
+          </h3>
+          <p className="mt-6 max-w-md text-base leading-[1.7] text-dark-gray xl:text-lg">{pillar.text}</p>
         </motion.div>
-
-        {/* Cards grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {services.map((service, i) => (
-            <ServiceCard
-              key={service.title}
-              icon={service.icon}
-              title={service.title}
-              description={service.description}
-              detail={service.detail}
-              index={i}
-              trigger={isInView}
-            />
-          ))}
-        </div>
+        <motion.div
+          style={{ x: imageX, scale: imageScale }}
+          className={`overflow-hidden rounded-sm ${index % 2 === 1 ? 'xl:order-1' : ''}`}
+        >
+          <img src={pillar.image} alt={pillar.imageAlt} className="w-full object-cover aspect-[4/3]" loading="lazy" />
+        </motion.div>
       </div>
-    </section>
+    </motion.div>
+  )
+}
+
+/* ─── Mobile: simple stacked card ─── */
+function MobilePillarCard({ pillar, index }: { pillar: typeof pillars[0]; index: number }) {
+  const { ref, isInView } = useAnimateInView({ amount: 0.2 })
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay: index * 0.05 }}
+      className="border-t border-border pt-8"
+    >
+      <span className="font-mono text-xs tracking-[0.3em] text-medium-gray">{pillar.num}</span>
+      <h3 className="mt-3 font-display text-3xl leading-[1.1] tracking-[-0.02em] text-black sm:text-4xl">
+        {pillar.title}
+      </h3>
+      <p className="mt-4 text-base leading-[1.7] text-dark-gray">{pillar.text}</p>
+      <div className="mt-6 overflow-hidden rounded-sm">
+        <img src={pillar.image} alt={pillar.imageAlt} className="w-full object-cover aspect-[4/3]" loading="lazy" />
+      </div>
+    </motion.div>
+  )
+}
+
+export default function SolutionSection() {
+  const containerRef = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end end'],
+  })
+
+  const pillarProgresses = pillars.map((_, i) => {
+    const start = i / pillars.length
+    const end = (i + 1) / pillars.length
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    return useTransform(scrollYProgress, [start, end], [0, 1])
+  })
+
+  const progressWidth = useTransform(scrollYProgress, [0, 1], ['0%', '100%'])
+  const counterNum = useTransform(scrollYProgress, [0, 0.99], [1, 4])
+
+  return (
+    <>
+      {/* ─── Desktop: sticky scroll ─── */}
+      <section
+        ref={containerRef}
+        id="work"
+        aria-labelledby="solution-heading-desktop"
+        className="relative hidden bg-off-white xl:block"
+        style={{ height: `${(pillars.length + 1) * 100}vh` }}
+      >
+        <div className="sticky top-0 flex h-screen flex-col overflow-hidden">
+          <div className="flex items-end justify-between px-16 pt-28">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-medium-gray">Our approach</p>
+              <h2 id="solution-heading-desktop" className="mt-1 text-sm font-medium text-dark-gray">
+                Four pillars of transformation
+              </h2>
+            </div>
+            <motion.span className="font-mono text-sm text-medium-gray">
+              <motion.span>{useTransform(counterNum, (v) => String(Math.round(v)).padStart(2, '0'))}</motion.span>
+              <span className="mx-1 text-border">/</span>
+              <span>04</span>
+            </motion.span>
+          </div>
+
+          <div className="mx-16 mt-5 h-px bg-border" aria-hidden="true">
+            <motion.div style={{ width: progressWidth }} className="h-full bg-black transition-none" />
+          </div>
+
+          <div className="relative flex-1">
+            {pillars.map((pillar, i) => (
+              <PillarCard key={pillar.num} pillar={pillar} progress={pillarProgresses[i]} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Mobile: stacked cards ─── */}
+      <section
+        id="work"
+        aria-labelledby="solution-heading-mobile"
+        className="overflow-hidden bg-off-white xl:hidden"
+      >
+        <div className="mx-auto max-w-3xl px-6 py-24 sm:px-10 md:px-16">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-medium-gray">Our approach</p>
+          <h2 id="solution-heading-mobile" className="mt-2 font-display text-3xl tracking-[-0.02em] text-black">
+            Four pillars of transformation
+          </h2>
+
+          <div className="mt-12 flex flex-col gap-12">
+            {pillars.map((pillar, i) => (
+              <MobilePillarCard key={pillar.num} pillar={pillar} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
   )
 }
