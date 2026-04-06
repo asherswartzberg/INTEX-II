@@ -18,7 +18,6 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Close mobile menu on resize to desktop
   useEffect(() => {
     const onResize = () => {
       if (window.innerWidth >= 768) setMenuOpen(false)
@@ -27,7 +26,6 @@ export default function Navbar() {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  // Prevent body scroll when menu is open
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -36,15 +34,15 @@ export default function Navbar() {
   return (
     <header
       role="banner"
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-warm-white/95 backdrop-blur-sm shadow-sm'
-          : 'bg-transparent'
-      }`}
+      className="fixed top-0 left-0 w-full z-50 px-4 pt-4 md:px-6 md:pt-5"
     >
       <nav
         aria-label="Main navigation"
-        className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-8"
+        className={`mx-auto flex max-w-7xl items-center justify-between rounded-2xl px-6 py-3 md:px-8 md:py-4 transition-all duration-500 ${
+          scrolled
+            ? 'bg-warm-white/95 backdrop-blur-md shadow-lg'
+            : 'bg-white/10 backdrop-blur-sm'
+        }`}
       >
         {/* Logo */}
         <a

@@ -1,20 +1,11 @@
-import { motion, useScroll, useTransform } from 'framer-motion'
-import { useRef } from 'react'
+import { motion } from 'framer-motion'
 import heroVideo from '../assets/1775513061936710.mp4'
 import heroPoster from '../assets/490528890_720752160301656_5838193252817757157_n.jpg'
 
 export default function Hero() {
-  const ref = useRef(null)
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start start', 'end start'],
-  })
-  const textY = useTransform(scrollYProgress, [0, 1], [0, 150])
-  const opacity = useTransform(scrollYProgress, [0, 0.7], [1, 0])
 
   return (
     <section
-      ref={ref}
       id="hero"
       aria-label="Welcome to Faro Safehouse"
       className="relative flex h-screen items-center justify-center overflow-hidden"
@@ -37,10 +28,7 @@ export default function Hero() {
       <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
 
       {/* Content */}
-      <motion.div
-        style={{ y: textY, opacity }}
-        className="relative z-10 mx-auto max-w-4xl px-6 text-center"
-      >
+      <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -90,7 +78,7 @@ export default function Hero() {
             Learn More
           </a>
         </motion.div>
-      </motion.div>
+      </div>
 
       {/* Scroll indicator */}
       <motion.div
