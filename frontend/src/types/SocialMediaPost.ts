@@ -1,0 +1,42 @@
+/** Table `social_media_posts` */
+export interface SocialMediaPost {
+  postId: number;
+  platform: string | null;
+  platformPostId: string | null;
+  postUrl: string | null;
+  createdAt: string | null;
+  dayOfWeek: string | null;
+  postHour: number | null;
+  postType: string | null;
+  mediaType: string | null;
+  caption: string | null;
+  hashtags: string | null;
+  numHashtags: number | null;
+  mentionsCount: number | null;
+  hasCallToAction: boolean | null;
+  callToActionType: string | null;
+  contentTopic: string | null;
+  sentimentTone: string | null;
+  captionLength: number | null;
+  featuresResidentStory: boolean | null;
+  campaignName: string | null;
+  isBoosted: boolean | null;
+  boostBudgetPhp: number | null;
+  impressions: number | null;
+  reach: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saves: number | null;
+  clickThroughs: number | null;
+  videoViews: number | null;
+  engagementRate: number | null;
+  profileVisits: number | null;
+  donationReferrals: number | null;
+  estimatedDonationValuePhp: number | null;
+  followerCountAtPost: number | null;
+  watchTimeSeconds: number | null;
+  avgViewDurationSeconds: number | null;
+  subscriberCountAtPost: number | null;
+  forwards: number | null;
+}
