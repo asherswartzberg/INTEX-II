@@ -1,7 +1,9 @@
+import LoadingScreen from '../components/LoadingScreen'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import ProblemSection from '../components/ProblemSection'
 import SolutionSection from '../components/SolutionSection'
+import ImageReveal from '../components/ImageReveal'
 import ImpactSection from '../components/ImpactSection'
 import DonateSection from '../components/DonateSection'
 import Footer from '../components/Footer'
@@ -9,6 +11,7 @@ import Footer from '../components/Footer'
 export default function Landing() {
   return (
     <>
+      <LoadingScreen />
       <Navbar />
       <a href="#about" className="skip-link">
         Skip to main content
@@ -17,6 +20,7 @@ export default function Landing() {
         <Hero />
         <ProblemSection />
         <SolutionSection />
+        <ImageReveal />
         <ImpactSection />
         <DonateSection />
       </main>
