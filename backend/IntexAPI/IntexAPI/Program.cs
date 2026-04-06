@@ -22,7 +22,8 @@ builder.Services.AddCors(options =>
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "https://localhost:5173",
-                "https://localhost:3000")
+                "https://localhost:3000",
+                "https://victorious-plant-08e77061e.7.azurestaticapps.net")
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
