@@ -1,0 +1,52 @@
+## .NET / Visual Studio
+bin/
+obj/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+*.user
+*.userosscache
+*.suo
+*.rsuser
+*.sln.docstates
+
+.vs/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+[Dd]ebug/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]uild/
+
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NuGet
+*.nuget.props
+*.nuget.targets
+
+# Local env / secrets (never commit)
+appsettings.*.local.json
+**/secrets.json
+
+# Rider / other IDEs
+.idea/
+*.sln.iml

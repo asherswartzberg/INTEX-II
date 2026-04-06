@@ -1202,23 +1202,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\agswa\\.nuget\\packages\\": {},
+    "C:\\Users\\corey\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\agswa\\OneDrive\\Desktop\\INTEX II\\backend\\IntexAPI\\IntexAPI\\IntexAPI.csproj",
+      "projectUniqueName": "C:\\Users\\corey\\OneDrive\\Documents\\GitHub\\INTEX-II\\backend\\IntexAPI\\IntexAPI\\IntexAPI.csproj",
       "projectName": "IntexAPI",
-      "projectPath": "c:\\Users\\agswa\\OneDrive\\Desktop\\INTEX II\\backend\\IntexAPI\\IntexAPI\\IntexAPI.csproj",
-      "packagesPath": "C:\\Users\\agswa\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\agswa\\OneDrive\\Desktop\\INTEX II\\backend\\IntexAPI\\IntexAPI\\obj\\",
+      "projectPath": "C:\\Users\\corey\\OneDrive\\Documents\\GitHub\\INTEX-II\\backend\\IntexAPI\\IntexAPI\\IntexAPI.csproj",
+      "packagesPath": "C:\\Users\\corey\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\corey\\OneDrive\\Documents\\GitHub\\INTEX-II\\backend\\IntexAPI\\IntexAPI\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\agswa\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\corey\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
