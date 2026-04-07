@@ -235,11 +235,11 @@ export default function AdminCaseload() {
     ].filter(Boolean)
 
   return (
-    <div className="flex h-full bg-gradient-to-br from-[#fffaf0] via-white to-[#f7f8fa]">
+    <div className="flex h-full bg-off-white">
       {/* ── List panel ── */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <div className="border-b border-[#f0e7d8] bg-white/85 px-6 py-4 backdrop-blur">
+        <div className="border-b border-border bg-white px-6 py-4">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-gray-900">Caseload Inventory</h1>
@@ -248,7 +248,7 @@ export default function AdminCaseload() {
             {isAdmin && (
               <button
                 onClick={openCreate}
-                className="rounded-full bg-[#111827] px-4 py-2 text-xs font-semibold text-white transition hover:bg-black"
+                className="rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white transition hover:bg-dark-gray"
               >
                 + New Resident
               </button>
@@ -265,7 +265,7 @@ export default function AdminCaseload() {
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                 placeholder="Search case no, code, referral..."
-                className="w-64 rounded-full border border-[#e7ddcc] bg-[#fffbf3] py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-[#c59b4f] focus:outline-none"
+                className="w-64 rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-gray-400 focus:outline-none"
               />
             </div>
 
@@ -273,7 +273,7 @@ export default function AdminCaseload() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-              className="rounded-full border border-[#e7ddcc] bg-[#fffbf3] px-3 py-2 text-sm text-gray-600 focus:border-[#c59b4f] focus:outline-none"
+              className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-gray-600 focus:border-gray-400 focus:outline-none"
             >
               <option value="">All statuses</option>
               {['Active', 'Closed', 'Transferred'].map((s) => <option key={s}>{s}</option>)}
@@ -282,7 +282,7 @@ export default function AdminCaseload() {
             <select
               value={safehouseFilter}
               onChange={(e) => { setSafehouseFilter(e.target.value); setPage(1) }}
-              className="rounded-full border border-[#e7ddcc] bg-[#fffbf3] px-3 py-2 text-sm text-gray-600 focus:border-[#c59b4f] focus:outline-none"
+              className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-gray-600 focus:border-gray-400 focus:outline-none"
             >
               <option value="">All safehouses</option>
               {safehouseOptions.map((s) => <option key={s} value={s}>SH-{s}</option>)}
@@ -291,7 +291,7 @@ export default function AdminCaseload() {
             <select
               value={categoryFilter}
               onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
-              className="rounded-full border border-[#e7ddcc] bg-[#fffbf3] px-3 py-2 text-sm text-gray-600 focus:border-[#c59b4f] focus:outline-none"
+              className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-gray-600 focus:border-gray-400 focus:outline-none"
             >
               <option value="">All categories</option>
               {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -328,7 +328,7 @@ export default function AdminCaseload() {
                     <tr
                       key={r.residentId}
                       onClick={() => setSelected(r)}
-                      className={`cursor-pointer hover:bg-blue-50 ${selected?.residentId === r.residentId ? 'bg-blue-50' : ''}`}
+                      className={`cursor-pointer hover:bg-off-white ${selected?.residentId === r.residentId ? 'bg-off-white' : ''}`}
                     >
                       <td className="px-4 py-3 font-mono text-xs text-gray-600">{r.caseControlNo ?? '—'}</td>
                       <td className="px-4 py-3 font-medium text-gray-800">{r.internalCode ?? '—'}</td>
@@ -375,7 +375,7 @@ export default function AdminCaseload() {
             {[...Array(Math.min(5, totalPages))].map((_, i) => {
               const pg = i + 1
               return (
-                <button key={pg} onClick={() => setPage(pg)} className={`rounded px-3 py-1 text-xs ${page === pg ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}>{pg}</button>
+                <button key={pg} onClick={() => setPage(pg)} className={`rounded px-3 py-1 text-xs ${page === pg ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-100'}`}>{pg}</button>
               )
             })}
             {totalPages > 5 && <span className="px-1 text-xs text-gray-400">…</span>}

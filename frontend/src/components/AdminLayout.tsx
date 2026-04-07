@@ -81,15 +81,15 @@ export default function AdminLayout() {
   const navigate = useNavigate()
   const [showSignOut, setShowSignOut] = useState(false)
   return (
-    <div data-admin className="flex flex-col h-screen bg-[#F7F8FA] dark:bg-[#111] font-sans overflow-hidden">
+    <div data-admin className="flex flex-col h-screen bg-off-white dark:bg-[#111] font-sans overflow-hidden">
 
       {/* ── Top bar ── */}
-      <header className="flex shrink-0 items-center justify-between border-b border-gray-100 bg-white px-6 py-3 dark:bg-[#1a1a1a] dark:border-[#333]">
+      <header className="flex shrink-0 items-center justify-between border-b border-border bg-white px-6 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
         {/* Branding */}
         <Link to="/" className="flex items-center gap-2.5">
-          <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-8 w-8 object-contain" />
+          <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-7 w-7 object-contain" />
           <span
-            className="text-2xl font-normal text-gray-900 dark:text-white"
+            className="text-xl font-normal text-black dark:text-white"
             style={{ fontFamily: "'EB Garamond', serif" }}
           >
             Faro Safehouse
@@ -97,23 +97,23 @@ export default function AdminLayout() {
         </Link>
 
         {/* Right-side nav */}
-        <div className="flex items-center gap-6">
-          <span className="text-[13px] text-gray-400 dark:text-gray-500">
+        <div className="flex items-center gap-5">
+          <span className="hidden text-sm text-medium-gray sm:inline dark:text-gray-500">
             {authSession.roles.includes('Admin') ? 'Admin' : 'Staff'} · {authSession.firstName || 'User'}
           </span>
           <Link
             to="/"
-            className="text-[13px] font-medium text-gray-600 transition-opacity hover:opacity-60 dark:text-gray-400"
+            className="text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
           >
             Back to site
           </Link>
           <NavLink
             to="/admin/settings"
             className={({ isActive }) =>
-              `text-[13px] font-medium transition-opacity hover:opacity-60 ${
+              `text-sm font-medium transition-colors hover:text-black dark:hover:text-white ${
                 isActive
-                  ? 'text-gray-900 dark:text-white'
-                  : 'text-gray-600 dark:text-gray-400'
+                  ? 'text-black dark:text-white'
+                  : 'text-medium-gray dark:text-gray-400'
               }`
             }
           >
@@ -121,7 +121,7 @@ export default function AdminLayout() {
           </NavLink>
           <button
             onClick={() => setShowSignOut(true)}
-            className="rounded-full bg-black px-4 py-1.5 text-[13px] font-semibold text-white transition-colors btn-wipe dark:bg-white dark:text-black"
+            className="text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
           >
             Sign out
           </button>
@@ -131,7 +131,7 @@ export default function AdminLayout() {
       {/* ── Body ── */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="flex w-[200px] shrink-0 flex-col border-r border-gray-100 bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
+        <aside className="flex w-[200px] shrink-0 flex-col border-r border-border bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             <ul className="space-y-0.5">
               {navItems.map((item) => (
@@ -141,15 +141,15 @@ export default function AdminLayout() {
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                         isActive
-                          ? 'bg-gray-100 text-gray-900 dark:bg-[#2a2a2a] dark:text-white'
-                          : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-[#222] dark:hover:text-white'
+                          ? 'bg-off-white text-black dark:bg-[#2a2a2a] dark:text-white'
+                          : 'text-medium-gray hover:bg-off-white hover:text-black dark:text-gray-400 dark:hover:bg-[#222] dark:hover:text-white'
                       }`
                     }
                   >
                     <span className="shrink-0 opacity-60">{item.icon}</span>
                     <span className="flex-1">{item.label}</span>
                     {item.badge != null && (
-                      <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700 dark:bg-[#333] dark:text-gray-300">
+                      <span className="rounded-full bg-off-white px-2 py-0.5 text-xs font-semibold text-dark-gray dark:bg-[#333] dark:text-gray-300">
                         {item.badge}
                       </span>
                     )}
