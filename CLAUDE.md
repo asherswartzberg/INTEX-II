@@ -231,9 +231,9 @@ src/
 
 | Pipeline | Script | Target | Output |
 |---|---|---|---|
-| Social Media Performance | `train_social_media.py` | Predict post engagement | `social_media_model.sav` + `social_media_recommendations.csv` |
-| Resident Reintegration Risk | `train_resident_risk.py` | Predict reintegration success | `resident_risk_model.sav` + `resident_risk_scores.csv` |
-| Donor Churn | `train_donor_churn.py` | Predict donor churn (180-day threshold) | `donor_churn_model.sav` + `donor_risk_scores.csv` |
+| Social Media Performance | `train_social_media.py` | Predict donation referrals + engagement rate | `social_media_model.sav` + `social_media_engagement_model.sav` + DB table |
+| Resident Incident Risk | `train_resident_risk.py` | Predict serious incident risk (runaway/self-harm) | `resident_risk_model.sav` + DB table |
+| Donor Churn | `train_donor_churn.py` | Predict donor churn probability (75th-pctl threshold) | `donor_churn_model.sav` + DB table |
 
 ### How They Work
 

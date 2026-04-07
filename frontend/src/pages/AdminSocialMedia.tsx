@@ -234,7 +234,7 @@ export default function AdminSocialMedia() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-50">
-                      {['PLATFORM', 'POST TYPE', 'TOPIC', 'BEST DAY', 'BEST HOUR', 'PREDICTED REFERRALS'].map((h) => (
+                      {['PLATFORM', 'POST TYPE', 'MEDIA', 'TOPIC', 'BEST DAY', 'REFERRALS', 'ENGAGEMENT'].map((h) => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">{h}</th>
                       ))}
                     </tr>
@@ -248,13 +248,14 @@ export default function AdminSocialMedia() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{r.postType}</td>
+                        <td className="px-4 py-3 text-gray-600">{r.mediaType ?? '—'}</td>
                         <td className="px-4 py-3 text-gray-600">{r.contentTopic}</td>
                         <td className="px-4 py-3 text-gray-600">{r.dayOfWeek ?? '—'}</td>
-                        <td className="px-4 py-3 text-gray-600">
-                          {r.postHour == null ? '—' : r.postHour === 0 ? '12 AM' : r.postHour < 12 ? `${r.postHour} AM` : r.postHour === 12 ? '12 PM' : `${r.postHour - 12} PM`}
-                        </td>
                         <td className="px-4 py-3">
                           <span className="font-semibold text-green-700">{r.predictedDonationReferrals?.toFixed(1) ?? '—'}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-blue-700">{r.predictedEngagementRate != null ? (r.predictedEngagementRate * 100).toFixed(1) + '%' : '—'}</span>
                         </td>
                       </tr>
                     ))}

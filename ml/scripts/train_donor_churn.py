@@ -124,10 +124,12 @@ def build_model_dataframe(supporters: pd.DataFrame, donations: pd.DataFrame) -> 
     df_model["tenure_days"]  = df_model["tenure_days"].fillna(0)
 
     # ---- Target variable ----
-    df_model["is_at_risk"] = (
-        df_model["recency_days"] > config.CHURN_THRESHOLD_DAYS
-    ).astype(int)
+    # Use the 75th-percentile of recency as the threshold so the target
+    # reflects relative lapse risk rather than a hard 180-day cutoff.
+    churn_threshold = df_model["recency_days"].quantile(0.75)
+    df_model["is_at_risk"] = (df_model["recency_days"] > churn_threshold).astype(int)
 
+    print(f"Churn threshold (75th pctl): {churn_threshold:.0f} days")
     print(f"Class balance: {df_model['is_at_risk'].mean():.1%} at risk "
           f"({df_model['is_at_risk'].sum()} / {len(df_model)})")
     return df_model
@@ -267,8 +269,7 @@ def save_artifacts(best_model, best_model_name, feature_cols,
         "best_algorithm":       best_model_name,
         "features":             feature_cols,
         "target":               "is_at_risk",
-        "target_definition":    f"recency_days > {config.CHURN_THRESHOLD_DAYS}",
-        "churn_threshold_days": config.CHURN_THRESHOLD_DAYS,
+        "target_definition":    "recency_days > 75th percentile of donor recency",
         "num_training_rows":    int(X_train.shape[0]),
         "num_test_rows":        int(X_test.shape[0]),
         "cv_strategy":          "RepeatedStratifiedKFold(n_splits=5, n_repeats=3)",
@@ -293,15 +294,49 @@ def save_artifacts(best_model, best_model_name, feature_cols,
 
 
 # ------------------------------------------------------------------ #
-# 6. Batch inference
+# 6. Top factors helper
 # ------------------------------------------------------------------ #
 
-def run_batch_inference(df_model: pd.DataFrame, feature_cols: list) -> pd.DataFrame:
+def get_top_factors(best_model, top_n: int = 3) -> str:
+    """Return comma-separated string of the model's global top feature names."""
+    clf = best_model.named_steps["clf"]
+    prep = best_model.named_steps["prep"]
+    try:
+        transformed_names = prep.get_feature_names_out()
+    except Exception:
+        return ""
+
+    if hasattr(clf, "feature_importances_"):
+        importances = clf.feature_importances_
+    elif hasattr(clf, "coef_"):
+        importances = np.abs(clf.coef_[0])
+    else:
+        return ""
+
+    top_idx = np.argsort(importances)[::-1][:top_n]
+    names = []
+    for i in top_idx:
+        name = str(transformed_names[i])
+        for prefix in ("num__", "cat__"):
+            if name.startswith(prefix):
+                name = name[len(prefix):]
+        names.append(name)
+    return ", ".join(names)
+
+
+# ------------------------------------------------------------------ #
+# 7. Batch inference
+# ------------------------------------------------------------------ #
+
+def run_batch_inference(df_model: pd.DataFrame, feature_cols: list,
+                        best_model=None) -> pd.DataFrame:
     """Score all current supporters and return a scores DataFrame."""
-    loaded_model = joblib.load(config.DONOR_CHURN_MODEL)
-    X_all        = df_model[feature_cols].copy()
-    risk_probs   = loaded_model.predict_proba(X_all)[:, 1]
-    risk_preds   = loaded_model.predict(X_all)
+    if best_model is None:
+        best_model = joblib.load(config.DONOR_CHURN_MODEL)
+    X_all      = df_model[feature_cols].copy()
+    risk_probs = best_model.predict_proba(X_all)[:, 1]
+
+    top_factors = get_top_factors(best_model)
 
     scores_df = pd.DataFrame({
         "supporter_id":         df_model["supporter_id"],
@@ -314,15 +349,16 @@ def run_batch_inference(df_model: pd.DataFrame, feature_cols: list) -> pd.DataFr
             labels=["Low Risk", "Moderate Risk", "High Risk"],
             include_lowest=True,
         ),
-        "predicted_at_risk":    risk_preds,
         "recency_days":         df_model["recency_days"].astype(int),
         "frequency":            df_model["frequency"].astype(int),
+        "top_factors":          top_factors,
         "prediction_timestamp": datetime.now(timezone.utc).isoformat(),
     })
     scores_df["risk_label"] = scores_df["risk_label"].astype(str)
     scores_df = scores_df.sort_values("churn_risk_score", ascending=False)
 
     print(f"\nScored {len(scores_df)} supporters.")
+    print(f"Top factors: {top_factors}")
     print("Risk label distribution:")
     print(scores_df["risk_label"].value_counts().to_string())
     return scores_df
@@ -357,7 +393,7 @@ if __name__ == "__main__":
                    X_train, X_test,
                    final_acc, final_f1, final_roc_auc, baseline_acc, cv_df)
 
-    scores_df = run_batch_inference(df_model, feature_cols)
+    scores_df = run_batch_inference(df_model, feature_cols, best_model)
     write_scores(scores_df)
 
     print("\nDonor churn pipeline complete.")

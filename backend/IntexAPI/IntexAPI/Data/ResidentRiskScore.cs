@@ -10,15 +10,19 @@ public class ResidentRiskScore
     [Column("resident_id")]
     public long ResidentId { get; set; }
 
-    [Column("readiness_score")]
-    public double? ReadinessScore { get; set; }
+    [Column("incident_risk_score")]
+    public double? IncidentRiskScore { get; set; }
 
-    [Column("readiness_label")]
+    [Column("risk_label")]
     [MaxLength(32)]
-    public string? ReadinessLabel { get; set; }
+    public string? RiskLabel { get; set; }
 
-    [Column("predicted_ready")]
-    public long? PredictedReady { get; set; }
+    [Column("predicted_high_risk")]
+    public long? PredictedHighRisk { get; set; }
+
+    [Column("top_factors")]
+    [MaxLength(256)]
+    public string? TopFactors { get; set; }
 
     [Column("prediction_timestamp")]
     public string? PredictionTimestamp { get; set; }

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IntexAPI.Controllers;
 
-/// <summary>ML-generated resident reintegration readiness predictions (read-only).</summary>
+/// <summary>ML-generated resident incident risk predictions (read-only).</summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Admin,Staff")]
@@ -24,7 +24,7 @@ public class ResidentRiskScoresController : ControllerBase
     {
         var list = await _db.ResidentRiskScores
             .AsNoTracking()
-            .OrderBy(x => x.ReadinessScore)
+            .OrderByDescending(x => x.IncidentRiskScore)
             .ToListAsync(cancellationToken);
         return Ok(list);
     }

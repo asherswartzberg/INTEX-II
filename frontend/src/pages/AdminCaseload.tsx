@@ -13,9 +13,9 @@ const RISK_STYLE: Record<string, string> = {
   Low: 'bg-green-100 text-green-700',
 }
 
-const READINESS_STYLE: Record<string, string> = {
-  Ready: 'bg-green-100 text-green-700',
-  Moderate: 'bg-amber-100 text-amber-700',
+const INCIDENT_RISK_STYLE: Record<string, string> = {
+  'Low Risk': 'bg-green-100 text-green-700',
+  'Moderate Risk': 'bg-amber-100 text-amber-700',
   'High Risk': 'bg-red-100 text-red-700',
 }
 
@@ -346,9 +346,9 @@ export default function AdminCaseload() {
                       <td className="px-4 py-3">
                         {(() => {
                           const rs = riskScores.find((s) => s.residentId === r.residentId)
-                          const label = rs?.readinessLabel
+                          const label = rs?.riskLabel
                           return label ? (
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${READINESS_STYLE[label] ?? 'bg-gray-100 text-gray-500'}`}>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${INCIDENT_RISK_STYLE[label] ?? 'bg-gray-100 text-gray-500'}`}>
                               {label}
                             </span>
                           ) : '—'
@@ -454,14 +454,14 @@ export default function AdminCaseload() {
             const selectedReadiness = riskScores.find((r) => r.residentId === selected?.residentId)
             return selectedReadiness ? (
               <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3">
-                <p className="mb-2 text-xs font-semibold text-gray-400">PREDICTED READINESS</p>
+                <p className="mb-2 text-xs font-semibold text-gray-400">PREDICTED INCIDENT RISK</p>
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${READINESS_STYLE[selectedReadiness.readinessLabel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
-                    {selectedReadiness.readinessLabel ?? '—'}
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${INCIDENT_RISK_STYLE[selectedReadiness.riskLabel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
+                    {selectedReadiness.riskLabel ?? '—'}
                   </span>
-                  {selectedReadiness.readinessScore != null && (
+                  {selectedReadiness.incidentRiskScore != null && (
                     <span className="text-sm font-medium text-gray-700">
-                      {Math.round(selectedReadiness.readinessScore * 100)}% readiness
+                      {Math.round(selectedReadiness.incidentRiskScore * 100)}% risk
                     </span>
                   )}
                 </div>

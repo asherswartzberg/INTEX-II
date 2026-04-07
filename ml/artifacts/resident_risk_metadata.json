@@ -1,8 +1,8 @@
 {
-  "model_name": "resident_reintegration_predictor",
-  "model_version": "1.0.0",
-  "trained_at_utc": "2026-04-06T21:01:33.826258",
-  "best_algorithm": "GradientBoosting",
+  "model_name": "resident_incident_risk_predictor",
+  "model_version": "2.0.0",
+  "trained_at_utc": "2026-04-07T22:41:11.539390+00:00",
+  "best_algorithm": "Logistic Regression",
   "features": [
     "birth_status",
     "place_of_birth",
@@ -49,16 +49,12 @@
     "pct_psych_checkup",
     "avg_attendance_rate",
     "avg_progress_percent",
-    "total_incidents",
-    "avg_severity_score",
-    "high_severity_count",
-    "pct_resolved",
     "total_plans",
     "plans_achieved_count",
     "plans_achieved_pct"
   ],
-  "target": "is_ready",
-  "target_definition": "reintegration_status in [Completed, In Progress]",
+  "target": "has_serious_incident",
+  "target_definition": "resident has RunawayAttempt or SelfHarm incident",
   "num_training_rows": 48,
   "num_test_rows": 12,
   "cv_strategy": "RepeatedStratifiedKFold(n_splits=5, n_repeats=3)"
