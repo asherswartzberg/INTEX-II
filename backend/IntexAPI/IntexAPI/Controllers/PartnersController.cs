@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +7,7 @@ namespace IntexAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class PartnersController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -48,6 +50,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Partner>> Create([FromBody] Partner entity, CancellationToken cancellationToken)
     {
         entity.PartnerId = 0;
@@ -57,6 +60,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] Partner entity, CancellationToken cancellationToken)
     {
         if (id != entity.PartnerId)
@@ -72,6 +76,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.Partners.FindAsync(new object[] { id }, cancellationToken);

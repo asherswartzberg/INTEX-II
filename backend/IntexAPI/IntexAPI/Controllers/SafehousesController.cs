@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +7,7 @@ namespace IntexAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class SafehousesController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -33,6 +35,7 @@ public class SafehousesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Safehouse>> Create([FromBody] Safehouse entity, CancellationToken cancellationToken)
     {
         entity.SafehouseId = 0;
@@ -42,6 +45,7 @@ public class SafehousesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] Safehouse entity, CancellationToken cancellationToken)
     {
         if (id != entity.SafehouseId)
@@ -57,6 +61,7 @@ public class SafehousesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.Safehouses.FindAsync(new object[] { id }, cancellationToken);

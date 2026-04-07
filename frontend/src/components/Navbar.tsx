@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router'
+import { useAuth } from '../context/AuthContext'
 
 const navLinks = [
   { label: 'About', href: '#about' },
@@ -9,6 +10,7 @@ const navLinks = [
 ]
 
 export default function Navbar() {
+  const { user, logout } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -31,6 +33,8 @@ export default function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
+  const isAdminOrStaff = user?.roles.some(r => r === 'Admin' || r === 'Staff')
+
   return (
     <header
       role="banner"
@@ -47,10 +51,10 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           to="/"
-          className={`text-xl transition-colors duration-300 ${
+          className={`text-3xl font-normal transition-colors duration-300 ${
             scrolled ? 'text-black' : 'text-white'
           }`}
-          style={{ fontFamily: "'Apple Chancery', cursive" }}
+          style={{ fontFamily: "'EB Garamond', serif" }}
           aria-label="Faro Safehouse - Home"
         >
           Faro Safehouse
@@ -70,35 +74,49 @@ export default function Navbar() {
               </a>
             </li>
           ))}
+          {isAdminOrStaff && (
+            <li>
+              <Link
+                to="/admin"
+                className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
+                  scrolled ? 'text-black' : 'text-white'
+                }`}
+              >
+                Admin
+              </Link>
+            </li>
+          )}
           <li>
-            <Link
-              to="/admin"
-              className="text-sm font-medium text-dark transition-colors duration-300 hover:text-amber-500"
-            >
-              Admin
-            </Link>
-          </li>
-          <li>
-            <Link
-              to="/login"
-              className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
-                scrolled ? 'text-black' : 'text-white'
-              }`}
-            >
-              Log in
-            </Link>
+            {user ? (
+              <button
+                onClick={() => logout()}
+                className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
+                  scrolled ? 'text-black' : 'text-white'
+                }`}
+              >
+                Log out
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
+                  scrolled ? 'text-black' : 'text-white'
+                }`}
+              >
+                Log in
+              </Link>
+            )}
           </li>
           <li>
             <a
               href="#donate"
-              className={`btn-slide rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-300 ${
+              className={`rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-300 hover:opacity-80 ${
                 scrolled
                   ? 'bg-black text-white'
                   : 'bg-white text-black'
               }`}
             >
-              <span className="btn-text">Donate</span>
-              <span className="btn-text-hover">Donate</span>
+              Donate
             </a>
           </li>
         </ul>
@@ -141,20 +159,31 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
-            <Link
-              to="/admin"
-              onClick={() => setMenuOpen(false)}
-              className="text-2xl font-semibold text-white hover:text-amber-500 transition-colors"
-            >
-              Admin
-            </Link>
-            <Link
-              to="/login"
-              onClick={() => setMenuOpen(false)}
-              className="text-4xl font-display text-white hover:opacity-60 transition-opacity"
-            >
-              Log in
-            </Link>
+            {isAdminOrStaff && (
+              <Link
+                to="/admin"
+                onClick={() => setMenuOpen(false)}
+                className="text-4xl font-display text-white hover:opacity-60 transition-opacity"
+              >
+                Admin
+              </Link>
+            )}
+            {user ? (
+              <button
+                onClick={() => { logout(); setMenuOpen(false) }}
+                className="text-4xl font-display text-white hover:opacity-60 transition-opacity"
+              >
+                Log out
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="text-4xl font-display text-white hover:opacity-60 transition-opacity"
+              >
+                Log in
+              </Link>
+            )}
             <a
               href="#donate"
               onClick={() => setMenuOpen(false)}

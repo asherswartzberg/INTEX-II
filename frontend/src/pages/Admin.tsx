@@ -46,6 +46,8 @@ interface AdminDashboardDto {
   upcomingCaseConferences: UpcomingCaseConferenceDto[]
   latestMonthlyProgressBySafehouse: LatestSafehouseProgressDto[]
 }
+import { ApiError, fetchAdminDashboard } from '../apis'
+import type { AdminDashboardDto } from '../types/apiDtos'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatCurrency(amount: number | null, currency: string | null) {
@@ -79,6 +81,27 @@ export default function Admin() {
       .then(setData)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false))
+    let cancelled = false
+    fetchAdminDashboard()
+      .then((d) => {
+        if (!cancelled) setData(d)
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        const msg =
+          err instanceof ApiError
+            ? `Server error: ${err.status}${err.body ? ` — ${err.body.slice(0, 200)}` : ''}`
+            : err instanceof Error
+              ? err.message
+              : 'Request failed'
+        setError(msg)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const today = new Date().toLocaleDateString('en-US', {

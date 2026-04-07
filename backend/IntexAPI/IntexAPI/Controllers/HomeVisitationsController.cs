@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +7,7 @@ namespace IntexAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class HomeVisitationsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -40,6 +42,7 @@ public class HomeVisitationsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<HomeVisitation>> Create(
         [FromBody] HomeVisitation entity,
         CancellationToken cancellationToken)
@@ -51,6 +54,7 @@ public class HomeVisitationsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] HomeVisitation entity, CancellationToken cancellationToken)
     {
         if (id != entity.VisitationId)
@@ -66,6 +70,7 @@ public class HomeVisitationsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.HomeVisitations.FindAsync(new object[] { id }, cancellationToken);
