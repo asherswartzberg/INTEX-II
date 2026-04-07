@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useAnimateInView } from '../hooks/useAnimateInView'
 import { useCountUp } from '../hooks/useCountUp'
-import girlsCircle from '../assets/lighthouseGirlsInCircle.jpg'
+import girlsLookingAtSky from '../assets/girlsLookingAtSky.jpg'
 
 const impactStats = [
   { value: 500, suffix: '+', label: 'Children sheltered' },
@@ -75,7 +75,7 @@ export default function ImpactSection() {
           className="mt-20 w-full overflow-hidden rounded-sm md:mt-28 md:-mr-16 md:ml-auto md:w-2/3 lg:w-1/2"
         >
           <img
-            src={girlsCircle}
+            src={girlsLookingAtSky}
             alt="Girls in a group circle at the safehouse"
             className="w-full object-cover aspect-[16/10]"
             loading="lazy"

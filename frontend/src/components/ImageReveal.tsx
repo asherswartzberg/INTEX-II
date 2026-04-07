@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import girlsLearning from '../assets/lighthouseGirlsOutsideLearning.jpg'
+import girlSmiling from '../assets/ok.webp'
 
 export default function ImageReveal() {
   const ref = useRef(null)
@@ -26,8 +26,8 @@ export default function ImageReveal() {
           className="relative h-full w-full overflow-hidden"
         >
           <img
-            src={girlsLearning}
-            alt="Girls at an outdoor learning session"
+            src={girlSmiling}
+            alt="A girl smiling with hope"
             className="h-full w-full object-cover"
             loading="lazy"
           />
