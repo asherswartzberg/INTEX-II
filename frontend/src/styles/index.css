@@ -79,10 +79,13 @@ body {
 
 /* Button hover — instant grey */
 .btn-wipe {
-  transition: background-color 0s;
+  transition: background-color .25s;
 }
 .btn-wipe:hover {
-  background-color: #636363 !important;
+  background-color: #454545 !important;
+}
+.btn-wipe-light-grey:hover {
+  background-color: #cacaca !important;
 }
 .btn-wipe-light:hover {
   background-color: #e5e5e5 !important;

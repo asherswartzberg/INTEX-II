@@ -53,10 +53,9 @@ export default function Hero() {
           <div className="mt-10 flex gap-4">
             <a
               href="#donate"
-              className="btn-slide rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:-translate-y-0.5"
+              className="btn-wipe-light-grey rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:-translate-y-0.5"
             >
               <span className="btn-text">Support our mission</span>
-              <span className="btn-text-hover">Support our mission</span>
             </a>
             <a
               href="#about"
