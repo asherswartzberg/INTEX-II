@@ -16,20 +16,20 @@ import sys
 from datetime import datetime, timezone
 
 import joblib
-import pandas as pd
 
 import config
-import utils_db
 from train_donor_churn import (
     load_data as load_donor_data,
     build_model_dataframe as build_donor_df,
     prepare_features as prepare_donor_features,
+    run_batch_inference as run_donor_batch,
     write_scores as write_donor_scores,
 )
 from train_resident_risk import (
     load_data as load_resident_data,
     build_model_dataframe as build_resident_df,
     prepare_features as prepare_resident_features,
+    run_batch_inference as run_resident_batch,
     write_scores as write_resident_scores,
 )
 from train_social_media import (
@@ -53,32 +53,13 @@ def run_donor_inference():
     df_model = build_donor_df(supporters, donations)
     _, _, feature_cols = prepare_donor_features(df_model)
 
-    risk_probs = loaded_model.predict_proba(df_model[feature_cols])[:, 1]
-    risk_preds = loaded_model.predict(df_model[feature_cols])
-
-    scores_df = pd.DataFrame({
-        "supporter_id":         df_model["supporter_id"],
-        "display_name":         df_model["display_name"],
-        "supporter_type":       df_model["supporter_type"],
-        "churn_risk_score":     risk_probs.round(3),
-        "risk_label":           pd.cut(
-            risk_probs,
-            bins=[0, 0.40, 0.70, 1.01],
-            labels=["Low Risk", "Moderate Risk", "High Risk"],
-            include_lowest=True,
-        ).astype(str),
-        "predicted_at_risk":    risk_preds,
-        "recency_days":         df_model["recency_days"].astype(int),
-        "frequency":            df_model["frequency"].astype(int),
-        "prediction_timestamp": datetime.now(timezone.utc).isoformat(),
-    })
-    scores_df = scores_df.sort_values("churn_risk_score", ascending=False)
+    scores_df = run_donor_batch(df_model, feature_cols, loaded_model)
     write_donor_scores(scores_df)
     print(f"Donor inference complete. {len(scores_df)} supporters scored.")
 
 
 def run_resident_inference():
-    print("\n--- Resident Reintegration Inference ---")
+    print("\n--- Resident Incident Risk Inference ---")
     try:
         loaded_model = joblib.load(config.RESIDENT_RISK_MODEL)
     except FileNotFoundError:
@@ -91,21 +72,7 @@ def run_resident_inference():
     df_model = build_resident_df(residents, process_recs, health, education, incidents, plans)
     _, _, feature_cols = prepare_resident_features(df_model)
 
-    readiness_probs = loaded_model.predict_proba(df_model[feature_cols])[:, 1]
-    readiness_preds = loaded_model.predict(df_model[feature_cols])
-
-    scores_df = pd.DataFrame({
-        "resident_id":          df_model["resident_id"],
-        "readiness_score":      readiness_probs.round(3),
-        "readiness_label":      pd.cut(
-            readiness_probs,
-            bins=[0, 0.33, 0.66, 1.01],
-            labels=["High Risk", "Moderate", "Ready"],
-            include_lowest=True,
-        ).astype(str),
-        "predicted_ready":      readiness_preds,
-        "prediction_timestamp": datetime.now(timezone.utc).isoformat(),
-    })
+    scores_df = run_resident_batch(df_model, loaded_model, feature_cols)
     write_resident_scores(scores_df)
     print(f"Resident inference complete. {len(scores_df)} residents scored.")
 
@@ -119,10 +86,18 @@ def run_social_media_inference_step():
               f"Run train_social_media.py first.")
         return
 
+    try:
+        engagement_model = joblib.load(config.SOCIAL_MEDIA_ENGAGEMENT_MODEL)
+    except FileNotFoundError:
+        print("WARNING: engagement model not found, skipping engagement predictions")
+        engagement_model = None
+
     df = load_social_media_data()
     _, _, feature_cols = prepare_social_media_features(df)
 
-    recommendations = run_social_media_inference(df, loaded_model, feature_cols)
+    recommendations = run_social_media_inference(
+        df, loaded_model, feature_cols, engagement_model
+    )
     write_recommendations(recommendations)
     print(f"Social media inference complete. {len(recommendations)} combos scored.")
 

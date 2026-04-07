@@ -24,14 +24,15 @@ public class DonorRiskScore
     [MaxLength(32)]
     public string? RiskLabel { get; set; }
 
-    [Column("predicted_at_risk")]
-    public long? PredictedAtRisk { get; set; }
-
     [Column("recency_days")]
     public long? RecencyDays { get; set; }
 
     [Column("frequency")]
     public long? Frequency { get; set; }
+
+    [Column("top_factors")]
+    [MaxLength(256)]
+    public string? TopFactors { get; set; }
 
     [Column("prediction_timestamp")]
     public string? PredictionTimestamp { get; set; }

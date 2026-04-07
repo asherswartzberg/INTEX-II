@@ -98,7 +98,7 @@ export default function Admin() {
   // ── Loading skeleton ──
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#fffaf0] via-white to-[#f7f8fa] dark:from-[#111] dark:via-[#111] dark:to-[#111] px-6 py-8 font-sans">
+      <div className="min-h-screen bg-off-white dark:bg-[#111] px-6 py-8 font-sans">
         <div className="mb-6 h-8 w-48 animate-pulse rounded-lg bg-gray-200" />
         <div className="mb-6 space-y-2">
           {[1, 2, 3].map((i) => (
@@ -117,7 +117,7 @@ export default function Admin() {
   // ── Error state ──
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#fffaf0] via-white to-[#f7f8fa] dark:from-[#111] dark:via-[#111] dark:to-[#111] px-6 font-sans">
+      <div className="flex min-h-screen items-center justify-center bg-off-white dark:bg-[#111] px-6 font-sans">
         <div className="rounded-xl border border-red-200 bg-red-50 px-8 py-6 text-center">
           <p className="text-sm font-semibold text-red-700">Failed to load dashboard</p>
           <p className="mt-1 text-xs text-red-500">{error}</p>
@@ -135,7 +135,7 @@ export default function Admin() {
   if (!data) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fffaf0] via-white to-[#f7f8fa] dark:from-[#111] dark:via-[#111] dark:to-[#111] px-6 py-8 font-sans">
+    <div className="min-h-screen bg-off-white dark:bg-[#111] px-6 py-8 font-sans">
       {/* ── Header ── */}
       <div className="mb-6 flex items-start justify-between">
         <div>
