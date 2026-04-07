@@ -22,11 +22,18 @@ public class DonorRiskScoresController : ControllerBase
     public async Task<ActionResult<IEnumerable<DonorRiskScore>>> GetAll(
         CancellationToken cancellationToken)
     {
-        var list = await _db.DonorRiskScores
-            .AsNoTracking()
-            .OrderByDescending(x => x.ChurnRiskScore)
-            .ToListAsync(cancellationToken);
-        return Ok(list);
+        try
+        {
+            var list = await _db.DonorRiskScores
+                .AsNoTracking()
+                .OrderByDescending(x => x.ChurnRiskScore)
+                .ToListAsync(cancellationToken);
+            return Ok(list);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { detail = ex.Message, inner = ex.InnerException?.Message });
+        }
     }
 
     [HttpGet("{supporterId:int}")]
@@ -34,9 +41,16 @@ public class DonorRiskScoresController : ControllerBase
         int supporterId,
         CancellationToken cancellationToken)
     {
-        var entity = await _db.DonorRiskScores
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.SupporterId == supporterId, cancellationToken);
-        return entity is null ? NotFound() : Ok(entity);
+        try
+        {
+            var entity = await _db.DonorRiskScores
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.SupporterId == supporterId, cancellationToken);
+            return entity is null ? NotFound() : Ok(entity);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { detail = ex.Message, inner = ex.InnerException?.Message });
+        }
     }
 }
