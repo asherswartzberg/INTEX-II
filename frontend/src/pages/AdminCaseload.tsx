@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
-import { fetchResidents } from '../apis/residentsApi'
+import { useEffect, useState, useCallback } from 'react'
+import { fetchResidents, deleteResident } from '../apis/residentsApi'
 import type { Resident } from '../types/Resident'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 const RISK_STYLE: Record<string, string> = {
   Critical: 'bg-red-100 text-red-700',
@@ -36,6 +37,20 @@ export default function AdminCaseload() {
   const [riskFilter, setRiskFilter] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<Resident | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Resident | null>(null)
+
+  const handleDelete = useCallback(async () => {
+    if (!confirmDelete) return
+    try {
+      await deleteResident(confirmDelete.residentId)
+      setResidents((prev) => prev.filter((r) => r.residentId !== confirmDelete.residentId))
+      if (selected?.residentId === confirmDelete.residentId) setSelected(null)
+    } catch (err) {
+      console.error('Delete failed', err)
+    } finally {
+      setConfirmDelete(null)
+    }
+  }, [confirmDelete, selected])
 
   useEffect(() => {
     setLoading(true)
@@ -188,11 +203,19 @@ export default function AdminCaseload() {
         <div className="w-[360px] shrink-0 overflow-y-auto border-l border-gray-100 bg-white p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-800">{selected.internalCode}</h2>
-            <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setConfirmDelete(selected)}
+                className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+              >
+                Delete
+              </button>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Badges */}
@@ -242,6 +265,14 @@ export default function AdminCaseload() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete resident"
+        message={`Are you sure you want to delete ${confirmDelete?.internalCode ?? 'this resident'}? This action cannot be undone.`}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

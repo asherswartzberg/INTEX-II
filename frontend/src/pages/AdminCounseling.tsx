@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { fetchResidents } from '../apis/residentsApi'
-import { fetchProcessRecordingsForResident } from '../apis/processRecordingsApi'
+import { fetchProcessRecordingsForResident, deleteProcessRecording } from '../apis/processRecordingsApi'
 import type { Resident } from '../types/Resident'
 import type { ProcessRecording } from '../types/ProcessRecording'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 function fmtDate(s: string | null) {
   if (!s) return '—'
@@ -32,6 +33,20 @@ export default function AdminCounseling() {
   const [loadingResidents, setLoadingResidents] = useState(true)
   const [loadingRecordings, setLoadingRecordings] = useState(false)
   const [residentSearch, setResidentSearch] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState<ProcessRecording | null>(null)
+
+  const handleDelete = useCallback(async () => {
+    if (!confirmDelete) return
+    try {
+      await deleteProcessRecording(confirmDelete.recordingId)
+      setRecordings((prev) => prev.filter((r) => r.recordingId !== confirmDelete.recordingId))
+      if (expanded === confirmDelete.recordingId) setExpanded(null)
+    } catch (err) {
+      console.error('Delete failed', err)
+    } finally {
+      setConfirmDelete(null)
+    }
+  }, [confirmDelete, expanded])
 
   useEffect(() => {
     fetchResidents({ caseStatus: 'Active' })
@@ -193,6 +208,14 @@ export default function AdminCounseling() {
                               <p className="text-sm text-gray-700">{rec.followUpActions}</p>
                             </div>
                           )}
+                          <div className="flex justify-end pt-2">
+                            <button
+                              onClick={() => setConfirmDelete(rec)}
+                              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -203,6 +226,14 @@ export default function AdminCounseling() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete recording"
+        message={`Are you sure you want to delete the session from ${confirmDelete?.sessionDate ? new Date(confirmDelete.sessionDate).toLocaleDateString() : 'this date'}? This action cannot be undone.`}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

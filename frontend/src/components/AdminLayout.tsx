@@ -77,7 +77,7 @@ const navItems: NavItem[] = [
 export default function AdminLayout() {
   const { authSession } = useAuth()
   return (
-    <div className="flex h-screen bg-[#F7F8FA] dark:bg-[#111] font-sans overflow-hidden">
+    <div data-admin className="flex h-screen bg-[#F7F8FA] dark:bg-[#111] font-sans overflow-hidden">
       {/* ── Sidebar ── */}
       <aside className="flex w-[220px] shrink-0 flex-col border-r border-gray-100 bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
         {/* Logo */}
@@ -135,6 +135,15 @@ export default function AdminLayout() {
             </svg>
             Settings
           </NavLink>
+          <Link
+            to="/"
+            className="mt-1 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-[#222] dark:hover:text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+            Back to site
+          </Link>
         </div>
       </aside>
 

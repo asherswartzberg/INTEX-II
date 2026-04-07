@@ -46,8 +46,10 @@ artifacts/
 *.nuget.targets
 
 # Local env / secrets (never commit)
+appsettings.Development.json
 appsettings.*.local.json
 **/secrets.json
+*.db
 
 # Rider / other IDEs
 .idea/

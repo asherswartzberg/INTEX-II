@@ -18,6 +18,7 @@ import AdminVisitations from './pages/AdminVisitations'
 import AdminSocialMedia from './pages/AdminSocialMedia'
 import AdminReports from './pages/AdminReports'
 import SettingsPage from './pages/SettingsPage'
+import DonorDashboard from './pages/DonorDashboard'
 import { ThemeProvider } from './context/ThemeContext'
 
 function App() {
@@ -55,14 +56,12 @@ function App() {
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 
-            {/* Donor portal placeholder */}
+            {/* Donor portal */}
             <Route
               path="/donor/*"
               element={
                 <ProtectedRoute allowedRoles={['Donor']}>
-                  <div className="flex h-screen items-center justify-center">
-                    <p className="text-lg text-medium-gray">Donor dashboard coming soon</p>
-                  </div>
+                  <DonorDashboard />
                 </ProtectedRoute>
               }
             />
