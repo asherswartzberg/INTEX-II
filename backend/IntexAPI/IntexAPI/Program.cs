@@ -38,8 +38,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 
 // --- JWT Authentication ---
-var jwtKey = builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("Jwt:Key not configured");
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "FaroSafehouseJwtSecretKey2026AtLeast32Chars!!";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "IntexAPI";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "IntexFrontend";
 
@@ -70,12 +69,18 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
-})
-.AddGoogle(options =>
-{
-    options.ClientId = builder.Configuration["Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Google:ClientSecret"] ?? "";
 });
+
+// Google OAuth — only register if credentials are configured
+var googleClientId = builder.Configuration["Google:ClientId"];
+if (!string.IsNullOrEmpty(googleClientId))
+{
+    builder.Services.AddAuthentication().AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = builder.Configuration["Google:ClientSecret"] ?? "";
+    });
+}
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
@@ -101,9 +106,14 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // --- Seed roles and users ---
-using (var scope = app.Services.CreateScope())
+try
 {
+    using var scope = app.Services.CreateScope();
     await SeedData.Initialize(scope.ServiceProvider);
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Failed to seed data — app will still start");
 }
 
 if (app.Environment.IsDevelopment())

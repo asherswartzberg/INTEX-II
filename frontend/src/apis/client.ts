@@ -1,5 +1,6 @@
-const DEFAULT_BASE =
-  "https://intex-backend-fvgedfcwcxf8cnc9.australiaeast-01.azurewebsites.net";
+const DEFAULT_BASE = import.meta.env.DEV
+  ? ""  // local dev uses Vite proxy
+  : "https://intex-backend-fvgedfcwcxf8cnc9.australiaeast-01.azurewebsites.net";
 
 export type QueryParams = Record<
   string,
@@ -29,7 +30,22 @@ export class ApiError extends Error {
 function buildUrl(path: string, query?: QueryParams): string {
   const base = getApiBaseUrl();
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  const url = new URL(`${base}${normalized}`);
+  const fullPath = `${base}${normalized}`;
+
+  // In dev mode, base is empty so we can't use new URL() — build query string manually
+  if (!base) {
+    if (!query) return fullPath;
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null) {
+        params.set(key, String(value));
+      }
+    }
+    const qs = params.toString();
+    return qs ? `${fullPath}?${qs}` : fullPath;
+  }
+
+  const url = new URL(fullPath);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value !== null) {
@@ -62,6 +78,7 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
   const fetchInit: RequestInit = {
     ...rest,
     headers,
+    credentials: "include",
   };
 
   if (hasJsonBody) {
