@@ -1,5 +1,6 @@
 using IntexAPI.Data;
 using IntexAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace IntexAPI.Controllers;
 /// <summary>Donor/supporter profiles for staff portal.</summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class SupportersController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -67,6 +69,7 @@ public class SupportersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Supporter>> Create([FromBody] Supporter entity, CancellationToken cancellationToken)
     {
         entity.SupporterId = 0;
@@ -76,6 +79,7 @@ public class SupportersController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] Supporter entity, CancellationToken cancellationToken)
     {
         if (id != entity.SupporterId)
@@ -91,6 +95,7 @@ public class SupportersController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.Supporters.FindAsync(new object[] { id }, cancellationToken);

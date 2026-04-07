@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,7 @@ namespace IntexAPI.Controllers;
 /// <summary>Case conference dates and intervention plans per resident.</summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class InterventionPlansController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -50,6 +52,7 @@ public class InterventionPlansController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<InterventionPlan>> Create(
         [FromBody] InterventionPlan entity,
         CancellationToken cancellationToken)
@@ -61,6 +64,7 @@ public class InterventionPlansController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] InterventionPlan entity, CancellationToken cancellationToken)
     {
         if (id != entity.PlanId)
@@ -76,6 +80,7 @@ public class InterventionPlansController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.InterventionPlans.FindAsync(new object[] { id }, cancellationToken);

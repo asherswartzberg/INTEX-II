@@ -1,5 +1,6 @@
 using IntexAPI.Data;
 using IntexAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace IntexAPI.Controllers;
 /// <summary>Reports &amp; analytics aggregates for charts and trends.</summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class AnalyticsController : ControllerBase
 {
     private readonly AppDbContext _db;

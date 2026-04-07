@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +7,7 @@ namespace IntexAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class HealthWellbeingRecordsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -40,6 +42,7 @@ public class HealthWellbeingRecordsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<HealthWellbeingRecord>> Create(
         [FromBody] HealthWellbeingRecord entity,
         CancellationToken cancellationToken)
@@ -51,6 +54,7 @@ public class HealthWellbeingRecordsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] HealthWellbeingRecord entity, CancellationToken cancellationToken)
     {
         if (id != entity.HealthRecordId)
@@ -66,6 +70,7 @@ public class HealthWellbeingRecordsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.HealthWellbeingRecords.FindAsync(new object[] { id }, cancellationToken);

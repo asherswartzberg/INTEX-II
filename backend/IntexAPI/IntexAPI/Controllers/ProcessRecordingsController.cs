@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,6 +8,7 @@ namespace IntexAPI.Controllers;
 /// <summary>Counseling process recordings per resident (chronological history).</summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class ProcessRecordingsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -41,6 +43,7 @@ public class ProcessRecordingsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ProcessRecording>> Create(
         [FromBody] ProcessRecording entity,
         CancellationToken cancellationToken)
@@ -52,6 +55,7 @@ public class ProcessRecordingsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] ProcessRecording entity, CancellationToken cancellationToken)
     {
         if (id != entity.RecordingId)
@@ -67,6 +71,7 @@ public class ProcessRecordingsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.ProcessRecordings.FindAsync(new object[] { id }, cancellationToken);
