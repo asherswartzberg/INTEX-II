@@ -1,13 +1,22 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router'
+import { Link, useNavigate, Navigate } from 'react-router'
+import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
+  const { user, login } = useAuth()
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Already logged in — redirect
+  if (user) {
+    const dest = user.roles.includes('Admin') || user.roles.includes('Staff') ? '/admin' : '/donor'
+    return <Navigate to={dest} replace />
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,42 +28,31 @@ export default function LoginPage() {
     }
 
     setLoading(true)
+    const result = await login(email, password)
+    setLoading(false)
 
-    // TODO: Replace with actual API call to .NET backend
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        setError(data?.message || 'Invalid email or password.')
-        return
-      }
-
-      // On success, redirect to dashboard or home
-      window.location.href = '/admin'
-    } catch {
-      setError('Unable to connect. Please try again later.')
-    } finally {
-      setLoading(false)
+    if (result.ok) {
+      navigate('/admin')
+    } else {
+      setError(result.error || 'Login failed.')
     }
   }
 
+  const handleGoogleLogin = () => {
+    window.location.href = '/api/auth/google-login'
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-warm-gray px-4">
+    <div className="flex min-h-screen items-center justify-center bg-off-white px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        {/* Back to home */}
         <Link
           to="/"
-          className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-medium-gray transition-colors hover:text-amber-500"
+          className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-medium-gray transition-colors hover:text-black"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -62,34 +60,23 @@ export default function LoginPage() {
           Back to home
         </Link>
 
-        {/* Card */}
-        <div className="rounded-2xl border border-soft-gray bg-white p-8 shadow-lg md:p-10">
-          {/* Header */}
+        <div className="rounded-2xl border border-border bg-white p-8 shadow-sm md:p-10">
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-dark">Welcome back</h1>
+            <h1 className="text-2xl font-bold text-black">Welcome back</h1>
             <p className="mt-2 text-sm text-medium-gray">
               Sign in to your Faro Safehouse account
             </p>
           </div>
 
-          {/* Error message */}
           {error && (
-            <div
-              role="alert"
-              className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200"
-            >
+            <div role="alert" className="mb-6 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 border border-red-200">
               {error}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} noValidate>
-            {/* Email */}
             <div className="mb-5">
-              <label
-                htmlFor="email"
-                className="mb-1.5 block text-sm font-medium text-dark"
-              >
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-black">
                 Email address
               </label>
               <input
@@ -100,23 +87,16 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-lg border border-soft-gray bg-warm-white px-4 py-3 text-sm text-dark placeholder-medium-gray/50 transition-colors focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                className="w-full rounded-lg border border-border bg-off-white px-4 py-3 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
               />
             </div>
 
-            {/* Password */}
             <div className="mb-6">
               <div className="mb-1.5 flex items-center justify-between">
-                <label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-dark"
-                >
+                <label htmlFor="password" className="block text-sm font-medium text-black">
                   Password
                 </label>
-                <a
-                  href="#"
-                  className="text-xs font-medium text-amber-500 hover:text-amber-600 transition-colors"
-                >
+                <a href="#" className="text-xs font-medium text-medium-gray hover:text-black transition-colors">
                   Forgot password?
                 </a>
               </div>
@@ -129,12 +109,12 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full rounded-lg border border-soft-gray bg-warm-white px-4 py-3 pr-12 text-sm text-dark placeholder-medium-gray/50 transition-colors focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  className="w-full rounded-lg border border-border bg-off-white px-4 py-3 pr-12 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-medium-gray hover:text-dark transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-medium-gray hover:text-black transition-colors"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
@@ -152,27 +132,26 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-amber-500 py-3 text-sm font-semibold text-white transition-colors hover:bg-amber-600 focus-visible:outline-amber-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-slide w-full rounded-full bg-black py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              <span className="btn-text">{loading ? 'Signing in...' : 'Sign in'}</span>
+              <span className="btn-text-hover">{loading ? 'Signing in...' : 'Sign in'}</span>
             </button>
           </form>
 
-          {/* Divider */}
           <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-soft-gray" />
+            <div className="h-px flex-1 bg-border" />
             <span className="text-xs text-medium-gray">or</span>
-            <div className="h-px flex-1 bg-soft-gray" />
+            <div className="h-px flex-1 bg-border" />
           </div>
 
-          {/* Third-party auth placeholder */}
           <button
             type="button"
-            className="flex w-full items-center justify-center gap-3 rounded-lg border border-soft-gray bg-white py-3 text-sm font-medium text-dark transition-colors hover:bg-warm-gray focus-visible:outline-amber-500"
+            onClick={handleGoogleLogin}
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-border bg-white py-3 text-sm font-medium text-black transition-colors hover:bg-off-white"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
@@ -184,12 +163,9 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Footer note */}
         <p className="mt-6 text-center text-xs text-medium-gray">
           By signing in, you agree to our{' '}
-          <a href="/privacy" className="text-amber-500 hover:text-amber-600 transition-colors">
-            Privacy Policy
-          </a>
+          <a href="/privacy" className="text-black hover:underline">Privacy Policy</a>
         </p>
       </motion.div>
     </div>

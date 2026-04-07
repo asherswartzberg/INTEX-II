@@ -47,10 +47,10 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           to="/"
-          className={`text-xl transition-colors duration-300 ${
+          className={`text-2xl font-bold transition-colors duration-300 ${
             scrolled ? 'text-black' : 'text-white'
           }`}
-          style={{ fontFamily: "'Apple Chancery', cursive" }}
+          style={{ fontFamily: "'EB Garamond', serif" }}
           aria-label="Faro Safehouse - Home"
         >
           Faro Safehouse

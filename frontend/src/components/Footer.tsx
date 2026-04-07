@@ -23,7 +23,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <p
               className="text-2xl text-white"
-              style={{ fontFamily: "'Apple Chancery', cursive" }}
+              style={{ fontFamily: "'EB Garamond', serif" }}
             >
               Faro Safehouse
             </p>
