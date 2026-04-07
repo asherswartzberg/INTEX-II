@@ -244,6 +244,28 @@ public class AuthController(
         return Ok(new { message = "Logout successful." });
     }
 
+    // ── Donor: get my profile + donations ──────────────────
+
+    [HttpGet("my-profile")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = AuthRoles.Donor)]
+    public async Task<IActionResult> GetMyProfile()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var user = await userManager.FindByIdAsync(userId);
+        if (user?.SupporterId == null)
+            return Ok(new { supporter = (object?)null, donations = Array.Empty<object>() });
+
+        var supporter = await appDb.Supporters.FindAsync(user.SupporterId);
+        var donations = await appDb.Donations
+            .Where(d => d.SupporterId == user.SupporterId)
+            .OrderByDescending(d => d.DonationDate)
+            .ToListAsync();
+
+        return Ok(new { supporter, donations });
+    }
+
     // ── Donor: submit donation ─────────────────────────────
 
     public record DonorDonationRequest(

@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router'
 import { useAuth } from '../context/AuthContext'
 import { fetchPublicImpactSummary } from '../apis/publicImpactApi'
-import { fetchDonationsForSupporter, fetchSupporterById } from '../apis/supportersApi'
 import { getApiBaseUrl } from '../apis/client'
 import type { Donation } from '../types/Donation'
 import type { Supporter } from '../types/Supporter'
@@ -160,19 +159,19 @@ export default function DonorDashboard() {
 
   const loadData = useCallback(async () => {
     try {
-      const impactData = await fetchPublicImpactSummary()
+      const [impactData, profileRes] = await Promise.all([
+        fetchPublicImpactSummary(),
+        fetch(`${getApiBaseUrl()}/api/auth/my-profile`, { credentials: 'include' }),
+      ])
       setImpact(impactData)
-      if (authSession.supporterId) {
-        const [sup, don] = await Promise.all([
-          fetchSupporterById(authSession.supporterId),
-          fetchDonationsForSupporter(authSession.supporterId),
-        ])
-        setSupporter(sup)
-        setDonations(don)
+      if (profileRes.ok) {
+        const profile = await profileRes.json()
+        if (profile.supporter) setSupporter(profile.supporter)
+        if (profile.donations) setDonations(profile.donations)
       }
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
-  }, [authSession.supporterId])
+  }, [])
 
   useEffect(() => { loadData() }, [loadData])
 
