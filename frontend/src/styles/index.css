@@ -49,6 +49,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Admin typography — headers use brand display font */
+[data-admin] h1,
+[data-admin] h2,
+[data-admin] h3 {
+  font-family: 'DM Serif Display', Georgia, serif;
+}
+
 /* Dark mode — scoped to admin portal only (not landing page) */
 html.dark [data-admin] {
   background-color: #111;
