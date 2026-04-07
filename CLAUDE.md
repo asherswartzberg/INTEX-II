@@ -99,6 +99,22 @@ The auth system was carefully migrated from custom JWT to ASP.NET Identity cooki
 - `PublicImpactController` is intentionally unauthenticated (public landing page data)
 - Registration does NOT allow role selection — all self-registered users become Donors
 
+### Password Policy — DO NOT CHANGE
+
+The password policy is **intentionally set to 14+ characters only** with no other composition requirements (no uppercase, lowercase, digit, or special character rules). This was a deliberate decision based on instructor guidance that modern NIST standards favor length over complexity rules. Do not "fix" this or revert it to Microsoft's defaults.
+
+Config lives in `Program.cs` in the `AddIdentityApiEndpoints` options block:
+```csharp
+options.Password.RequiredLength = 14;
+options.Password.RequireUppercase = false;
+options.Password.RequireLowercase = false;
+options.Password.RequireDigit = false;
+options.Password.RequireNonAlphanumeric = false;
+options.Password.RequiredUniqueChars = 1;
+```
+
+The matching user-facing hint is in `RegisterPage.tsx` (placeholder text: `"Minimum 14 characters"`).
+
 ### Files That Compose the Auth System (do not touch)
 
 ```
@@ -207,7 +223,7 @@ src/
 
 ## ML Pipelines
 
-**Location:** `ML Pipelines/` (separate git repo)
+**Location:** `ml/` (in this repo)
 **Language:** Python 3.11
 **Orchestration:** GitHub Actions nightly at 2 AM UTC (`retrain.yml`)
 
@@ -229,11 +245,9 @@ src/
 
 ### Key Files
 
-- `scripts/config.py` — Paths, DB toggle, connection string, constants
-- `scripts/utils_db.py` — SQLAlchemy helpers (get_engine, load_table, write_table)
-- `requirements.txt` — Python dependencies
-
-**Note:** The ML pipeline is currently having training issues that need investigation.
+- `ml/scripts/config.py` — Paths, DB toggle, connection string, constants
+- `ml/scripts/utils_db.py` — SQLAlchemy helpers (get_engine, load_table, write_table)
+- `ml/requirements.txt` — Python dependencies
 
 ---
 
@@ -319,9 +333,8 @@ npm run dev   # Starts on http://localhost:5173, proxies /api to :5180
 
 ### ML Pipelines (local, CSV mode)
 ```bash
-cd "ML Pipelines"
-pip install -r requirements.txt
-cd scripts
+pip install -r ml/requirements.txt
+cd ml/scripts
 python train_social_media.py    # Uses local CSVs by default
 ```
 

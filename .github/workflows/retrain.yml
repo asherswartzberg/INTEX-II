@@ -1,0 +1,112 @@
+# -----------------------------------------------------------------------
+# retrain.yml — Nightly ML Model Retraining
+#
+# SECRETS: Add the following secret in
+#          GitHub → Settings → Secrets and variables → Actions:
+#
+#   Name:  AZURE_SQL_CONNECTION_STRING
+#   Value: (your mssql+pyodbc:// connection string)
+#
+# MANUAL TRIGGER: Go to Actions tab → "Nightly Model Retrain" → Run workflow
+# -----------------------------------------------------------------------
+
+name: Nightly Model Retrain
+
+on:
+  schedule:
+    # 2:00 AM UTC every night (safe off-peak window)
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    # Also allows manual trigger from the GitHub Actions UI (great for demos)
+
+jobs:
+  retrain:
+    name: Train + Inference (all 3 pipelines)
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------------
+      # 1. Check out the repository
+      # ----------------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------------------
+      # 2. Set up Python
+      # ----------------------------------------------------------------
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ----------------------------------------------------------------
+      # 3. Install Microsoft ODBC Driver 18 (required for Azure SQL)
+      # ----------------------------------------------------------------
+      - name: Install ODBC Driver 18 for SQL Server
+        run: |
+          curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+          curl -sSL https://packages.microsoft.com/config/ubuntu/22.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo apt-get update -q
+          sudo ACCEPT_EULA=Y apt-get install -yq msodbcsql18
+
+      # ----------------------------------------------------------------
+      # 4. Install Python dependencies
+      # ----------------------------------------------------------------
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ml/requirements.txt
+
+      # ----------------------------------------------------------------
+      # 5. Train — Social Media Performance Predictor
+      # ----------------------------------------------------------------
+      - name: Train social media model
+        working-directory: ml/scripts
+        env:
+          USE_DATABASE: "true"
+          AZURE_SQL_CONNECTION_STRING: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        run: python train_social_media.py
+
+      # ----------------------------------------------------------------
+      # 6. Train — Resident Reintegration Predictor
+      # ----------------------------------------------------------------
+      - name: Train resident risk model
+        working-directory: ml/scripts
+        env:
+          USE_DATABASE: "true"
+          AZURE_SQL_CONNECTION_STRING: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        run: python train_resident_risk.py
+
+      # ----------------------------------------------------------------
+      # 7. Train — Donor Churn Classifier
+      # ----------------------------------------------------------------
+      - name: Train donor churn model
+        working-directory: ml/scripts
+        env:
+          USE_DATABASE: "true"
+          AZURE_SQL_CONNECTION_STRING: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        run: python train_donor_churn.py
+
+      # ----------------------------------------------------------------
+      # 8. Run batch inference and write predictions to Azure SQL
+      # ----------------------------------------------------------------
+      - name: Run batch inference (all pipelines)
+        working-directory: ml/scripts
+        env:
+          USE_DATABASE: "true"
+          AZURE_SQL_CONNECTION_STRING: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        run: python run_inference_all.py
+
+      # ----------------------------------------------------------------
+      # 9. Upload model artifacts
+      #    (lets you download .sav + .json files from the Actions UI)
+      # ----------------------------------------------------------------
+      - name: Upload model artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-artifacts-${{ github.run_number }}
+          path: |
+            ml/artifacts/*.sav
+            ml/artifacts/*.json
+          retention-days: 14

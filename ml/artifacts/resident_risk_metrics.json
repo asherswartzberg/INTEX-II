@@ -1,0 +1,8 @@
+{
+  "test_accuracy": 0.5833333333333334,
+  "test_f1": 0.6666666666666666,
+  "test_roc_auc": 0.5,
+  "baseline_accuracy": 0.6666666666666666,
+  "cv_roc_auc_mean": 0.5806878306878307,
+  "cv_roc_auc_std": 0.18340842656111653
+}

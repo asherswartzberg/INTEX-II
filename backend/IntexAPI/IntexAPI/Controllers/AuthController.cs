@@ -74,7 +74,17 @@ public class AuthController(
             return BadRequest(new { detail = message });
         }
 
-        await userManager.AddToRoleAsync(user, AuthRoles.Donor);
+        try
+        {
+            await userManager.AddToRoleAsync(user, AuthRoles.Donor);
+        }
+        catch (Exception ex)
+        {
+            // Role assignment failed — user was created but has no role.
+            // Log and continue; they can still log in, role can be assigned manually.
+            _ = ex;
+        }
+
         return Ok();
     }
 

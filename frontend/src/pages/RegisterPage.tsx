@@ -111,7 +111,7 @@ export default function RegisterPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 12 chars, upper, lower, digit, special"
+                  placeholder="Minimum 14 characters"
                   className="w-full rounded-lg border border-border bg-off-white px-4 py-3 pr-12 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 <button
