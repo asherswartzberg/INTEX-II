@@ -1,52 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { apiRequest } from '../apis/client'
-
-// ── Types ────────────────────────────────────────────────────────────────────
-interface ResidentsBySafehouseDto {
-  safehouseId: number
-  safehouseName: string | null
-  safehouseCode: string | null
-  activeResidentCount: number
-}
-
-interface RecentDonationDto {
-  donationId: number
-  donationDate: string | null   // DateOnly → "YYYY-MM-DD"
-  donationType: string | null
-  amount: number | null
-  currencyCode: string | null
-  supporterId: number | null
-  supporterDisplayName: string | null
-}
-
-interface UpcomingCaseConferenceDto {
-  planId: number
-  residentId: number | null
-  residentCaseNo: string | null
-  caseConferenceDate: string | null  // DateOnly → "YYYY-MM-DD"
-  planCategory: string | null
-  status: string | null
-}
-
-interface LatestSafehouseProgressDto {
-  safehouseId: number | null
-  safehouseName: string | null
-  monthStart: string | null
-  activeResidents: number | null
-  avgEducationProgress: number | null
-  avgHealthScore: number | null
-  incidentCount: number | null
-}
-
-interface AdminDashboardDto {
-  totalActiveResidents: number
-  activeResidentsBySafehouse: ResidentsBySafehouseDto[]
-  recentDonations: RecentDonationDto[]
-  upcomingCaseConferences: UpcomingCaseConferenceDto[]
-  latestMonthlyProgressBySafehouse: LatestSafehouseProgressDto[]
-}
 import { ApiError, fetchAdminDashboard } from '../apis'
+import type { AdminDashboardDto } from '../types/apiDtos'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatCurrency(amount: number | null, currency: string | null) {
@@ -76,10 +31,6 @@ export default function Admin() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    apiRequest<AdminDashboardDto>('/api/admin/dashboard')
-      .then(setData)
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false))
     let cancelled = false
     fetchAdminDashboard()
       .then((d) => {
