@@ -60,12 +60,14 @@ if (!string.IsNullOrWhiteSpace(googleClientId)
     && !string.IsNullOrWhiteSpace(googleClientSecret)
     && !googleClientSecret.Contains("YOUR_GOOGLE", StringComparison.OrdinalIgnoreCase))
 {
-    builder.Services.AddGoogle(options =>
-    {
-        options.ClientId = googleClientId;
-        options.ClientSecret = googleClientSecret;
-        options.SignInScheme = IdentityConstants.ExternalScheme;
-    });
+    builder.Services
+        .AddAuthentication()
+        .AddGoogle(options =>
+        {
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
+            options.SignInScheme = IdentityConstants.ExternalScheme;
+        });
 }
 
 // --- Authorization policies ---

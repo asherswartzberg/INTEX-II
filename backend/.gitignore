@@ -22,6 +22,8 @@ obj/
 [Dd]ebug/
 [Rr]elease/
 [Rr]eleases/
+[Pp]ublish/
+**/[Pp]ublish/
 x64/
 x86/
 [Aa]rm/
