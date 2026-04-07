@@ -10,8 +10,8 @@ public class ResidentRiskScore
     [Column("resident_id")]
     public long ResidentId { get; set; }
 
-    [Column("incident_risk_score")]
-    public double? IncidentRiskScore { get; set; }
+    [Column("readiness_score")]
+    public double? ReadinessScore { get; set; }
 
     [Column("risk_label")]
     [MaxLength(32)]

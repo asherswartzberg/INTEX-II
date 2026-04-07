@@ -29,10 +29,10 @@ public class EducationRecord
     public string? EnrollmentStatus { get; set; }
 
     [Column("attendance_rate")]
-    public decimal? AttendanceRate { get; set; }
+    public double? AttendanceRate { get; set; }
 
     [Column("progress_percent")]
-    public decimal? ProgressPercent { get; set; }
+    public double? ProgressPercent { get; set; }
 
     [Column("completion_status")]
     [MaxLength(64)]

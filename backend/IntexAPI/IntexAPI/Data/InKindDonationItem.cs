@@ -29,7 +29,7 @@ public class InKindDonationItem
     public string? UnitOfMeasure { get; set; }
 
     [Column("estimated_unit_value")]
-    public decimal? EstimatedUnitValue { get; set; }
+    public double? EstimatedUnitValue { get; set; }
 
     [Column("intended_use")]
     [MaxLength(128)]
