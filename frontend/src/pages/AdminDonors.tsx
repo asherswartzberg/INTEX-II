@@ -1,10 +1,12 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { fetchSupporters } from '../apis/supportersApi'
 import { fetchDonationsForSupporter } from '../apis/supportersApi'
+import { deleteSupporter } from '../apis/supportersApi'
 import { fetchDonationAllocations } from '../apis/donationAllocationsApi'
 import type { Supporter } from '../types/Supporter'
 import type { Donation } from '../types/Donation'
 import type { DonationAllocation } from '../types/DonationAllocation'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function initials(name: string | null) {
@@ -73,6 +75,20 @@ export default function AdminDonors() {
   const [allocations, setAllocations] = useState<DonationAllocation[]>([])
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [donationPage, setDonationPage] = useState(1)
+  const [confirmDelete, setConfirmDelete] = useState<Supporter | null>(null)
+
+  const handleDelete = useCallback(async () => {
+    if (!confirmDelete) return
+    try {
+      await deleteSupporter(confirmDelete.supporterId)
+      setSupporters((prev) => prev.filter((s) => s.supporterId !== confirmDelete.supporterId))
+      if (selected?.supporterId === confirmDelete.supporterId) setSelected(null)
+    } catch (err) {
+      console.error('Delete failed', err)
+    } finally {
+      setConfirmDelete(null)
+    }
+  }, [confirmDelete, selected])
 
   // Load supporter list
   useEffect(() => {
@@ -255,8 +271,11 @@ export default function AdminDonors() {
                 <button className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                   Edit
                 </button>
-                <button className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
-                  Deactivate
+                <button
+                  onClick={() => setConfirmDelete(selected)}
+                  className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  Delete
                 </button>
               </div>
             </div>
@@ -389,6 +408,14 @@ export default function AdminDonors() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete supporter"
+        message={`Are you sure you want to delete ${confirmDelete?.organizationName ?? 'this supporter'}? This action cannot be undone.`}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { fetchResidents } from '../apis/residentsApi'
-import { fetchHomeVisitationsForResident } from '../apis/homeVisitationsApi'
+import { fetchHomeVisitationsForResident, deleteHomeVisitation } from '../apis/homeVisitationsApi'
 import type { Resident } from '../types/Resident'
 import type { HomeVisitation } from '../types/HomeVisitation'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 function fmtDate(s: string | null) {
   if (!s) return '—'
@@ -23,6 +24,20 @@ export default function AdminVisitations() {
   const [loadingResidents, setLoadingResidents] = useState(true)
   const [loadingVisitations, setLoadingVisitations] = useState(false)
   const [residentSearch, setResidentSearch] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState<HomeVisitation | null>(null)
+
+  const handleDelete = useCallback(async () => {
+    if (!confirmDelete) return
+    try {
+      await deleteHomeVisitation(confirmDelete.visitationId)
+      setVisitations((prev) => prev.filter((v) => v.visitationId !== confirmDelete.visitationId))
+      if (expanded === confirmDelete.visitationId) setExpanded(null)
+    } catch (err) {
+      console.error('Delete failed', err)
+    } finally {
+      setConfirmDelete(null)
+    }
+  }, [confirmDelete, expanded])
 
   useEffect(() => {
     fetchResidents({ caseStatus: 'Active' })
@@ -181,6 +196,14 @@ export default function AdminVisitations() {
                               <p className="mt-1 text-sm text-amber-800">{v.followUpNotes}</p>
                             </div>
                           )}
+                          <div className="flex justify-end pt-2">
+                            <button
+                              onClick={() => setConfirmDelete(v)}
+                              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -191,6 +214,14 @@ export default function AdminVisitations() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete visitation"
+        message={`Are you sure you want to delete the visitation from ${confirmDelete?.visitDate ? new Date(confirmDelete.visitDate).toLocaleDateString() : 'this date'}? This action cannot be undone.`}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   )
 }

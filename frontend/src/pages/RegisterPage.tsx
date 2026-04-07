@@ -3,10 +3,10 @@ import type { FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../context/AuthContext'
-import { registerUser } from '../lib/authAPI'
+import { registerUser, loginUser } from '../lib/authAPI'
 
 export default function RegisterPage() {
-  const { isAuthenticated, isLoading, authSession } = useAuth()
+  const { isAuthenticated, isLoading, authSession, refreshAuthState } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -42,7 +42,9 @@ export default function RegisterPage() {
     setSubmitting(true)
     try {
       await registerUser(email, password)
-      navigate('/login')
+      // Auto-login after registration
+      await loginUser(email, password, true)
+      await refreshAuthState()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed.')
     } finally {
