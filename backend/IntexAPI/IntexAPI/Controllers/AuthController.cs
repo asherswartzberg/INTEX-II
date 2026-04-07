@@ -61,31 +61,28 @@ public class AuthController(
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             return BadRequest(new { detail = "Email and password are required." });
 
-        var user = new ApplicationUser
-        {
-            UserName = request.Email,
-            Email = request.Email,
-        };
-
-        var result = await userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded)
-        {
-            var message = string.Join(" ", result.Errors.Select(e => e.Description));
-            return BadRequest(new { detail = message });
-        }
-
         try
         {
+            var user = new ApplicationUser
+            {
+                UserName = request.Email,
+                Email = request.Email,
+            };
+
+            var result = await userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                var message = string.Join(" ", result.Errors.Select(e => e.Description));
+                return BadRequest(new { detail = message });
+            }
+
             await userManager.AddToRoleAsync(user, AuthRoles.Donor);
+            return Ok();
         }
         catch (Exception ex)
         {
-            // Role assignment failed — user was created but has no role.
-            // Log and continue; they can still log in, role can be assigned manually.
-            _ = ex;
+            return StatusCode(500, new { detail = $"Registration failed: {ex.Message}" });
         }
-
-        return Ok();
     }
 
     // ── External provider discovery ───────────────────────
