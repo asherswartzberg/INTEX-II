@@ -5,8 +5,8 @@ export interface DonorRiskScore {
   supporterType: string | null
   churnRiskScore: number | null
   riskLabel: string | null
-  predictedAtRisk: number | null
   recencyDays: number | null
   frequency: number | null
+  topFactors: string | null
   predictionTimestamp: string | null
 }

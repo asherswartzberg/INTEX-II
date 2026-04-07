@@ -1,8 +1,8 @@
 {
   "model_name": "donor_churn_classifier",
   "model_version": "1.0.0",
-  "trained_at_utc": "2026-04-06T21:02:32.229105",
-  "best_algorithm": "DecisionTree",
+  "trained_at_utc": "2026-04-07T22:41:05.168206+00:00",
+  "best_algorithm": "Decision Tree",
   "features": [
     "supporter_type",
     "relationship_type",
@@ -19,13 +19,11 @@
     "donation_type_variety",
     "channel_variety",
     "campaigns_donated_to",
-    "first_donation_date_y",
     "avg_gap_days",
     "tenure_days"
   ],
   "target": "is_at_risk",
-  "target_definition": "recency_days > 180",
-  "churn_threshold_days": 180,
+  "target_definition": "recency_days > 75th percentile of donor recency",
   "num_training_rows": 48,
   "num_test_rows": 12,
   "cv_strategy": "RepeatedStratifiedKFold(n_splits=5, n_repeats=3)"

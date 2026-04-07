@@ -51,6 +51,7 @@ def load_data() -> pd.DataFrame:
 # ------------------------------------------------------------------ #
 
 TARGET = "donation_referrals"
+TARGET_ENGAGEMENT = "engagement_rate"
 
 FEATURE_COLS = [
     "platform",
@@ -235,29 +236,70 @@ def save_artifacts(best_model, best_model_name, feature_cols,
 
 
 # ------------------------------------------------------------------ #
-# 6. Batch inference — generate recommendation grid
+# 6. Train engagement model (second metric)
 # ------------------------------------------------------------------ #
 
-def run_batch_inference(df_raw: pd.DataFrame, best_model, feature_cols: list) -> pd.DataFrame:
-    """Score all platform × post_type × content_topic × day_of_week combos."""
-    platforms     = df_raw["platform"].unique()
-    post_types    = df_raw["post_type"].unique()
-    content_topics = df_raw["content_topic"].unique()
+def train_engagement_model(df: pd.DataFrame):
+    """Train a GradientBoosting regressor predicting engagement_rate."""
+    feature_cols = [c for c in FEATURE_COLS if c in df.columns]
+    df = df.copy()
+    if "boost_budget_php" in df.columns:
+        df["boost_budget_php"] = df["boost_budget_php"].fillna(0)
+
+    X = df[feature_cols].copy()
+    y = df[TARGET_ENGAGEMENT].copy()
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.20, random_state=config.SEED
+    )
+    preprocessor, _, _ = build_preprocessor(X_train)
+
+    model = Pipeline(steps=[
+        ("prep", preprocessor),
+        ("reg", GradientBoostingRegressor(n_estimators=100, random_state=config.SEED)),
+    ])
+    model.fit(X_train, y_train)
+
+    y_pred = model.predict(X_test)
+    eng_mae = mean_absolute_error(y_test, y_pred)
+    eng_r2 = r2_score(y_test, y_pred)
+    print(f"\nEngagement model — MAE: {eng_mae:.4f} | R²: {eng_r2:.4f}")
+
+    joblib.dump(model, config.SOCIAL_MEDIA_ENGAGEMENT_MODEL)
+    print(f"Engagement model saved: {config.SOCIAL_MEDIA_ENGAGEMENT_MODEL}")
+    return model, feature_cols
+
+
+# ------------------------------------------------------------------ #
+# 7. Batch inference — generate recommendation grid
+# ------------------------------------------------------------------ #
+
+def run_batch_inference(df_raw: pd.DataFrame, best_model, feature_cols: list,
+                        engagement_model=None) -> pd.DataFrame:
+    """Score all platform × post_type × media_type × content_topic × day_of_week combos."""
+    platforms      = sorted(df_raw["platform"].unique())
+    post_types     = sorted(df_raw["post_type"].unique())
+    media_types    = sorted(df_raw["media_type"].unique())
+    content_topics = sorted(df_raw["content_topic"].unique())
     days = ["Monday", "Tuesday", "Wednesday", "Thursday",
             "Friday", "Saturday", "Sunday"]
 
-    median_hour       = int(df_raw["post_hour"].median())
-    median_hashtags   = int(df_raw["num_hashtags"].median())
-    median_caption    = int(df_raw["caption_length"].median())
+    # Fixed values for features not being varied
+    mode_sentiment  = df_raw["sentiment_tone"].mode()[0]
+    median_hour     = int(df_raw["post_hour"].median())
+    median_hashtags = int(df_raw["num_hashtags"].median())
+    median_caption  = int(df_raw["caption_length"].median())
 
     combos = []
-    for platform, post_type, topic, day in product(platforms, post_types, content_topics, days):
+    for plat, pt, mt, topic, day in product(
+        platforms, post_types, media_types, content_topics, days
+    ):
         combos.append({
-            "platform":               platform,
-            "post_type":              post_type,
-            "media_type":             "Photo",
+            "platform":               plat,
+            "post_type":              pt,
+            "media_type":             mt,
             "content_topic":          topic,
-            "sentiment_tone":         "Hopeful",
+            "sentiment_tone":         mode_sentiment,
             "day_of_week":            day,
             "post_hour":              median_hour,
             "has_call_to_action":     True,
@@ -273,13 +315,29 @@ def run_batch_inference(df_raw: pd.DataFrame, best_model, feature_cols: list) ->
     combos_df["predicted_donation_referrals"] = (
         best_model.predict(combos_df[feature_cols]).clip(min=0).round(1)
     )
+
+    if engagement_model is not None:
+        combos_df["predicted_engagement_rate"] = (
+            engagement_model.predict(combos_df[feature_cols]).clip(min=0).round(4)
+        )
+    else:
+        combos_df["predicted_engagement_rate"] = None
+
     combos_df["prediction_timestamp"] = datetime.now(timezone.utc).isoformat()
-    recommendations = combos_df.sort_values("predicted_donation_referrals", ascending=False)
+
+    # Keep only the varying columns + predictions
+    output_cols = [
+        "platform", "post_type", "media_type", "content_topic", "day_of_week",
+        "predicted_donation_referrals", "predicted_engagement_rate",
+        "prediction_timestamp",
+    ]
+    recommendations = combos_df[output_cols].sort_values(
+        "predicted_donation_referrals", ascending=False
+    )
 
     print(f"Scored {len(recommendations):,} posting-strategy combinations.")
     print("Top 5 recommendations:")
-    print(recommendations[["platform", "post_type", "content_topic",
-                            "day_of_week", "predicted_donation_referrals"]].head(5).to_string(index=False))
+    print(recommendations.head(5).to_string(index=False))
     return recommendations
 
 
@@ -310,7 +368,9 @@ if __name__ == "__main__":
     save_artifacts(best_model, best_model_name, feature_cols,
                    X_train, X_test, final_mae, final_rmse, final_r2, baseline_mae, cv_df)
 
-    recommendations = run_batch_inference(df, best_model, feature_cols)
+    engagement_model, _ = train_engagement_model(df)
+
+    recommendations = run_batch_inference(df, best_model, feature_cols, engagement_model)
     write_recommendations(recommendations)
 
     print("\nSocial media pipeline complete.")

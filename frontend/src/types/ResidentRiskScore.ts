@@ -1,8 +1,9 @@
-/** Table `resident_risk_scores` — ML reintegration readiness predictions */
+/** Table `resident_risk_scores` — ML incident risk predictions */
 export interface ResidentRiskScore {
   residentId: number
-  readinessScore: number | null
-  readinessLabel: string | null
-  predictedReady: number | null
+  incidentRiskScore: number | null
+  riskLabel: string | null
+  predictedHighRisk: number | null
+  topFactors: string | null
   predictionTimestamp: string | null
 }

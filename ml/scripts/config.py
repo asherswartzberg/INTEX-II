@@ -22,6 +22,7 @@ ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Model filenames
 SOCIAL_MEDIA_MODEL  = str(ARTIFACT_DIR / "social_media_model.sav")
+SOCIAL_MEDIA_ENGAGEMENT_MODEL = str(ARTIFACT_DIR / "social_media_engagement_model.sav")
 RESIDENT_RISK_MODEL = str(ARTIFACT_DIR / "resident_risk_model.sav")
 DONOR_CHURN_MODEL   = str(ARTIFACT_DIR / "donor_churn_model.sav")
 

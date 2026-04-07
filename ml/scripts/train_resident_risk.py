@@ -1,7 +1,11 @@
 """
-train_resident_risk.py — Train the Resident Reintegration Readiness Predictor.
+train_resident_risk.py — Train the Resident Incident Risk Predictor.
 
-Mirrors the logic from notebooks/resident-reintegration-predictor.ipynb.
+Predicts which residents are likely to experience serious behavioural
+incidents (RunawayAttempt or SelfHarm) based on their clinical trajectory
+data (health, education, counselling sessions, intervention plans).
+
+Mirrors the logic from notebooks/resident-incident-risk-predictor.ipynb.
 Run from the scripts/ directory:
 
     python train_resident_risk.py
@@ -98,12 +102,14 @@ DROP_COLS = [
     "date_closed", "created_at",
     "referring_agency_person", "notes_restricted", "assigned_social_worker",
     "initial_case_assessment", "sex",
-    "is_ready",
+    # Target + incident-derived columns (leakage — can't predict incidents from incidents)
+    "has_serious_incident", "serious_incident_count",
+    "total_incidents", "avg_severity_score", "high_severity_count", "pct_resolved",
 ]
 
 LEAKAGE_COLS = [
-    "reintegration_status", "reintegration_type",
-    "current_risk_level", "case_status", "is_ready",
+    "has_serious_incident", "serious_incident_count",
+    "total_incidents", "avg_severity_score", "high_severity_count", "pct_resolved",
 ]
 
 
@@ -196,6 +202,14 @@ def build_model_dataframe(residents, process_recs, health, education, incidents,
         .reset_index()
     )
 
+    # ---- Serious incident aggregation (for TARGET only) ----
+    serious_agg = (
+        incidents[incidents["incident_type"].isin(["RunawayAttempt", "SelfHarm"])]
+        .groupby("resident_id")
+        .agg(serious_incident_count=("incident_id", "count"))
+        .reset_index()
+    )
+
     # ---- Join everything ----
     df_model = (
         residents
@@ -204,17 +218,19 @@ def build_model_dataframe(residents, process_recs, health, education, incidents,
         .merge(education_agg, on="resident_id", how="left")
         .merge(incident_agg,  on="resident_id", how="left")
         .merge(plan_agg,      on="resident_id", how="left")
+        .merge(serious_agg,   on="resident_id", how="left")
     )
 
     # Fill 0 for residents with no incidents
-    for col in ["total_incidents", "high_severity_count"]:
+    for col in ["total_incidents", "high_severity_count", "serious_incident_count"]:
         df_model[col] = df_model[col].fillna(0)
 
     # ---- Target variable ----
-    df_model["is_ready"] = df_model["reintegration_status"].isin(
-        ["Completed", "In Progress"]
-    ).astype(int)
+    # Has the resident ever had a RunawayAttempt or SelfHarm incident?
+    df_model["has_serious_incident"] = (df_model["serious_incident_count"] > 0).astype(int)
 
+    print(f"Class balance: {df_model['has_serious_incident'].mean():.1%} with serious incidents "
+          f"({df_model['has_serious_incident'].sum()} / {len(df_model)})")
     return df_model
 
 
@@ -227,7 +243,7 @@ def prepare_features(df_model: pd.DataFrame):
         raise ValueError(f"DATA LEAKAGE DETECTED: {leaked}")
 
     X = df_model[feature_cols].copy()
-    y = df_model["is_ready"].copy()
+    y = df_model["has_serious_incident"].copy()
     return X, y, feature_cols
 
 
@@ -326,7 +342,7 @@ def train(df_model: pd.DataFrame):
     print(f"Baseline accuracy: {baseline_acc:.3f}")
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred_final,
-                                target_names=["Not Ready", "Ready"],
+                                target_names=["No Incident", "Has Incident"],
                                 zero_division=0))
 
     return (best_model, best_model_name, feature_cols,
@@ -346,13 +362,13 @@ def save_artifacts(best_model, best_model_name, feature_cols,
     print(f"Model saved: {config.RESIDENT_RISK_MODEL}")
 
     metadata = {
-        "model_name":         "resident_reintegration_predictor",
-        "model_version":      "1.0.0",
+        "model_name":         "resident_incident_risk_predictor",
+        "model_version":      "2.0.0",
         "trained_at_utc":     datetime.now(timezone.utc).isoformat(),
         "best_algorithm":     best_model_name,
         "features":           feature_cols,
-        "target":             "is_ready",
-        "target_definition":  "reintegration_status in [Completed, In Progress]",
+        "target":             "has_serious_incident",
+        "target_definition":  "resident has RunawayAttempt or SelfHarm incident",
         "num_training_rows":  int(X_train.shape[0]),
         "num_test_rows":      int(X_test.shape[0]),
         "cv_strategy":        "RepeatedStratifiedKFold(n_splits=5, n_repeats=3)",
@@ -377,32 +393,67 @@ def save_artifacts(best_model, best_model_name, feature_cols,
 
 
 # ------------------------------------------------------------------ #
-# 6. Batch inference
+# 6. Top factors helper
+# ------------------------------------------------------------------ #
+
+def get_top_factors(best_model, top_n: int = 3) -> str:
+    """Return comma-separated string of the model's global top feature names."""
+    clf = best_model.named_steps["clf"]
+    prep = best_model.named_steps["prep"]
+    try:
+        transformed_names = prep.get_feature_names_out()
+    except Exception:
+        return ""
+
+    if hasattr(clf, "feature_importances_"):
+        importances = clf.feature_importances_
+    elif hasattr(clf, "coef_"):
+        importances = np.abs(clf.coef_[0])
+    else:
+        return ""
+
+    top_idx = np.argsort(importances)[::-1][:top_n]
+    names = []
+    for i in top_idx:
+        name = str(transformed_names[i])
+        for prefix in ("num__", "cat__"):
+            if name.startswith(prefix):
+                name = name[len(prefix):]
+        names.append(name)
+    return ", ".join(names)
+
+
+# ------------------------------------------------------------------ #
+# 7. Batch inference
 # ------------------------------------------------------------------ #
 
 def run_batch_inference(df_model: pd.DataFrame, best_model, feature_cols: list) -> pd.DataFrame:
     """Score every current resident and return a scores DataFrame."""
-    X_all           = df_model[feature_cols].copy()
-    readiness_probs = best_model.predict_proba(X_all)[:, 1]
-    readiness_preds = best_model.predict(X_all)
+    X_all      = df_model[feature_cols].copy()
+    risk_probs = best_model.predict_proba(X_all)[:, 1]
+    risk_preds = best_model.predict(X_all)
+
+    top_factors = get_top_factors(best_model)
 
     scores_df = pd.DataFrame({
         "resident_id":          df_model["resident_id"],
-        "readiness_score":      readiness_probs.round(3),
-        "readiness_label":      pd.cut(
-            readiness_probs,
+        "incident_risk_score":  risk_probs.round(3),
+        "risk_label":           pd.cut(
+            risk_probs,
             bins=[0, 0.33, 0.66, 1.01],
-            labels=["High Risk", "Moderate", "Ready"],
+            labels=["Low Risk", "Moderate Risk", "High Risk"],
             include_lowest=True,
-        ),
-        "predicted_ready":      readiness_preds,
+        ).astype(str),
+        "predicted_high_risk":  risk_preds,
+        "top_factors":          top_factors,
         "prediction_timestamp": datetime.now(timezone.utc).isoformat(),
     })
-    scores_df["readiness_label"] = scores_df["readiness_label"].astype(str)
+    scores_df = scores_df.sort_values("incident_risk_score", ascending=False)
 
     print(f"\nScored {len(scores_df)} residents.")
-    print("Readiness distribution:")
-    print(scores_df["readiness_label"].value_counts().to_string())
+    print(f"Top factors: {top_factors}")
+    print("Risk distribution:")
+    print(scores_df["risk_label"].value_counts().to_string())
     return scores_df
 
 
@@ -421,7 +472,7 @@ def write_scores(scores_df: pd.DataFrame) -> None:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("Resident Reintegration Predictor — Training")
+    print("Resident Incident Risk Predictor — Training")
     print("=" * 60)
 
     residents, process_recs, health, education, incidents, plans = load_data()
