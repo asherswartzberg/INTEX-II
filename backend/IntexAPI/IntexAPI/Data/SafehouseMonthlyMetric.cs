@@ -23,10 +23,10 @@ public class SafehouseMonthlyMetric
     public int? ActiveResidents { get; set; }
 
     [Column("avg_education_progress")]
-    public double? AvgEducationProgress { get; set; }
+    public decimal? AvgEducationProgress { get; set; }
 
     [Column("avg_health_score")]
-    public double? AvgHealthScore { get; set; }
+    public decimal? AvgHealthScore { get; set; }
 
     [Column("process_recording_count")]
     public int? ProcessRecordingCount { get; set; }

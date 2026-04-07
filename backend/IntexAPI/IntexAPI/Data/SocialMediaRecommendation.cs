@@ -50,7 +50,7 @@ public class SocialMediaRecommendation
     public long? BoostBudgetPhp { get; set; }
 
     [Column("predicted_donation_referrals")]
-    public double? PredictedDonationReferrals { get; set; }
+    public decimal? PredictedDonationReferrals { get; set; }
 
     [Column("prediction_timestamp")]
     public string? PredictionTimestamp { get; set; }
