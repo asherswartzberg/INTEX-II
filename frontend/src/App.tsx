@@ -17,9 +17,12 @@ import AdminCounseling from './pages/AdminCounseling'
 import AdminVisitations from './pages/AdminVisitations'
 import AdminSocialMedia from './pages/AdminSocialMedia'
 import AdminReports from './pages/AdminReports'
+import SettingsPage from './pages/SettingsPage'
+import { ThemeProvider } from './context/ThemeContext'
 
 function App() {
   return (
+    <ThemeProvider>
     <CookieConsentProvider>
       <AuthProvider>
         <BrowserRouter>
@@ -49,6 +52,7 @@ function App() {
               <Route path="visitations" element={<AdminVisitations />} />
               <Route path="social-media" element={<AdminSocialMedia />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* Donor portal placeholder */}
@@ -67,6 +71,7 @@ function App() {
         </BrowserRouter>
       </AuthProvider>
     </CookieConsentProvider>
+    </ThemeProvider>
   )
 }
 

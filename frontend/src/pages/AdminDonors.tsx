@@ -146,7 +146,11 @@ export default function AdminDonors() {
   const totalDonationPages = Math.max(1, Math.ceil(donations.length / PAGE_SIZE))
   const pagedDonations = donations.slice((donationPage - 1) * PAGE_SIZE, donationPage * PAGE_SIZE)
 
-  const filterOptions = ['All', 'Monetary', 'In-Kind', 'Volunteer']
+  const filterOptions = useMemo(() => {
+    const types = [...new Set(supporters.map((s) => s.supporterType).filter(Boolean))] as string[]
+    types.sort()
+    return ['All', ...types]
+  }, [supporters])
 
   return (
     <div className="flex h-full">

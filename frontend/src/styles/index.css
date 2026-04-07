@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* --- Color Palette (Black & White Base) --- */
   --color-white: #ffffff;
@@ -47,6 +49,56 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Dark mode — toggled via .dark class on <html> */
+html.dark body {
+  background-color: #111;
+  color: #e5e5e5;
+}
+html.dark ::selection {
+  background: #333;
+  color: #fff;
+}
+/* Global dark overrides for admin pages */
+html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6 {
+  color: #f0f0f0;
+}
+html.dark table {
+  color: #e5e5e5;
+}
+html.dark th {
+  color: #ccc;
+  border-color: #333;
+}
+html.dark td {
+  border-color: #222;
+}
+html.dark tr:hover {
+  background-color: #1a1a1a;
+}
+html.dark input, html.dark select, html.dark textarea {
+  background-color: #1a1a1a;
+  border-color: #333;
+  color: #e5e5e5;
+}
+html.dark .bg-white {
+  background-color: #1a1a1a;
+}
+html.dark .bg-gray-50, html.dark .bg-\[\#F7F8FA\] {
+  background-color: #111;
+}
+html.dark .text-gray-900, html.dark .text-gray-800, html.dark .text-gray-700 {
+  color: #e5e5e5;
+}
+html.dark .text-gray-600, html.dark .text-gray-500 {
+  color: #999;
+}
+html.dark .border-gray-100, html.dark .border-gray-200, html.dark .border-gray-300 {
+  border-color: #333;
+}
+html.dark .shadow-sm, html.dark .shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
 /* Custom selection */
 ::selection {
   background: #e3e4ed;
@@ -79,10 +131,13 @@ body {
 
 /* Button hover — instant grey */
 .btn-wipe {
-  transition: background-color 0s;
+  transition: background-color .25s;
 }
 .btn-wipe:hover {
-  background-color: #636363 !important;
+  background-color: #454545 !important;
+}
+.btn-wipe-light-grey:hover {
+  background-color: #cacaca !important;
 }
 .btn-wipe-light:hover {
   background-color: #e5e5e5 !important;

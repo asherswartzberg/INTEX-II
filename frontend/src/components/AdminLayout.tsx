@@ -1,4 +1,5 @@
 import { Outlet, NavLink, Link } from 'react-router'
+import { useAuth } from '../context/AuthContext'
 
 type NavItem = { label: string; to: string; badge?: number; icon: React.ReactNode }
 
@@ -74,16 +75,18 @@ const navItems: NavItem[] = [
 ]
 
 export default function AdminLayout() {
+  const { authSession } = useAuth()
   return (
-    <div className="flex h-screen bg-[#F7F8FA] font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#F7F8FA] dark:bg-[#111] font-sans overflow-hidden">
       {/* ── Sidebar ── */}
-      <aside className="flex w-[220px] shrink-0 flex-col border-r border-gray-100 bg-white">
+      <aside className="flex w-[220px] shrink-0 flex-col border-r border-gray-100 bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
         {/* Logo */}
-        <Link to="/admin/dashboard" className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white">
-            HS
+        <Link to="/admin/dashboard" className="flex items-center gap-3 px-5 py-5 border-b border-gray-100 dark:border-[#333]">
+          <img src="/faro.png" alt="Faro Safehouse" className="h-8 w-8 rounded-lg object-contain dark:invert" />
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-gray-800 dark:text-white">Faro Safehouse</span>
+            <span className="text-[11px] text-gray-400 dark:text-gray-500">{authSession.roles.includes('Admin') ? 'Admin' : 'Staff'} Portal: {authSession.firstName || 'User'}</span>
           </div>
-          <span className="text-sm font-semibold text-gray-800">Haven Shield</span>
         </Link>
 
         {/* Nav */}
@@ -96,8 +99,8 @@ export default function AdminLayout() {
                   className={({ isActive }) =>
                     `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                       isActive
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-[#222] dark:hover:text-white'
                     }`
                   }
                 >
@@ -115,14 +118,14 @@ export default function AdminLayout() {
         </nav>
 
         {/* Settings */}
-        <div className="border-t border-gray-100 px-3 py-4">
+        <div className="border-t border-gray-100 dark:border-[#333] px-3 py-4">
           <NavLink
             to="/admin/settings"
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-[#222] dark:hover:text-white'
               }`
             }
           >
