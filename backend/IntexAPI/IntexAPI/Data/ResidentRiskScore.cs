@@ -8,7 +8,7 @@ public class ResidentRiskScore
 {
     [Key]
     [Column("resident_id")]
-    public int ResidentId { get; set; }
+    public long ResidentId { get; set; }
 
     [Column("readiness_score")]
     public double? ReadinessScore { get; set; }
@@ -18,7 +18,7 @@ public class ResidentRiskScore
     public string? ReadinessLabel { get; set; }
 
     [Column("predicted_ready")]
-    public int? PredictedReady { get; set; }
+    public long? PredictedReady { get; set; }
 
     [Column("prediction_timestamp")]
     public string? PredictionTimestamp { get; set; }

@@ -26,7 +26,7 @@ public class SocialMediaRecommendation
     public string? DayOfWeek { get; set; }
 
     [Column("post_hour")]
-    public int? PostHour { get; set; }
+    public long? PostHour { get; set; }
 
     [Column("has_call_to_action")]
     public bool? HasCallToAction { get; set; }
@@ -35,19 +35,19 @@ public class SocialMediaRecommendation
     public bool? IsBoosted { get; set; }
 
     [Column("num_hashtags")]
-    public int? NumHashtags { get; set; }
+    public long? NumHashtags { get; set; }
 
     [Column("caption_length")]
-    public int? CaptionLength { get; set; }
+    public long? CaptionLength { get; set; }
 
     [Column("features_resident_story")]
     public bool? FeaturesResidentStory { get; set; }
 
     [Column("mentions_count")]
-    public int? MentionsCount { get; set; }
+    public long? MentionsCount { get; set; }
 
     [Column("boost_budget_php")]
-    public int? BoostBudgetPhp { get; set; }
+    public long? BoostBudgetPhp { get; set; }
 
     [Column("predicted_donation_referrals")]
     public double? PredictedDonationReferrals { get; set; }
