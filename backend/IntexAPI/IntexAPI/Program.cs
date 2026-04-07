@@ -131,7 +131,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// Built-in Identity API endpoints (login, register, 2FA, etc.)
-app.MapGroup("/api/auth").MapIdentityApi<ApplicationUser>();
+// Built-in Identity API endpoints (login, 2FA, password reset, etc.)
+// Mounted at /api/identity to avoid route conflicts with AuthController
+app.MapGroup("/api/identity").MapIdentityApi<ApplicationUser>();
 
 app.Run();
