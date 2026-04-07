@@ -193,7 +193,7 @@ export default function DonorDashboard() {
       <header className="border-b border-border bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-10">
           <Link to="/" className="flex items-center gap-3">
-            <img src="/faro.png" alt="" className="h-7 w-7 object-contain" />
+            <img src="/Lighthouse.svg" alt="" className="h-7 w-7 object-contain" />
             <span className="text-lg text-black" style={{ fontFamily: "'EB Garamond', serif" }}>Faro Safehouse</span>
           </Link>
           <div className="flex items-center gap-5">
