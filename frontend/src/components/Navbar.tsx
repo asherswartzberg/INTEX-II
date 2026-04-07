@@ -47,7 +47,7 @@ export default function Navbar() {
         {/* Logo */}
         <Link
           to="/"
-          className={`text-2xl font-bold transition-colors duration-300 ${
+          className={`text-3xl font-normal transition-colors duration-300 ${
             scrolled ? 'text-black' : 'text-white'
           }`}
           style={{ fontFamily: "'EB Garamond', serif" }}
