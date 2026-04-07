@@ -1,6 +1,5 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import heroVideo from '../assets/1775513061936710.mp4'
 import heroPoster from '../assets/490528890_720752160301656_5838193252817757157_n.jpg'
 
 export default function Hero() {
@@ -21,12 +20,12 @@ export default function Hero() {
         {/* Video — zooms on scroll */}
         <motion.div style={{ scale: videoScale }} className="absolute inset-0">
           <video
-            autoPlay muted loop playsInline preload="metadata"
+            autoPlay muted loop playsInline preload="auto"
             poster={heroPoster}
             className="h-full w-full object-cover"
             aria-hidden="true"
           >
-            <source src={heroVideo} type="video/mp4" />
+            <source src="/hero-video.mp4" type="video/mp4" />
           </video>
         </motion.div>
 

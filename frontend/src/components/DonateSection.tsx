@@ -67,10 +67,9 @@ export default function DonateSection() {
           <div className="flex flex-shrink-0 gap-4">
             <a
               href="#"
-              className="btn-slide rounded-full bg-white px-8 py-4 text-sm font-semibold text-black"
+              className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black"
             >
               <span className="btn-text">Donate now</span>
-              <span className="btn-text-hover">Donate now</span>
             </a>
             <a
               href="#work"
