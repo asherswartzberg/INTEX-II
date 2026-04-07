@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { apiRequest } from '../apis/client'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ResidentsBySafehouseDto {
@@ -74,11 +75,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/admin/dashboard')
-      .then((res) => {
-        if (!res.ok) throw new Error(`Server error: ${res.status}`)
-        return res.json() as Promise<AdminDashboardDto>
-      })
+    apiRequest<AdminDashboardDto>('/api/admin/dashboard')
       .then(setData)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false))
