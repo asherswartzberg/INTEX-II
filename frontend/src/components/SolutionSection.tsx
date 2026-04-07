@@ -4,6 +4,7 @@ import { useAnimateInView } from '../hooks/useAnimateInView'
 import girlsCircle from '../assets/lighthouseGirlsInCircle.jpg'
 import girlsLearning from '../assets/lighthouseGirlsOutsideLearning.jpg'
 import girlWriting from '../assets/490528890_720752160301656_5838193252817757157_n.jpg'
+import girlsPraying from '../assets/girlsPraying.jpg'
 
 const pillars = [
   {
@@ -31,8 +32,8 @@ const pillars = [
     num: '04',
     title: 'Empowerment',
     text: 'Education, vocational training, and mentorship prepare each girl for independent life. We walk alongside them through reintegration — from survivor to leader.',
-    image: girlsCircle,
-    imageAlt: 'Girls building community together',
+    image: girlsPraying,
+    imageAlt: 'Girls praying together in a circle',
   },
 ]
 
