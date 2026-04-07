@@ -51,22 +51,21 @@ export default function Navbar() {
             : 'bg-white/10 backdrop-blur-md border-white/10'
         }`}
       >
-        {/* Logo */}
-        <Link
-          to="/"
-          className={`text-3xl font-normal transition-colors duration-300 ${
-            scrolled ? 'text-black' : 'text-white'
-          }`}
-          style={{ fontFamily: "'EB Garamond', serif" }}
-          aria-label="Faro Safehouse - Home"
-        >
-          Faro Safehouse
-        </Link>
-
-        {/* Desktop nav */}
-        <ul className="hidden md:flex items-center gap-7 list-none m-0 p-0">
-          {navLinks.map((link) => (
-            <li key={link.href}>
+        {/* Logo + page-section links */}
+        <div className="hidden md:flex items-center gap-4">
+          <Link
+            to="/"
+            className={`text-3xl font-normal transition-colors duration-300 ${
+              scrolled ? 'text-black' : 'text-white'
+            }`}
+            style={{ fontFamily: "'EB Garamond', serif" }}
+            aria-label="Faro Safehouse - Home"
+          >
+            Faro Safehouse
+          </Link>
+          {navLinks.map((link, i) => (
+            <div key={link.href} className="flex items-center gap-4 translate-y-1">
+              <span className={`text-[11px] transition-colors duration-300 ${scrolled ? 'text-black/30' : 'text-white/30'}`}>•</span>
               <a
                 href={link.href}
                 className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
@@ -75,20 +74,35 @@ export default function Navbar() {
               >
                 {link.label}
               </a>
-            </li>
+            </div>
           ))}
+        </div>
+
+        {/* Mobile logo (shown only on small screens) */}
+        <Link
+          to="/"
+          className={`md:hidden text-4xl font-normal transition-colors duration-300 ${
+            scrolled ? 'text-black' : 'text-white'
+          }`}
+          style={{ fontFamily: "'EB Garamond', serif" }}
+          aria-label="Faro Safehouse - Home"
+        >
+          Faro Safehouse
+        </Link>
+
+        {/* Right-side nav */}
+        <ul className="hidden md:flex items-center gap-7 list-none m-0 p-0">
           {(isAdminOrStaff || isDonor) && (
             <li>
               <Link
                 to={portalTo}
-                className={`group flex items-center text-[13px] font-medium transition-opacity duration-300 hover:opacity-60 ${
+                className={`group inline-flex items-baseline text-[15px] font-medium transition-opacity duration-300 hover:opacity-60 ${
                   scrolled ? 'text-black' : 'text-white'
                 }`}
               >
                 <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-300 ease-out group-hover:max-w-[4rem] group-hover:opacity-100">
-                  {portalRole}{' '}
-                </span>
-                Portal
+                  {portalRole}&nbsp;
+                </span>Portal
               </Link>
             </li>
           )}
@@ -96,7 +110,7 @@ export default function Navbar() {
             {isAuthenticated ? (
               <Link
                 to="/logout"
-                className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
+                className={`text-[15px] font-medium transition-colors duration-300 hover:opacity-60 ${
                   scrolled ? 'text-black' : 'text-white'
                 }`}
               >
@@ -105,7 +119,7 @@ export default function Navbar() {
             ) : (
               <Link
                 to="/login"
-                className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
+                className={`text-[15px] font-medium transition-colors duration-300 hover:opacity-60 ${
                   scrolled ? 'text-black' : 'text-white'
                 }`}
               >
@@ -116,10 +130,8 @@ export default function Navbar() {
           <li>
             <Link
               to={isDonor ? '/donor' : '/login'}
-              className={`btn-wipe rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-300 ${
-                scrolled
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black'
+              className={`btn-wipe rounded-full px-5 py-2 text-[15px] font-semibold transition-all duration-300 ${
+                scrolled ? 'bg-black text-white' : 'bg-white text-black'
               }`}
             >
               Donate
