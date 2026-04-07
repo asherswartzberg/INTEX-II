@@ -12,6 +12,7 @@ namespace IntexAPI.Controllers;
 public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
+    AppDbContext appDb,
     IConfiguration configuration) : ControllerBase
 {
     private const string DefaultFrontendUrl = "http://localhost:5173";
@@ -77,6 +78,26 @@ public class AuthController(
             }
 
             await userManager.AddToRoleAsync(user, AuthRoles.Donor);
+
+            // Create a matching Supporter record in the operational DB
+            var supporter = new Supporter
+            {
+                SupporterType = "Monetary",
+                Email = request.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                DisplayName = user.FirstName != null ? $"{user.FirstName} {user.LastName}".Trim() : request.Email,
+                Status = "Active",
+                CreatedAt = DateTime.UtcNow,
+                AcquisitionChannel = "Website",
+            };
+            appDb.Supporters.Add(supporter);
+            await appDb.SaveChangesAsync();
+
+            // Link the supporter ID back to the Identity user
+            user.SupporterId = supporter.SupporterId;
+            await userManager.UpdateAsync(user);
+
             return Ok();
         }
         catch (Exception ex)
@@ -214,6 +235,46 @@ public class AuthController(
         return Ok(new { message = "Logout successful." });
     }
 
+    // ── Donor: submit donation ─────────────────────────────
+
+    public record DonorDonationRequest(
+        double Amount,
+        string? CurrencyCode,
+        string? CampaignName,
+        bool IsRecurring,
+        string? Notes
+    );
+
+    [HttpPost("donate")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = AuthRoles.Donor)]
+    public async Task<IActionResult> SubmitDonation([FromBody] DonorDonationRequest request)
+    {
+        var userId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userId == null) return Unauthorized();
+
+        var user = await userManager.FindByIdAsync(userId);
+        if (user?.SupporterId == null)
+            return BadRequest(new { message = "Your account is not linked to a donor profile." });
+
+        var donation = new Donation
+        {
+            SupporterId = user.SupporterId,
+            DonationType = "Monetary",
+            DonationDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            IsRecurring = request.IsRecurring,
+            CampaignName = request.CampaignName,
+            ChannelSource = "Website",
+            CurrencyCode = request.CurrencyCode ?? "USD",
+            Amount = request.Amount,
+            Notes = request.Notes,
+        };
+
+        appDb.Donations.Add(donation);
+        await appDb.SaveChangesAsync();
+
+        return Ok(new { message = "Donation recorded. Thank you!", donationId = donation.DonationId });
+    }
+
     // ── User management (Admin only) ──────────────────────
 
     public record CreateUserRequest(string Email, string Password, string FirstName, string LastName, string Role);
@@ -244,6 +305,27 @@ public class AuthController(
             return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
 
         await userManager.AddToRoleAsync(user, request.Role);
+
+        // If Donor, create a Supporter record
+        if (request.Role == AuthRoles.Donor)
+        {
+            var supporter = new Supporter
+            {
+                SupporterType = "Monetary",
+                Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                DisplayName = $"{request.FirstName} {request.LastName}".Trim(),
+                Status = "Active",
+                CreatedAt = DateTime.UtcNow,
+                AcquisitionChannel = "Admin Created",
+            };
+            appDb.Supporters.Add(supporter);
+            await appDb.SaveChangesAsync();
+            user.SupporterId = supporter.SupporterId;
+            await userManager.UpdateAsync(user);
+        }
+
         return Ok(new { message = "User created.", userId = user.Id });
     }
 

@@ -1,8 +1,13 @@
 import { useRef } from 'react'
+import { Link } from 'react-router'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useAnimateInView } from '../hooks/useAnimateInView'
+import { useAuth } from '../context/AuthContext'
 
 export default function DonateSection() {
+  const { isAuthenticated, authSession } = useAuth()
+  const isDonor = authSession.roles.includes('Donor')
+  const donateLink = isDonor ? '/donor' : isAuthenticated ? '/' : '/login'
   const sectionRef = useRef(null)
   const { ref: viewRef, isInView } = useAnimateInView({ amount: 0.3 })
   const { scrollYProgress } = useScroll({
@@ -65,12 +70,12 @@ export default function DonateSection() {
           </p>
 
           <div className="flex flex-shrink-0 gap-4">
-            <a
-              href="#"
+            <Link
+              to={donateLink}
               className="btn-wipe-light-grey rounded-full bg-white px-8 py-4 text-sm font-semibold text-black"
             >
-              <span className="btn-text">Donate now</span>
-            </a>
+              Donate now
+            </Link>
             <a
               href="#work"
               className="rounded-full border border-white/20 px-8 py-4 text-sm font-medium text-white transition-all hover:border-white/50"

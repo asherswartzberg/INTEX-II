@@ -128,10 +128,12 @@ export default function SettingsPage() {
             aria-checked={theme === 'dark'}
             aria-label="Toggle dark mode"
             className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ${
-              theme === 'dark' ? 'bg-black' : 'bg-border'
+              theme === 'dark' ? 'bg-white' : 'bg-border'
             }`}
           >
-            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+            <span className={`inline-block h-5 w-5 rounded-full shadow-sm transition-transform duration-200 ${
+              theme === 'dark' ? 'bg-black' : 'bg-white'
+            } ${
               theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
             }`} />
           </button>

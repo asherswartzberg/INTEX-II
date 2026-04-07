@@ -1,5 +1,7 @@
-import { Outlet, NavLink, Link } from 'react-router'
+import { useState } from 'react'
+import { Outlet, NavLink, Link, useNavigate } from 'react-router'
 import { useAuth } from '../context/AuthContext'
+import ConfirmDialog from './ConfirmDialog'
 
 type NavItem = { label: string; to: string; badge?: number; icon: React.ReactNode }
 
@@ -76,12 +78,14 @@ const navItems: NavItem[] = [
 
 export default function AdminLayout() {
   const { authSession } = useAuth()
+  const navigate = useNavigate()
+  const [showSignOut, setShowSignOut] = useState(false)
   return (
     <div data-admin className="flex h-screen bg-[#F7F8FA] dark:bg-[#111] font-sans overflow-hidden">
       {/* ── Sidebar ── */}
       <aside className="flex w-[220px] shrink-0 flex-col border-r border-gray-100 bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
         {/* Logo */}
-        <Link to="/admin/dashboard" className="flex items-center gap-3 px-5 py-5 border-b border-gray-100 dark:border-[#333]">
+        <Link to="/" className="flex items-center gap-3 px-5 py-5 border-b border-gray-100 dark:border-[#333]">
           <img src="/faro.png" alt="Faro Safehouse" className="h-8 w-8 rounded-lg object-contain dark:invert" />
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-gray-800 dark:text-white">Faro Safehouse</span>
@@ -144,13 +148,33 @@ export default function AdminLayout() {
             </svg>
             Back to site
           </Link>
+          <button
+            onClick={() => setShowSignOut(true)}
+            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sign out
+          </button>
         </div>
       </aside>
 
       {/* ── Content ── */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto dark:bg-[#111] dark:text-[#e5e5e5]">
         <Outlet />
       </main>
+
+      <ConfirmDialog
+        open={showSignOut}
+        title="Sign out"
+        message="Are you sure you want to sign out?"
+        confirmLabel="Sign out"
+        onConfirm={() => navigate('/logout')}
+        onCancel={() => setShowSignOut(false)}
+      />
     </div>
   )
 }

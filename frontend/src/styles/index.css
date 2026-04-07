@@ -69,10 +69,21 @@ html.dark [data-admin] tr:hover { background-color: #1a1a1a; }
 html.dark [data-admin] input, html.dark [data-admin] select, html.dark [data-admin] textarea {
   background-color: #1a1a1a; border-color: #333; color: #e5e5e5;
 }
-html.dark [data-admin] .bg-white { background-color: #1a1a1a !important; }
-html.dark [data-admin] .bg-gray-50, html.dark [data-admin] .bg-gray-100 { background-color: #111 !important; }
+html.dark [data-admin] .bg-white,
+html.dark [data-admin] [class*="bg-white"] { background-color: #1a1a1a !important; }
+html.dark [data-admin] .bg-gray-50, html.dark [data-admin] .bg-gray-100,
+html.dark [data-admin] .bg-gray-200 { background-color: #111 !important; }
 html.dark [data-admin] [class*="bg-[#F7F8FA]"],
-html.dark [data-admin] [class*="bg-[#f7f8fa]"] { background-color: #111 !important; }
+html.dark [data-admin] [class*="bg-[#f7f8fa]"],
+html.dark [data-admin] [class*="bg-[#fffbf3]"],
+html.dark [data-admin] [class*="bg-[#FFFBF3]"] { background-color: #111 !important; }
+/* Catch-all: any element inside admin with an inline/arbitrary light bg */
+html.dark [data-admin] [style*="background"],
+html.dark [data-admin] .min-h-screen,
+html.dark [data-admin] .min-h-full { background-color: #111 !important; }
+html.dark [data-admin] [class*="border-[#e7ddcc]"],
+html.dark [data-admin] [class*="border-[#e8dbc4]"],
+html.dark [data-admin] [class*="border-[#f0e7d8]"] { border-color: #333 !important; }
 html.dark [data-admin] .text-gray-900, html.dark [data-admin] .text-gray-800,
 html.dark [data-admin] .text-gray-700 { color: #e5e5e5 !important; }
 html.dark [data-admin] .text-gray-600, html.dark [data-admin] .text-gray-500,
