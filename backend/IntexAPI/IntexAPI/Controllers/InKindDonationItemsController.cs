@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +7,7 @@ namespace IntexAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class InKindDonationItemsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -37,6 +39,7 @@ public class InKindDonationItemsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<InKindDonationItem>> Create(
         [FromBody] InKindDonationItem entity,
         CancellationToken cancellationToken)
@@ -48,6 +51,7 @@ public class InKindDonationItemsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] InKindDonationItem entity, CancellationToken cancellationToken)
     {
         if (id != entity.ItemId)
@@ -63,6 +67,7 @@ public class InKindDonationItemsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.InKindDonationItems.FindAsync(new object[] { id }, cancellationToken);

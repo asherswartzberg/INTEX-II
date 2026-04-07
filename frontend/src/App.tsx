@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
 import Landing from './pages/Landing'
 import LoginPage from './pages/LoginPage'
 import Admin from './pages/Admin'
@@ -6,12 +8,38 @@ import Admin from './pages/Admin'
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/admin/dashboard" element={<Admin />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/donor/*"
+            element={
+              <ProtectedRoute allowedRoles={['Donor']}>
+                <div className="flex h-screen items-center justify-center">
+                  <p className="text-lg text-medium-gray">Donor dashboard coming soon</p>
+                </div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

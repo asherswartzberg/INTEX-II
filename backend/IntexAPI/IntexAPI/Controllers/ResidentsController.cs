@@ -1,5 +1,6 @@
 using IntexAPI.Data;
 using IntexAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace IntexAPI.Controllers;
 /// <summary>Caseload inventory — residents with search/filter and CRUD.</summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class ResidentsController : ControllerBase
 {
     private readonly AppDbContext _db;
@@ -66,6 +68,7 @@ public class ResidentsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Resident>> Create([FromBody] Resident resident, CancellationToken cancellationToken)
     {
         resident.ResidentId = 0;
@@ -75,6 +78,7 @@ public class ResidentsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(int id, [FromBody] Resident resident, CancellationToken cancellationToken)
     {
         if (id != resident.ResidentId)
@@ -90,6 +94,7 @@ public class ResidentsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.Residents.FindAsync(new object[] { id }, cancellationToken);

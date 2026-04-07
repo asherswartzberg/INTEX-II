@@ -25,7 +25,7 @@ export default function LoadingScreen() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-3xl text-white md:text-4xl"
-            style={{ fontFamily: "'Apple Chancery', cursive" }}
+            style={{ fontFamily: "'EB Garamond', serif" }}
           >
             Faro Safehouse
           </motion.p>

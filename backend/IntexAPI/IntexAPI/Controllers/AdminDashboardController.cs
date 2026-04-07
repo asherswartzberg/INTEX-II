@@ -1,5 +1,6 @@
 using IntexAPI.Data;
 using IntexAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace IntexAPI.Controllers;
 /// <summary>Staff “command center” metrics.</summary>
 [ApiController]
 [Route("api/admin/dashboard")]
+[Authorize(Roles = "Admin,Staff")]
 public class AdminDashboardController : ControllerBase
 {
     private readonly AppDbContext _db;

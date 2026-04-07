@@ -1,5 +1,6 @@
 using IntexAPI.Data;
 using IntexAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace IntexAPI.Controllers;
 /// <summary>Read-only listing for donation channel / social context (e.g. referral_post_id).</summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class SocialMediaPostsController : ControllerBase
 {
     private readonly AppDbContext _db;
