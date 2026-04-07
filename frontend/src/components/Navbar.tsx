@@ -34,6 +34,7 @@ export default function Navbar() {
   }, [menuOpen])
 
   const isAdminOrStaff = authSession.roles.some(r => r === 'Admin' || r === 'Staff')
+  const isDonor = authSession.roles.includes('Donor')
 
   return (
     <header
@@ -86,6 +87,18 @@ export default function Navbar() {
               </Link>
             </li>
           )}
+          {isDonor && (
+            <li>
+              <Link
+                to="/donor"
+                className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
+                  scrolled ? 'text-black' : 'text-white'
+                }`}
+              >
+                Your Dashboard
+              </Link>
+            </li>
+          )}
           <li>
             {isAuthenticated ? (
               <Link
@@ -108,8 +121,8 @@ export default function Navbar() {
             )}
           </li>
           <li>
-            <a
-              href="#donate"
+            <Link
+              to={isDonor ? '/donor' : '/login'}
               className={`btn-wipe rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-300 ${
                 scrolled
                   ? 'bg-black text-white'
@@ -117,7 +130,7 @@ export default function Navbar() {
               }`}
             >
               Donate
-            </a>
+            </Link>
           </li>
         </ul>
 
@@ -168,6 +181,15 @@ export default function Navbar() {
                 Admin
               </Link>
             )}
+            {isDonor && (
+              <Link
+                to="/donor"
+                onClick={() => setMenuOpen(false)}
+                className="text-4xl font-display text-white hover:opacity-60 transition-opacity"
+              >
+                Your Dashboard
+              </Link>
+            )}
             {isAuthenticated ? (
               <Link
                 to="/logout"
@@ -185,13 +207,13 @@ export default function Navbar() {
                 Log in
               </Link>
             )}
-            <a
-              href="#donate"
+            <Link
+              to={isDonor ? '/donor' : '/login'}
               onClick={() => setMenuOpen(false)}
               className="mt-6 rounded-full bg-white px-8 py-3 text-sm font-semibold text-black"
             >
               Donate
-            </a>
+            </Link>
           </motion.div>
         )}
       </AnimatePresence>
