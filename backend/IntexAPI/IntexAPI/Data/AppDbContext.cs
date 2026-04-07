@@ -34,6 +34,11 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // supporter_id is not auto-increment in the DB
+        modelBuilder.Entity<Supporter>()
+            .Property(s => s.SupporterId)
+            .ValueGeneratedNever();
+
         modelBuilder.Entity<Donation>()
             .HasOne<SocialMediaPost>()
             .WithMany()
