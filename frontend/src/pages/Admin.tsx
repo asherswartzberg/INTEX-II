@@ -1,50 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-
-// ── Types ────────────────────────────────────────────────────────────────────
-interface ResidentsBySafehouseDto {
-  safehouseId: number
-  safehouseName: string | null
-  safehouseCode: string | null
-  activeResidentCount: number
-}
-
-interface RecentDonationDto {
-  donationId: number
-  donationDate: string | null   // DateOnly → "YYYY-MM-DD"
-  donationType: string | null
-  amount: number | null
-  currencyCode: string | null
-  supporterId: number | null
-  supporterDisplayName: string | null
-}
-
-interface UpcomingCaseConferenceDto {
-  planId: number
-  residentId: number | null
-  residentCaseNo: string | null
-  caseConferenceDate: string | null  // DateOnly → "YYYY-MM-DD"
-  planCategory: string | null
-  status: string | null
-}
-
-interface LatestSafehouseProgressDto {
-  safehouseId: number | null
-  safehouseName: string | null
-  monthStart: string | null
-  activeResidents: number | null
-  avgEducationProgress: number | null
-  avgHealthScore: number | null
-  incidentCount: number | null
-}
-
-interface AdminDashboardDto {
-  totalActiveResidents: number
-  activeResidentsBySafehouse: ResidentsBySafehouseDto[]
-  recentDonations: RecentDonationDto[]
-  upcomingCaseConferences: UpcomingCaseConferenceDto[]
-  latestMonthlyProgressBySafehouse: LatestSafehouseProgressDto[]
-}
+import { ApiError, fetchAdminDashboard } from '../apis'
+import type { AdminDashboardDto } from '../types/apiDtos'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatCurrency(amount: number | null, currency: string | null) {
@@ -74,14 +31,27 @@ export default function Admin() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/admin/dashboard')
-      .then((res) => {
-        if (!res.ok) throw new Error(`Server error: ${res.status}`)
-        return res.json() as Promise<AdminDashboardDto>
+    let cancelled = false
+    fetchAdminDashboard()
+      .then((d) => {
+        if (!cancelled) setData(d)
       })
-      .then(setData)
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false))
+      .catch((err: unknown) => {
+        if (cancelled) return
+        const msg =
+          err instanceof ApiError
+            ? `Server error: ${err.status}${err.body ? ` — ${err.body.slice(0, 200)}` : ''}`
+            : err instanceof Error
+              ? err.message
+              : 'Request failed'
+        setError(msg)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const today = new Date().toLocaleDateString('en-US', {
