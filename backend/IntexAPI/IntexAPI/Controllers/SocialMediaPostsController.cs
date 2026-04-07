@@ -40,7 +40,7 @@ public class SocialMediaPostsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<SocialMediaPost>> GetById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<SocialMediaPost>> GetById(double id, CancellationToken cancellationToken)
     {
         var entity = await _db.SocialMediaPosts.AsNoTracking()
             .FirstOrDefaultAsync(p => p.PostId == id, cancellationToken);
