@@ -154,10 +154,9 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-slide w-full rounded-full bg-black py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-wipe w-full rounded-full bg-black py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span className="btn-text">{submitting ? 'Creating account...' : 'Create account'}</span>
-              <span className="btn-text-hover">{submitting ? 'Creating account...' : 'Create account'}</span>
+              {submitting ? 'Creating account...' : 'Create account'}
             </button>
           </form>
         </div>

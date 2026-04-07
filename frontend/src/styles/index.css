@@ -77,30 +77,13 @@ body {
   top: 0;
 }
 
-/* Radiating Hope style button hover — text slides up */
-.btn-slide {
-  position: relative;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/* Button hover — instant grey */
+.btn-wipe {
+  transition: background-color 0s;
 }
-.btn-slide .btn-text {
-  display: block;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+.btn-wipe:hover {
+  background-color: #636363 !important;
 }
-.btn-slide .btn-text-hover {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateY(100%);
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.btn-slide:hover .btn-text {
-  transform: translateY(-100%);
-}
-.btn-slide:hover .btn-text-hover {
-  transform: translateY(0);
+.btn-wipe-light:hover {
+  background-color: #e5e5e5 !important;
 }

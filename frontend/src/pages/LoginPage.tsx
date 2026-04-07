@@ -164,10 +164,9 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="btn-slide w-full rounded-full bg-black py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-wipe w-full rounded-full bg-black py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span className="btn-text">{submitting ? 'Signing in...' : 'Sign in'}</span>
-              <span className="btn-text-hover">{submitting ? 'Signing in...' : 'Sign in'}</span>
+              {submitting ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 

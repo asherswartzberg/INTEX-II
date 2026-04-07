@@ -110,7 +110,7 @@ export default function Navbar() {
           <li>
             <a
               href="#donate"
-              className={`rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-300 hover:opacity-80 ${
+              className={`btn-wipe rounded-full px-5 py-2 text-[13px] font-semibold transition-all duration-300 ${
                 scrolled
                   ? 'bg-black text-white'
                   : 'bg-white text-black'
