@@ -249,6 +249,31 @@ src/
 - `ml/scripts/utils_db.py` — SQLAlchemy helpers (get_engine, load_table, write_table)
 - `ml/requirements.txt` — Python dependencies
 
+### ML Output Tables — Do Not Change Without Full-Stack Coordination
+
+The Python scripts write three tables to Azure SQL using `if_exists="replace"` (drop + recreate every run). The column names written by Python **must exactly match** the `[Column("...")]` attributes in the C# models, which must match the frontend TypeScript interfaces. A mismatch at any layer causes runtime errors.
+
+| SQL Table | C# Model | TypeScript Type | Python Script |
+|---|---|---|---|
+| `donor_risk_scores` | `DonorRiskScore.cs` | `DonorRiskScore.ts` | `train_donor_churn.py` |
+| `resident_risk_scores` | `ResidentRiskScore.cs` | `ResidentRiskScore.ts` | `train_resident_risk.py` |
+| `social_media_recommendations` | `SocialMediaRecommendation.cs` | `SocialMediaRecommendation.ts` | `train_social_media.py` |
+
+**Rules:**
+- **Do not rename columns** in the Python output DataFrames without also updating the C# `[Column("...")]` attribute, the C# property name, the TypeScript interface property, and any frontend page that reads it.
+- **Do not change C# types** on ML model properties. Python `float64` → SQL `float` → C# `double?`. Using `decimal?` instead of `double?` will cause type mismatch errors at runtime.
+- **Do not change C# property names** without updating the corresponding controller `OrderBy`/`Where` clauses and frontend property accesses.
+- **Do not add `[Column]` attributes** that don't match a column the Python script actually writes — EF Core will try to read it and fail.
+- If you need to change what the ML pipeline predicts or outputs, update all four layers (Python → C# model → C# controller → TypeScript) in a single coordinated change.
+
+### Current ML Output Schemas (as of 2026-04-07)
+
+**donor_risk_scores:** `supporter_id` (long, PK), `display_name` (string), `supporter_type` (string), `churn_risk_score` (double), `risk_label` (string), `recency_days` (long), `frequency` (long), `top_factors` (string), `prediction_timestamp` (string)
+
+**resident_risk_scores:** `resident_id` (long, PK), `incident_risk_score` (double), `risk_label` (string), `predicted_high_risk` (long), `top_factors` (string), `prediction_timestamp` (string)
+
+**social_media_recommendations:** `platform` (string), `post_type` (string), `media_type` (string), `content_topic` (string), `day_of_week` (string), `predicted_donation_referrals` (double), `predicted_engagement_rate` (double), `prediction_timestamp` (string) — Keyless entity, ~13K rows
+
 ---
 
 ## Rules for Editing This Codebase

@@ -23,7 +23,7 @@ public class SocialMediaRecommendation
     public string? DayOfWeek { get; set; }
 
     [Column("predicted_donation_referrals")]
-    public decimal? PredictedDonationReferrals { get; set; }
+    public double? PredictedDonationReferrals { get; set; }
 
     [Column("predicted_engagement_rate")]
     public double? PredictedEngagementRate { get; set; }
