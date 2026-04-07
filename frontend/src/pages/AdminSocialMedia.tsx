@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { fetchSocialMediaPosts } from '../apis/socialMediaPostsApi'
 import { fetchSocialMediaRecommendations } from '../apis/socialMediaRecommendationsApi'
 import type { SocialMediaPost } from '../types/SocialMediaPost'
@@ -41,9 +41,14 @@ const PLATFORM_TEXT: Record<string, string> = {
 export default function AdminSocialMedia() {
   const [posts, setPosts] = useState<SocialMediaPost[]>([])
   const [recommendations, setRecommendations] = useState<SocialMediaRecommendation[]>([])
+  const [recLoading, setRecLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [platformFilter, setPlatformFilter] = useState('All')
   const [sortBy, setSortBy] = useState<'engagementRate' | 'reach' | 'donationReferrals'>('engagementRate')
+
+  // ML recommendation filters
+  const [recFilterType, setRecFilterType] = useState<'platform' | 'contentTopic'>('platform')
+  const [recFilterValue, setRecFilterValue] = useState('')
 
   useEffect(() => {
     fetchSocialMediaPosts({ pageSize: 200 })
@@ -52,17 +57,44 @@ export default function AdminSocialMedia() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Unique values for recommendation filter dropdowns
+  const recPlatformOptions = useMemo(() => {
+    const s = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
+    return Array.from(s).sort()
+  }, [posts])
+
+  const recTopicOptions = useMemo(() => {
+    const s = new Set(posts.map((p) => p.contentTopic).filter(Boolean) as string[])
+    return Array.from(s).sort()
+  }, [posts])
+
+  // Set a default filter value once posts load
   useEffect(() => {
-    fetchSocialMediaRecommendations().then(setRecommendations).catch(console.error)
-  }, [])
+    if (recFilterValue) return
+    const options = recFilterType === 'platform' ? recPlatformOptions : recTopicOptions
+    if (options.length > 0) setRecFilterValue(options[0])
+  }, [recPlatformOptions, recTopicOptions, recFilterType, recFilterValue])
+
+  // Fetch recommendations when filter changes
+  const loadRecommendations = useCallback(() => {
+    if (!recFilterValue) return
+    setRecLoading(true)
+    const params = recFilterType === 'platform'
+      ? { platform: recFilterValue, top: 5 }
+      : { contentTopic: recFilterValue, top: 5 }
+    fetchSocialMediaRecommendations(params)
+      .then(setRecommendations)
+      .catch(console.error)
+      .finally(() => setRecLoading(false))
+  }, [recFilterType, recFilterValue])
+
+  useEffect(() => { loadRecommendations() }, [loadRecommendations])
 
   // Unique platforms
   const platformOptions = useMemo(() => {
     const s = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
     return ['All', ...Array.from(s)]
   }, [posts])
-  void platformOptions // used later for filter UI
-
   const filtered = useMemo(() =>
     platformFilter === 'All' ? posts : posts.filter((p) => p.platform === platformFilter),
     [posts, platformFilter]
@@ -225,16 +257,43 @@ export default function AdminSocialMedia() {
           </div>
 
           {/* ML Recommendations */}
-          {recommendations.length > 0 && (
-            <div className="mt-6 rounded-xl border border-gray-100 bg-white">
-              <div className="border-b border-gray-50 px-5 py-4">
-                <h2 className="text-sm font-semibold text-gray-800">Recommended Posting Strategies</h2>
+          <div className="mt-6 rounded-xl border border-gray-100 bg-white">
+            <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
+              <h2 className="text-sm font-semibold text-gray-800">Recommended Posting Strategies</h2>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-400">Filter by</span>
+                <select
+                  value={recFilterType}
+                  onChange={(e) => { setRecFilterType(e.target.value as 'platform' | 'contentTopic'); setRecFilterValue('') }}
+                  className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-600 focus:outline-none"
+                >
+                  <option value="platform">Platform</option>
+                  <option value="contentTopic">Topic</option>
+                </select>
+                <select
+                  value={recFilterValue}
+                  onChange={(e) => setRecFilterValue(e.target.value)}
+                  className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-600 focus:outline-none"
+                >
+                  {(recFilterType === 'platform' ? recPlatformOptions : recTopicOptions).map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
               </div>
+            </div>
+            {recLoading ? (
+              <div className="px-5 py-8 text-center text-sm text-gray-400">Loading recommendations...</div>
+            ) : recommendations.length === 0 ? (
+              <div className="px-5 py-8 text-center text-sm text-gray-400">Select a filter to see recommendations</div>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-50">
-                      {['PLATFORM', 'POST TYPE', 'MEDIA', 'TOPIC', 'BEST DAY', 'REFERRALS', 'ENGAGEMENT'].map((h) => (
+                      {(recFilterType === 'platform'
+                        ? ['#', 'POST TYPE', 'MEDIA', 'TOPIC', 'BEST DAY', 'REFERRALS', 'ENGAGEMENT']
+                        : ['#', 'PLATFORM', 'POST TYPE', 'MEDIA', 'BEST DAY', 'REFERRALS', 'ENGAGEMENT']
+                      ).map((h) => (
                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">{h}</th>
                       ))}
                     </tr>
@@ -242,14 +301,19 @@ export default function AdminSocialMedia() {
                   <tbody className="divide-y divide-gray-50">
                     {recommendations.map((r, i) => (
                       <tr key={i} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <span className={`text-xs font-semibold ${PLATFORM_TEXT[r.platform ?? ''] ?? 'text-gray-600'}`}>
-                            {r.platform}
-                          </span>
-                        </td>
+                        <td className="px-4 py-3 text-xs font-bold text-gray-400">{i + 1}</td>
+                        {recFilterType === 'contentTopic' && (
+                          <td className="px-4 py-3">
+                            <span className={`text-xs font-semibold ${PLATFORM_TEXT[r.platform ?? ''] ?? 'text-gray-600'}`}>
+                              {r.platform}
+                            </span>
+                          </td>
+                        )}
                         <td className="px-4 py-3 text-gray-600">{r.postType}</td>
                         <td className="px-4 py-3 text-gray-600">{r.mediaType ?? '—'}</td>
-                        <td className="px-4 py-3 text-gray-600">{r.contentTopic}</td>
+                        {recFilterType === 'platform' && (
+                          <td className="px-4 py-3 text-gray-600">{r.contentTopic}</td>
+                        )}
                         <td className="px-4 py-3 text-gray-600">{r.dayOfWeek ?? '—'}</td>
                         <td className="px-4 py-3">
                           <span className="font-semibold text-green-700">{r.predictedDonationReferrals?.toFixed(1) ?? '—'}</span>
@@ -262,11 +326,11 @@ export default function AdminSocialMedia() {
                   </tbody>
                 </table>
               </div>
-              <div className="border-t border-gray-50 px-5 py-3">
-                <p className="text-xs text-gray-400">Predictions generated by ML models &middot; Updated nightly</p>
-              </div>
+            )}
+            <div className="border-t border-gray-50 px-5 py-3">
+              <p className="text-xs text-gray-400">Top 5 predicted combinations for the selected {recFilterType === 'platform' ? 'platform' : 'topic'} &middot; Updated nightly by ML models</p>
             </div>
-          )}
+          </div>
         </>
       )}
     </div>
