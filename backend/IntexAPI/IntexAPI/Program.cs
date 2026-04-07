@@ -7,10 +7,15 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var sqlConnection = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+var identityConnection = builder.Configuration.GetConnectionString("IdentityConnection")
+    ?? throw new InvalidOperationException("Connection string 'IdentityConnection' is not configured.");
+
 // --- Operational DB (Azure SQL) ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlConnection,
         sql => sql.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(30),
@@ -18,7 +23,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // --- Identity DB (Supabase PostgreSQL) ---
 builder.Services.AddDbContext<IdentityContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("IdentityConnection")));
+    options.UseNpgsql(identityConnection));
 
 // --- Identity ---
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -43,7 +48,7 @@ var jwtKey = builder.Configuration["Jwt:Key"]
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "IntexAPI";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "IntexFrontend";
 
-builder.Services.AddAuthentication(options =>
+var authBuilder = builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -70,12 +75,21 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
-})
-.AddGoogle(options =>
-{
-    options.ClientId = builder.Configuration["Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Google:ClientSecret"] ?? "";
 });
+
+var googleClientId = builder.Configuration["Google:ClientId"];
+var googleClientSecret = builder.Configuration["Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleClientId)
+    && !googleClientId.Contains("YOUR_GOOGLE", StringComparison.OrdinalIgnoreCase)
+    && !string.IsNullOrWhiteSpace(googleClientSecret)
+    && !googleClientSecret.Contains("YOUR_GOOGLE", StringComparison.OrdinalIgnoreCase))
+{
+    authBuilder.AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+    });
+}
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
@@ -100,9 +114,11 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// --- Seed roles and users ---
+// --- Identity schema + seed (startup failure here → check Supabase URL, password, firewall, and migrations) ---
 using (var scope = app.Services.CreateScope())
 {
+    var identityDb = scope.ServiceProvider.GetRequiredService<IdentityContext>();
+    await identityDb.Database.MigrateAsync();
     await SeedData.Initialize(scope.ServiceProvider);
 }
 
