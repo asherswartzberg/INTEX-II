@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Link } from 'react-router'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { getApiBaseUrl } from '../apis/client'
@@ -99,8 +100,18 @@ export default function SettingsPage() {
   const nonDonorUsers = users.filter((u) => !u.roles.includes('Donor'))
   const filteredUsers = activeTab === 'all' ? nonDonorUsers : nonDonorUsers.filter((u) => u.roles.includes(activeTab))
 
+  const isDonor = authSession.roles.includes('Donor')
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
+      {isDonor && (
+        <Link to="/donor" className="mb-6 inline-flex items-center gap-1.5 text-sm text-medium-gray hover:text-black transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Back to dashboard
+        </Link>
+      )}
       <h1 className="text-2xl font-bold text-black dark:text-white">Settings</h1>
       <p className="mt-1 text-sm text-medium-gray">Manage your preferences and account info.</p>
 
