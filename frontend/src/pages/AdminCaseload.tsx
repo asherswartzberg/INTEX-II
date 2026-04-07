@@ -1,0 +1,247 @@
+import { useEffect, useState } from 'react'
+import { fetchResidents } from '../apis/residentsApi'
+import type { Resident } from '../types/Resident'
+
+const RISK_STYLE: Record<string, string> = {
+  Critical: 'bg-red-100 text-red-700',
+  High: 'bg-orange-100 text-orange-700',
+  Medium: 'bg-yellow-100 text-yellow-700',
+  Low: 'bg-green-100 text-green-700',
+}
+
+const STATUS_STYLE: Record<string, string> = {
+  Active: 'bg-blue-100 text-blue-700',
+  Closed: 'bg-gray-100 text-gray-500',
+  Transferred: 'bg-purple-100 text-purple-700',
+}
+
+function calcAge(dob: string | null) {
+  if (!dob) return '—'
+  const diff = Date.now() - new Date(dob).getTime()
+  return Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000)) + ' y/o'
+}
+
+function fmtDate(s: string | null) {
+  if (!s) return '—'
+  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+const PAGE_SIZE = 15
+
+export default function AdminCaseload() {
+  const [residents, setResidents] = useState<Resident[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [riskFilter, setRiskFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [selected, setSelected] = useState<Resident | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    fetchResidents({ caseStatus: statusFilter || undefined, search: search || undefined })
+      .then(setResidents)
+      .catch(console.error)
+      .finally(() => setLoading(false))
+  }, [statusFilter, search])
+
+  const filtered = riskFilter
+    ? residents.filter((r) => r.currentRiskLevel === riskFilter)
+    : residents
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const subCategories = (r: Resident) =>
+    [
+      r.subCatTrafficked && 'Trafficked',
+      r.subCatChildLabor && 'Child Labor',
+      r.subCatPhysicalAbuse && 'Physical Abuse',
+      r.subCatSexualAbuse && 'Sexual Abuse',
+      r.subCatOsaec && 'OSAEC',
+      r.subCatCicl && 'CICL',
+      r.subCatOrphaned && 'Orphaned',
+      r.subCatAtRisk && 'At Risk',
+      r.subCatStreetChild && 'Street Child',
+    ].filter(Boolean)
+
+  return (
+    <div className="flex h-full">
+      {/* ── List panel ── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <div className="border-b border-gray-100 bg-white px-6 py-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h1 className="text-xl font-bold text-gray-900">Caseload</h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search */}
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+                placeholder="Search by case no or code..."
+                className="w-64 rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-blue-400 focus:outline-none"
+              />
+            </div>
+
+            {/* Status filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
+              className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 focus:border-blue-400 focus:outline-none"
+            >
+              <option value="">All statuses</option>
+              {['Active', 'Closed', 'Transferred'].map((s) => <option key={s}>{s}</option>)}
+            </select>
+
+            {/* Risk filter */}
+            <select
+              value={riskFilter}
+              onChange={(e) => { setRiskFilter(e.target.value); setPage(1) }}
+              className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 focus:border-blue-400 focus:outline-none"
+            >
+              <option value="">All risk levels</option>
+              {['Critical', 'High', 'Medium', 'Low'].map((r) => <option key={r}>{r}</option>)}
+            </select>
+
+            <span className="ml-auto text-xs text-gray-400">{filtered.length} records</span>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-auto bg-white">
+          {loading ? (
+            <div className="space-y-2 p-6">
+              {[...Array(8)].map((_, i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-100" />)}
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-white">
+                <tr className="border-b border-gray-100">
+                  {['CASE NO', 'CODE', 'SAFEHOUSE', 'STATUS', 'RISK LEVEL', 'CATEGORY', 'ADMITTED', 'SOCIAL WORKER'].map((h) => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {paged.length === 0 ? (
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-400">No residents found.</td></tr>
+                ) : (
+                  paged.map((r) => (
+                    <tr
+                      key={r.residentId}
+                      onClick={() => setSelected(r)}
+                      className={`cursor-pointer hover:bg-blue-50 ${selected?.residentId === r.residentId ? 'bg-blue-50' : ''}`}
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-gray-600">{r.caseControlNo ?? '—'}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800">{r.internalCode ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-500">SH-{r.safehouseId ?? '?'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[r.caseStatus ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
+                          {r.caseStatus ?? '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${RISK_STYLE[r.currentRiskLevel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
+                          {r.currentRiskLevel ?? '—'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">{r.caseCategory ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-500">{fmtDate(r.dateOfAdmission)}</td>
+                      <td className="px-4 py-3 text-gray-500">{r.assignedSocialWorker ?? '—'}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Pagination */}
+        <div className="flex items-center justify-between border-t border-gray-100 bg-white px-6 py-3">
+          <span className="text-xs text-gray-400">
+            {filtered.length === 0 ? '0' : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} of {filtered.length}
+          </span>
+          <div className="flex gap-1">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-40">Prev</button>
+            {[...Array(Math.min(5, totalPages))].map((_, i) => {
+              const pg = i + 1
+              return (
+                <button key={pg} onClick={() => setPage(pg)} className={`rounded px-3 py-1 text-xs ${page === pg ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}>{pg}</button>
+              )
+            })}
+            {totalPages > 5 && <span className="px-1 text-xs text-gray-400">…</span>}
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Detail panel ── */}
+      {selected && (
+        <div className="w-[360px] shrink-0 overflow-y-auto border-l border-gray-100 bg-white p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-800">{selected.internalCode}</h2>
+            <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Badges */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLE[selected.caseStatus ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>{selected.caseStatus ?? '—'}</span>
+            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISK_STYLE[selected.currentRiskLevel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>{selected.currentRiskLevel ?? '—'} Risk</span>
+          </div>
+
+          <dl className="space-y-3 text-sm">
+            {[
+              ['Case Control No', selected.caseControlNo],
+              ['Age', calcAge(selected.dateOfBirth)],
+              ['Safehouse', `SH-${selected.safehouseId ?? '?'}`],
+              ['Case Category', selected.caseCategory],
+              ['Reintegration Status', selected.reintegrationStatus],
+              ['Date of Admission', fmtDate(selected.dateOfAdmission)],
+              ['Social Worker', selected.assignedSocialWorker],
+              ['Referral Source', selected.referralSource],
+              ['Reintegration Type', selected.reintegrationType],
+            ].map(([label, value]) => value && (
+              <div key={label} className="flex justify-between gap-4">
+                <dt className="text-gray-400 shrink-0">{label}</dt>
+                <dd className="text-right font-medium text-gray-700">{value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {/* Sub-categories */}
+          {subCategories(selected).length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold text-gray-400">CASE FLAGS</p>
+              <div className="flex flex-wrap gap-1.5">
+                {subCategories(selected).map((c) => (
+                  <span key={c as string} className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">{c}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* PWD / Special needs */}
+          {(selected.isPwd || selected.hasSpecialNeeds) && (
+            <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3">
+              <p className="text-xs font-semibold text-amber-700">Special Needs</p>
+              {selected.isPwd && <p className="mt-1 text-xs text-amber-600">PWD: {selected.pwdType ?? 'Yes'}</p>}
+              {selected.hasSpecialNeeds && <p className="text-xs text-amber-600">Diagnosis: {selected.specialNeedsDiagnosis ?? 'Noted'}</p>}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
