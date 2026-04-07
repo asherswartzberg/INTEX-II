@@ -50,5 +50,5 @@ public class Donation
     public string? Notes { get; set; }
 
     [Column("referral_post_id")]
-    public int? ReferralPostId { get; set; }
+    public double? ReferralPostId { get; set; }
 }

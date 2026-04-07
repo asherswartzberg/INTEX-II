@@ -8,7 +8,7 @@ public class SocialMediaPost
 {
     [Key]
     [Column("post_id")]
-    public int PostId { get; set; }
+    public double PostId { get; set; }
 
     [Column("platform")]
     [MaxLength(64)]
