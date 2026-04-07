@@ -27,6 +27,11 @@ public class AppDbContext : DbContext
     public DbSet<SocialMediaPost> SocialMediaPosts => Set<SocialMediaPost>();
     public DbSet<HomeVisitation> HomeVisitations => Set<HomeVisitation>();
 
+    // ML prediction tables (read-only, written by Python pipelines)
+    public DbSet<DonorRiskScore> DonorRiskScores => Set<DonorRiskScore>();
+    public DbSet<ResidentRiskScore> ResidentRiskScores => Set<ResidentRiskScore>();
+    public DbSet<SocialMediaRecommendation> SocialMediaRecommendations => Set<SocialMediaRecommendation>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Donation>()
