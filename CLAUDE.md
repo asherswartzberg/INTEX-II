@@ -37,13 +37,13 @@
 │         │                  │                    │            │
 │  ┌──────▼───────┐   ┌──────▼────────────────────▼────────┐  │
 │  │IdentityContext│   │         AppDbContext               │  │
-│  │ (PostgreSQL) │   │         (SQL Server)               │  │
+│  │ (SQLite)     │   │         (SQL Server)               │  │
 │  └──────┬───────┘   └──────┬─────────────────────────────┘  │
 └─────────┼──────────────────┼────────────────────────────────┘
           │                  │
 ┌─────────▼──────┐   ┌──────▼──────────────────────┐
-│ Supabase       │   │ Azure SQL                    │
-│ PostgreSQL     │   │ 4-4intexdb.database.windows  │
+│ SQLite         │   │ Azure SQL                    │
+│ identity.db    │   │ 4-4intexdb.database.windows  │
 │ (Identity      │   │ .net                         │
 │  tables only)  │   │ (all operational data +      │
 │                │   │  ML prediction tables)       │
@@ -59,14 +59,14 @@
 
 ### Two Databases — Why and What Lives Where
 
-We use free tiers, so auth needed its own database:
-
 | Database | Provider | Contents |
 |---|---|---|
 | **Azure SQL** (`AppDbContext`) | Azure SQL Server | All operational tables: residents, safehouses, donations, supporters, partners, incidents, education records, health records, intervention plans, home visitations, process recordings, social media posts, safehouse monthly metrics, public impact snapshots, ML prediction tables |
-| **Supabase PostgreSQL** (`IdentityContext`) | Supabase (free tier) | ASP.NET Identity tables only: AspNetUsers, AspNetRoles, AspNetUserRoles, AspNetUserClaims, AspNetUserLogins, AspNetUserTokens, AspNetRoleClaims |
+| **SQLite** (`IdentityContext`) | Local file (`identity.db`) | ASP.NET Identity tables only: AspNetUsers, AspNetRoles, AspNetUserRoles, AspNetUserClaims, AspNetUserLogins, AspNetUserTokens, AspNetRoleClaims |
 
-**DO NOT** attempt to merge these into one database or change the connection strings.
+The Identity database uses SQLite with `EnsureCreatedAsync()` — the schema is created automatically on startup from the EF Core model. No migration files are needed. The `SeedData` class re-seeds roles and test users if they don't exist. On Azure App Service, the `identity.db` file lives in the app's working directory and gets recreated on redeploy (seed data handles this gracefully).
+
+**DO NOT** attempt to merge these into one database or change the Azure SQL connection string.
 
 ---
 

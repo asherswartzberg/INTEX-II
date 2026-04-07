@@ -20,9 +20,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
             maxRetryDelay: TimeSpan.FromSeconds(30),
             errorNumbersToAdd: null)));
 
-// --- Identity DB (Supabase PostgreSQL) ---
+// --- Identity DB (SQLite) ---
 builder.Services.AddDbContext<IdentityContext>(options =>
-    options.UseNpgsql(identityConnection));
+    options.UseSqlite(identityConnection));
 
 // --- Identity (cookie-based, with built-in API endpoints) ---
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
@@ -113,7 +113,7 @@ try
 {
     using var scope = app.Services.CreateScope();
     var identityDb = scope.ServiceProvider.GetRequiredService<IdentityContext>();
-    await identityDb.Database.MigrateAsync();
+    await identityDb.Database.EnsureCreatedAsync();
     await SeedData.Initialize(scope.ServiceProvider);
 }
 catch (Exception ex)
