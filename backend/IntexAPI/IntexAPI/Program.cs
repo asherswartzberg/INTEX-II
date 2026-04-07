@@ -113,13 +113,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// --- Seed roles and users ---
+// --- Identity schema + seed (failure here → check Supabase URL, password, firewall, migrations) ---
 try
 {
     using var scope = app.Services.CreateScope();
-// --- Identity schema + seed (startup failure here → check Supabase URL, password, firewall, and migrations) ---
-using (var scope = app.Services.CreateScope())
-{
     var identityDb = scope.ServiceProvider.GetRequiredService<IdentityContext>();
     await identityDb.Database.MigrateAsync();
     await SeedData.Initialize(scope.ServiceProvider);
