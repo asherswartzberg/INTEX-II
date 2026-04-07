@@ -69,7 +69,7 @@ export async function loginUser(
     params.set('useSessionCookies', 'true')
   }
 
-  const res = await fetch(`${getApiBaseUrl()}/api/auth/login?${params}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/identity/login?${params}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
