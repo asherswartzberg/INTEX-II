@@ -35,6 +35,8 @@ export default function Navbar() {
 
   const isAdminOrStaff = authSession.roles.some(r => r === 'Admin' || r === 'Staff')
   const isDonor = authSession.roles.includes('Donor')
+  const portalRole = authSession.roles.includes('Admin') ? 'Admin' : authSession.roles.includes('Staff') ? 'Staff' : 'Donor'
+  const portalTo = isAdminOrStaff ? '/admin' : '/donor'
 
   return (
     <header
@@ -75,27 +77,18 @@ export default function Navbar() {
               </a>
             </li>
           ))}
-          {isAdminOrStaff && (
+          {(isAdminOrStaff || isDonor) && (
             <li>
               <Link
-                to="/admin"
-                className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
+                to={portalTo}
+                className={`group flex items-center text-[13px] font-medium transition-opacity duration-300 hover:opacity-60 ${
                   scrolled ? 'text-black' : 'text-white'
                 }`}
               >
-                Admin
-              </Link>
-            </li>
-          )}
-          {isDonor && (
-            <li>
-              <Link
-                to="/donor"
-                className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
-                  scrolled ? 'text-black' : 'text-white'
-                }`}
-              >
-                Your Dashboard
+                <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-all duration-300 ease-out group-hover:max-w-[4rem] group-hover:opacity-100">
+                  {portalRole}{' '}
+                </span>
+                Portal
               </Link>
             </li>
           )}
@@ -172,22 +165,13 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
-            {isAdminOrStaff && (
+            {(isAdminOrStaff || isDonor) && (
               <Link
-                to="/admin"
+                to={portalTo}
                 onClick={() => setMenuOpen(false)}
                 className="text-4xl font-display text-white hover:opacity-60 transition-opacity"
               >
-                Admin
-              </Link>
-            )}
-            {isDonor && (
-              <Link
-                to="/donor"
-                onClick={() => setMenuOpen(false)}
-                className="text-4xl font-display text-white hover:opacity-60 transition-opacity"
-              >
-                Your Dashboard
+                {portalRole} Portal
               </Link>
             )}
             {isAuthenticated ? (
