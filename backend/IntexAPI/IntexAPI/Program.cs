@@ -26,13 +26,13 @@ builder.Services.AddDbContext<IdentityContext>(options =>
 // --- Identity (cookie-based, with built-in API endpoints) ---
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 {
-    // IS 414 password policy
-    options.Password.RequiredLength = 12;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireDigit = true;
-    options.Password.RequireNonAlphanumeric = true;
-    options.Password.RequiredUniqueChars = 4;
+    // Password policy: 14+ characters, no other composition requirements
+    options.Password.RequiredLength = 14;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireDigit = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredUniqueChars = 1;
 
     options.User.RequireUniqueEmail = true;
     options.SignIn.RequireConfirmedEmail = false;
