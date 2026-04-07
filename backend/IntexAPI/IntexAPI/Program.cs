@@ -1,5 +1,6 @@
 using IntexAPI.Data;
 using IntexAPI.Infrastructure;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,6 +41,12 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<IdentityContext>()
 .AddDefaultTokenProviders();
+
+// --- Data Protection (key persistence for Azure) ---
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys")))
+    .SetApplicationName("IntexAPI");
 
 // --- Identity cookie configuration ---
 builder.Services.ConfigureApplicationCookie(options =>
