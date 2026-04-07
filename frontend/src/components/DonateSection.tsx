@@ -67,7 +67,7 @@ export default function DonateSection() {
           <div className="flex flex-shrink-0 gap-4">
             <a
               href="#"
-              className="rounded-full bg-white px-8 py-4 text-sm font-semibold text-black"
+              className="btn-wipe rounded-full bg-white px-8 py-4 text-sm font-semibold text-black"
             >
               <span className="btn-text">Donate now</span>
             </a>
