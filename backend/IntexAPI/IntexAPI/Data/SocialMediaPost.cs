@@ -30,7 +30,7 @@ public class SocialMediaPost
     public string? DayOfWeek { get; set; }
 
     [Column("post_hour")]
-    public int? PostHour { get; set; }
+    public double? PostHour { get; set; }
 
     [Column("post_type")]
     [MaxLength(128)]
@@ -47,10 +47,10 @@ public class SocialMediaPost
     public string? Hashtags { get; set; }
 
     [Column("num_hashtags")]
-    public int? NumHashtags { get; set; }
+    public double? NumHashtags { get; set; }
 
     [Column("mentions_count")]
-    public int? MentionsCount { get; set; }
+    public double? MentionsCount { get; set; }
 
     [Column("has_call_to_action")]
     public bool? HasCallToAction { get; set; }
@@ -68,7 +68,7 @@ public class SocialMediaPost
     public string? SentimentTone { get; set; }
 
     [Column("caption_length")]
-    public int? CaptionLength { get; set; }
+    public double? CaptionLength { get; set; }
 
     [Column("features_resident_story")]
     public bool? FeaturesResidentStory { get; set; }
@@ -84,52 +84,52 @@ public class SocialMediaPost
     public double? BoostBudgetPhp { get; set; }
 
     [Column("impressions")]
-    public int? Impressions { get; set; }
+    public double? Impressions { get; set; }
 
     [Column("reach")]
-    public int? Reach { get; set; }
+    public double? Reach { get; set; }
 
     [Column("likes")]
-    public int? Likes { get; set; }
+    public double? Likes { get; set; }
 
     [Column("comments")]
-    public int? Comments { get; set; }
+    public double? Comments { get; set; }
 
     [Column("shares")]
-    public int? Shares { get; set; }
+    public double? Shares { get; set; }
 
     [Column("saves")]
-    public int? Saves { get; set; }
+    public double? Saves { get; set; }
 
     [Column("click_throughs")]
-    public int? ClickThroughs { get; set; }
+    public double? ClickThroughs { get; set; }
 
     [Column("video_views")]
-    public int? VideoViews { get; set; }
+    public double? VideoViews { get; set; }
 
     [Column("engagement_rate")]
     public double? EngagementRate { get; set; }
 
     [Column("profile_visits")]
-    public int? ProfileVisits { get; set; }
+    public double? ProfileVisits { get; set; }
 
     [Column("donation_referrals")]
-    public int? DonationReferrals { get; set; }
+    public double? DonationReferrals { get; set; }
 
     [Column("estimated_donation_value_php")]
     public double? EstimatedDonationValuePhp { get; set; }
 
     [Column("follower_count_at_post")]
-    public int? FollowerCountAtPost { get; set; }
+    public double? FollowerCountAtPost { get; set; }
 
     [Column("watch_time_seconds")]
-    public int? WatchTimeSeconds { get; set; }
+    public double? WatchTimeSeconds { get; set; }
 
     [Column("avg_view_duration_seconds")]
     public double? AvgViewDurationSeconds { get; set; }
 
     [Column("subscriber_count_at_post")]
-    public int? SubscriberCountAtPost { get; set; }
+    public double? SubscriberCountAtPost { get; set; }
 
     [Column("forwards")]
     public double? Forwards { get; set; }

@@ -28,11 +28,15 @@ public class AnalyticsController : ControllerBase
         to ??= DateOnly.FromDateTime(DateTime.UtcNow);
         from ??= to.Value.AddMonths(-24);
 
-        var points = await _db.Donations.AsNoTracking()
+        var donations = await _db.Donations.AsNoTracking()
             .Where(d => d.DonationDate != null
                         && d.DonationDate >= from
                         && d.DonationDate <= to
                         && d.Amount != null)
+            .Select(d => new { d.DonationDate, d.Amount })
+            .ToListAsync(cancellationToken);
+
+        var points = donations
             .GroupBy(d => new { d.DonationDate!.Value.Year, d.DonationDate.Value.Month })
             .Select(g => new DonationTrendPointDto(
                 g.Key.Year,
@@ -41,7 +45,7 @@ public class AnalyticsController : ControllerBase
                 g.Count()))
             .OrderBy(p => p.Year)
             .ThenBy(p => p.Month)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return Ok(points);
     }
@@ -55,16 +59,20 @@ public class AnalyticsController : ControllerBase
         to ??= DateOnly.FromDateTime(DateTime.UtcNow);
         from ??= to.Value.AddMonths(-24);
 
-        var points = await _db.SafehouseMonthlyMetrics.AsNoTracking()
+        var metrics = await _db.SafehouseMonthlyMetrics.AsNoTracking()
             .Where(m => m.MonthStart != null && m.MonthStart >= from && m.MonthStart <= to)
+            .Select(m => new { m.MonthStart, m.AvgEducationProgress, m.AvgHealthScore, m.ActiveResidents })
+            .ToListAsync(cancellationToken);
+
+        var points = metrics
             .GroupBy(m => m.MonthStart!.Value)
             .Select(g => new OutcomeTrendPointDto(
                 g.Key,
-                g.Average(x => x.AvgEducationProgress),
-                g.Average(x => x.AvgHealthScore),
+                g.Where(x => x.AvgEducationProgress.HasValue).Select(x => x.AvgEducationProgress).DefaultIfEmpty().Average(),
+                g.Where(x => x.AvgHealthScore.HasValue).Select(x => x.AvgHealthScore).DefaultIfEmpty().Average(),
                 g.Sum(x => x.ActiveResidents ?? 0)))
             .OrderBy(p => p.MonthStart)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return Ok(points);
     }
@@ -108,12 +116,16 @@ public class AnalyticsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ReintegrationStatusCountDto>>> GetReintegrationSummary(
         CancellationToken cancellationToken)
     {
-        var rows = await _db.Residents.AsNoTracking()
+        var statuses = await _db.Residents.AsNoTracking()
             .Where(r => r.ReintegrationStatus != null && r.ReintegrationStatus != "")
-            .GroupBy(r => r.ReintegrationStatus)
+            .Select(r => r.ReintegrationStatus)
+            .ToListAsync(cancellationToken);
+
+        var rows = statuses
+            .GroupBy(status => status)
             .Select(g => new ReintegrationStatusCountDto(g.Key, g.Count()))
             .OrderByDescending(x => x.Count)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         return Ok(rows);
     }
