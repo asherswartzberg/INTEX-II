@@ -257,11 +257,38 @@ public class AuthController(
         if (user?.SupporterId == null)
             return Ok(new { supporter = (object?)null, donations = Array.Empty<object>() });
 
-        var supporter = await appDb.Supporters.FindAsync(user.SupporterId);
-        var donations = await appDb.Donations
-            .Where(d => d.SupporterId == user.SupporterId)
-            .OrderByDescending(d => d.DonationDate)
-            .ToListAsync();
+        object? supporter = null;
+        object[] donations = [];
+
+        try
+        {
+            supporter = await appDb.Supporters.FindAsync(user.SupporterId);
+        }
+        catch { /* type mismatch — return null */ }
+
+        try
+        {
+            donations = await appDb.Donations
+                .Where(d => d.SupporterId == user.SupporterId)
+                .OrderByDescending(d => d.DonationDate)
+                .Select(d => new
+                {
+                    d.DonationId,
+                    d.SupporterId,
+                    d.DonationType,
+                    d.DonationDate,
+                    d.IsRecurring,
+                    d.CampaignName,
+                    d.ChannelSource,
+                    d.CurrencyCode,
+                    d.Amount,
+                    d.EstimatedValue,
+                    d.ImpactUnit,
+                    d.Notes,
+                })
+                .ToArrayAsync<object>();
+        }
+        catch { /* type mismatch — return empty */ }
 
         return Ok(new { supporter, donations });
     }
@@ -269,7 +296,7 @@ public class AuthController(
     // ── Donor: submit donation ─────────────────────────────
 
     public record DonorDonationRequest(
-        double Amount,
+        decimal Amount,
         string? CurrencyCode,
         string? CampaignName,
         bool IsRecurring,

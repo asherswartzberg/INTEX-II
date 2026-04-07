@@ -21,7 +21,7 @@ public class DonationAllocation
     public string? ProgramArea { get; set; }
 
     [Column("amount_allocated")]
-    public double? AmountAllocated { get; set; }
+    public decimal? AmountAllocated { get; set; }
 
     [Column("allocation_date")]
     public DateOnly? AllocationDate { get; set; }

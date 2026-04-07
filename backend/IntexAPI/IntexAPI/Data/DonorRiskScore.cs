@@ -18,7 +18,7 @@ public class DonorRiskScore
     public string? SupporterType { get; set; }
 
     [Column("churn_risk_score")]
-    public double? ChurnRiskScore { get; set; }
+    public decimal? ChurnRiskScore { get; set; }
 
     [Column("risk_label")]
     [MaxLength(32)]
