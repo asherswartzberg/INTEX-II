@@ -36,9 +36,9 @@ public class DonorRiskScoresController : ControllerBase
         }
     }
 
-    [HttpGet("{supporterId:int}")]
+    [HttpGet("{supporterId:long}")]
     public async Task<ActionResult<DonorRiskScore>> GetBySupporter(
-        int supporterId,
+        long supporterId,
         CancellationToken cancellationToken)
     {
         try
