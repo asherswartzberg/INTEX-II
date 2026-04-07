@@ -81,7 +81,7 @@ public class SocialMediaPost
     public bool? IsBoosted { get; set; }
 
     [Column("boost_budget_php")]
-    public decimal? BoostBudgetPhp { get; set; }
+    public double? BoostBudgetPhp { get; set; }
 
     [Column("impressions")]
     public int? Impressions { get; set; }
@@ -108,7 +108,7 @@ public class SocialMediaPost
     public int? VideoViews { get; set; }
 
     [Column("engagement_rate")]
-    public decimal? EngagementRate { get; set; }
+    public double? EngagementRate { get; set; }
 
     [Column("profile_visits")]
     public int? ProfileVisits { get; set; }
@@ -117,7 +117,7 @@ public class SocialMediaPost
     public int? DonationReferrals { get; set; }
 
     [Column("estimated_donation_value_php")]
-    public decimal? EstimatedDonationValuePhp { get; set; }
+    public double? EstimatedDonationValuePhp { get; set; }
 
     [Column("follower_count_at_post")]
     public int? FollowerCountAtPost { get; set; }
@@ -126,11 +126,11 @@ public class SocialMediaPost
     public int? WatchTimeSeconds { get; set; }
 
     [Column("avg_view_duration_seconds")]
-    public decimal? AvgViewDurationSeconds { get; set; }
+    public double? AvgViewDurationSeconds { get; set; }
 
     [Column("subscriber_count_at_post")]
     public int? SubscriberCountAtPost { get; set; }
 
     [Column("forwards")]
-    public decimal? Forwards { get; set; }
+    public double? Forwards { get; set; }
 }

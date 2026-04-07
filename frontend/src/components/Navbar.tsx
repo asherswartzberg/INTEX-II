@@ -72,6 +72,14 @@ export default function Navbar() {
           ))}
           <li>
             <Link
+              to="/admin"
+              className="text-sm font-medium text-dark transition-colors duration-300 hover:text-amber-500"
+            >
+              Admin
+            </Link>
+          </li>
+          <li>
+            <Link
               to="/login"
               className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
                 scrolled ? 'text-black' : 'text-white'
@@ -133,6 +141,13 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
+            <Link
+              to="/admin"
+              onClick={() => setMenuOpen(false)}
+              className="text-2xl font-semibold text-white hover:text-amber-500 transition-colors"
+            >
+              Admin
+            </Link>
             <Link
               to="/login"
               onClick={() => setMenuOpen(false)}

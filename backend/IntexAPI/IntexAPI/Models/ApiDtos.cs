@@ -4,7 +4,7 @@ namespace IntexAPI.Models;
 public record PublicImpactSummaryDto(
     int ActiveResidentsCount,
     int SafehouseCount,
-    decimal TotalDonationsAllTime,
+    double TotalDonationsAllTime,
     IReadOnlyList<PublicImpactSnapshotSummaryDto> LatestPublishedSnapshots);
 
 public record PublicImpactSnapshotSummaryDto(
@@ -27,7 +27,7 @@ public record RecentDonationDto(
     int DonationId,
     DateOnly? DonationDate,
     string? DonationType,
-    decimal? Amount,
+    double? Amount,
     string? CurrencyCode,
     int? SupporterId,
     string? SupporterDisplayName);
@@ -45,12 +45,12 @@ public record LatestSafehouseProgressDto(
     string? SafehouseName,
     DateOnly? MonthStart,
     int? ActiveResidents,
-    decimal? AvgEducationProgress,
-    decimal? AvgHealthScore,
+    double? AvgEducationProgress,
+    double? AvgHealthScore,
     int? IncidentCount);
 
 // --- Analytics ---
-public record DonationTrendPointDto(int Year, int Month, decimal TotalAmount, int DonationCount);
+public record DonationTrendPointDto(int Year, int Month, double TotalAmount, int DonationCount);
 
 public record ReintegrationStatusCountDto(string? Status, int Count);
 
@@ -59,14 +59,14 @@ public record SafehousePerformanceDto(
     string? SafehouseName,
     DateOnly? MonthStart,
     int? ActiveResidents,
-    decimal? AvgEducationProgress,
-    decimal? AvgHealthScore,
+    double? AvgEducationProgress,
+    double? AvgHealthScore,
     int? ProcessRecordingCount,
     int? HomeVisitationCount,
     int? IncidentCount);
 
 public record OutcomeTrendPointDto(
     DateOnly MonthStart,
-    decimal? AvgEducationProgress,
-    decimal? AvgHealthScore,
+    double? AvgEducationProgress,
+    double? AvgHealthScore,
     int ActiveResidentsSum);

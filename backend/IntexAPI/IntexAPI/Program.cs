@@ -9,7 +9,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- Operational DB (Azure SQL) ---
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sql => sql.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null)));
 
 // --- Identity DB (Supabase PostgreSQL) ---
 builder.Services.AddDbContext<IdentityContext>(options =>
@@ -85,7 +90,8 @@ builder.Services.AddCors(options =>
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "https://localhost:5173",
-                "https://localhost:3000")
+                "https://localhost:3000",
+                "https://victorious-plant-08e77061e.7.azurestaticapps.net")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

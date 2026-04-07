@@ -22,11 +22,11 @@ public class SafehouseMonthlyMetric
     [Column("active_residents")]
     public int? ActiveResidents { get; set; }
 
-    [Column("avg_education_progress", TypeName = "decimal(18,4)")]
-    public decimal? AvgEducationProgress { get; set; }
+    [Column("avg_education_progress")]
+    public double? AvgEducationProgress { get; set; }
 
-    [Column("avg_health_score", TypeName = "decimal(18,4)")]
-    public decimal? AvgHealthScore { get; set; }
+    [Column("avg_health_score")]
+    public double? AvgHealthScore { get; set; }
 
     [Column("process_recording_count")]
     public int? ProcessRecordingCount { get; set; }

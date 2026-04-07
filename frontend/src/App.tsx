@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Landing from './pages/Landing'
 import LoginPage from './pages/LoginPage'
+import Admin from './pages/Admin'
 
 function App() {
   return (
@@ -12,12 +13,18 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<LoginPage />} />
           <Route
-            path="/admin/*"
+            path="/admin"
             element={
               <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
-                <div className="flex h-screen items-center justify-center">
-                  <p className="text-lg text-medium-gray">Admin dashboard coming soon</p>
-                </div>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Staff']}>
+                <Admin />
               </ProtectedRoute>
             }
           />

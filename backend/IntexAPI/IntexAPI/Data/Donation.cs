@@ -35,11 +35,12 @@ public class Donation
     [MaxLength(16)]
     public string? CurrencyCode { get; set; }
 
-    [Column("amount", TypeName = "decimal(18,4)")]
-    public decimal? Amount { get; set; }
+    /// <summary>Stored as float/real in many Azure/imported schemas.</summary>
+    [Column("amount")]
+    public double? Amount { get; set; }
 
-    [Column("estimated_value", TypeName = "decimal(18,4)")]
-    public decimal? EstimatedValue { get; set; }
+    [Column("estimated_value")]
+    public double? EstimatedValue { get; set; }
 
     [Column("impact_unit")]
     [MaxLength(64)]

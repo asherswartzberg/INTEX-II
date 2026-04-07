@@ -28,11 +28,11 @@ public class EducationRecord
     [MaxLength(64)]
     public string? EnrollmentStatus { get; set; }
 
-    [Column("attendance_rate", TypeName = "decimal(18,4)")]
-    public decimal? AttendanceRate { get; set; }
+    [Column("attendance_rate")]
+    public double? AttendanceRate { get; set; }
 
-    [Column("progress_percent", TypeName = "decimal(18,4)")]
-    public decimal? ProgressPercent { get; set; }
+    [Column("progress_percent")]
+    public double? ProgressPercent { get; set; }
 
     [Column("completion_status")]
     [MaxLength(64)]

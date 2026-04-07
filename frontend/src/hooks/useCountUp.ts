@@ -14,7 +14,7 @@ export function useCountUp(
     const controls = animate(0, end, {
       duration,
       ease: 'easeOut',
-      onUpdate: (v) => setValue(Math.round(v)),
+      onUpdate: (v: number) => setValue(Math.round(v)),
     })
 
     return () => controls.stop()
