@@ -296,7 +296,7 @@ public class AuthController(
     // ── Donor: submit donation ─────────────────────────────
 
     public record DonorDonationRequest(
-        decimal Amount,
+        double Amount,
         string? CurrencyCode,
         string? CampaignName,
         bool IsRecurring,

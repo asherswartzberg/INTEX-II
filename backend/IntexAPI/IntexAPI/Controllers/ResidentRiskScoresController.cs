@@ -24,7 +24,7 @@ public class ResidentRiskScoresController : ControllerBase
     {
         var list = await _db.ResidentRiskScores
             .AsNoTracking()
-            .OrderByDescending(x => x.IncidentRiskScore)
+            .OrderByDescending(x => x.ReadinessScore)
             .ToListAsync(cancellationToken);
         return Ok(list);
     }

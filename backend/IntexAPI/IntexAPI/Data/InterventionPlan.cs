@@ -24,7 +24,7 @@ public class InterventionPlan
     public string? ServicesProvided { get; set; }
 
     [Column("target_value")]
-    public decimal? TargetValue { get; set; }
+    public double? TargetValue { get; set; }
 
     [Column("target_date")]
     public DateOnly? TargetDate { get; set; }

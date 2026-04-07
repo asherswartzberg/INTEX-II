@@ -26,7 +26,7 @@ public class PublicImpactController : ControllerBase
         var safehouseCount = await _db.Safehouses.AsNoTracking().CountAsync(cancellationToken);
 
         var totalDonations = await _db.Donations.AsNoTracking()
-            .SumAsync(d => d.Amount ?? 0m, cancellationToken);
+            .SumAsync(d => d.Amount ?? 0d, cancellationToken);
 
         var snapshots = await _db.PublicImpactSnapshots.AsNoTracking()
             .Where(s => s.IsPublished == true)
@@ -42,7 +42,7 @@ public class PublicImpactController : ControllerBase
         return Ok(new PublicImpactSummaryDto(
             activeResidents,
             safehouseCount,
-            totalDonations,
+            (double)totalDonations,
             snapshots));
     }
 

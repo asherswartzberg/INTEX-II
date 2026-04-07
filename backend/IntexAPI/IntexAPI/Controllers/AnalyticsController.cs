@@ -41,7 +41,7 @@ public class AnalyticsController : ControllerBase
             .Select(g => new DonationTrendPointDto(
                 g.Key.Year,
                 g.Key.Month,
-                g.Sum(x => x.Amount ?? 0m),
+                g.Sum(x => x.Amount ?? 0d),
                 g.Count()))
             .OrderBy(p => p.Year)
             .ThenBy(p => p.Month)

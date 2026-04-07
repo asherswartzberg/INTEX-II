@@ -11,7 +11,7 @@ public class ResidentRiskScore
     public long ResidentId { get; set; }
 
     [Column("readiness_score")]
-    public decimal? ReadinessScore { get; set; }
+    public double? ReadinessScore { get; set; }
 
     [Column("risk_label")]
     [MaxLength(32)]
