@@ -1,48 +1,52 @@
 import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { motion } from 'framer-motion'
-import { Link, useNavigate, Navigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../context/AuthContext'
-
-const roles = [
-  { value: 'Admin', label: 'Admin', description: 'Full access to manage all data' },
-  { value: 'Staff', label: 'Staff', description: 'View case management data' },
-  { value: 'Donor', label: 'Donor', description: 'View donation history and impact' },
-]
+import { registerUser } from '../lib/authAPI'
 
 export default function RegisterPage() {
-  const { user, register } = useAuth()
+  const { isAuthenticated, isLoading, authSession } = useAuth()
   const navigate = useNavigate()
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState('Donor')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
-  if (user) {
-    const dest = user.roles.includes('Admin') || user.roles.includes('Staff') ? '/admin' : '/donor'
-    return <Navigate to={dest} replace />
+  // Already logged in — redirect by role
+  if (!isLoading && isAuthenticated) {
+    const dest =
+      authSession.roles.includes('Admin') || authSession.roles.includes('Staff')
+        ? '/admin'
+        : '/donor'
+    navigate(dest, { replace: true })
+    return null
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setError('')
 
-    if (!firstName || !lastName || !email || !password) {
+    if (!email || !password || !confirmPassword) {
       setError('Please fill in all fields.')
       return
     }
 
-    setLoading(true)
-    const result = await register(email, password, firstName, lastName, role)
-    setLoading(false)
+    if (password !== confirmPassword) {
+      setError('Passwords must match.')
+      return
+    }
 
-    if (result.ok) {
+    setSubmitting(true)
+    try {
+      await registerUser(email, password)
       navigate('/login')
-    } else {
-      setError(result.error || 'Registration failed.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration failed.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -79,37 +83,6 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            {/* Name row */}
-            <div className="mb-5 grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="firstName" className="mb-1.5 block text-sm font-medium text-black">
-                  First name
-                </label>
-                <input
-                  id="firstName"
-                  type="text"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-off-white px-4 py-3 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-                />
-              </div>
-              <div>
-                <label htmlFor="lastName" className="mb-1.5 block text-sm font-medium text-black">
-                  Last name
-                </label>
-                <input
-                  id="lastName"
-                  type="text"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-off-white px-4 py-3 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-                />
-              </div>
-            </div>
-
-            {/* Email */}
             <div className="mb-5">
               <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-black">
                 Email address
@@ -126,7 +99,6 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Password */}
             <div className="mb-5">
               <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-black">
                 Password
@@ -163,40 +135,29 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Role picker */}
             <div className="mb-6">
-              <label className="mb-2 block text-sm font-medium text-black">
-                Account type
+              <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-black">
+                Confirm password
               </label>
-              <div className="grid grid-cols-3 gap-2">
-                {roles.map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setRole(r.value)}
-                    className={`rounded-lg border px-3 py-3 text-center text-sm transition-all ${
-                      role === r.value
-                        ? 'border-black bg-black text-white'
-                        : 'border-border bg-white text-black hover:border-dark-gray'
-                    }`}
-                  >
-                    <span className="block font-semibold">{r.label}</span>
-                    <span className={`mt-0.5 block text-[11px] ${role === r.value ? 'text-white/60' : 'text-medium-gray'}`}>
-                      {r.description}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <input
+                id="confirmPassword"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter your password"
+                className="w-full rounded-lg border border-border bg-off-white px-4 py-3 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+              />
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={submitting}
               className="btn-slide w-full rounded-full bg-black py-3 text-sm font-semibold text-white disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span className="btn-text">{loading ? 'Creating account...' : 'Create account'}</span>
-              <span className="btn-text-hover">{loading ? 'Creating account...' : 'Create account'}</span>
+              <span className="btn-text">{submitting ? 'Creating account...' : 'Create account'}</span>
+              <span className="btn-text-hover">{submitting ? 'Creating account...' : 'Create account'}</span>
             </button>
           </form>
         </div>

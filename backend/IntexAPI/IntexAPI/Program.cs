@@ -1,9 +1,7 @@
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,8 +23,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddDbContext<IdentityContext>(options =>
     options.UseNpgsql(identityConnection));
 
-// --- Identity ---
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+// --- Identity (cookie-based, with built-in API endpoints) ---
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>(options =>
 {
     // IS 414 password policy
     options.Password.RequiredLength = 12;
@@ -39,43 +37,21 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.User.RequireUniqueEmail = true;
     options.SignIn.RequireConfirmedEmail = false;
 })
+.AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<IdentityContext>()
 .AddDefaultTokenProviders();
 
-// --- JWT Authentication ---
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "FaroSafehouseJwtSecretKey2026AtLeast32Chars!!";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "IntexAPI";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "IntexFrontend";
-
-var authBuilder = builder.Services.AddAuthentication(options =>
+// --- Identity cookie configuration ---
+builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-    };
-
-    // Read JWT from httpOnly cookie
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
-        {
-            context.Token = context.Request.Cookies["access_token"];
-            return Task.CompletedTask;
-        }
-    };
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+    options.SlidingExpiration = true;
 });
 
+// --- Google OAuth (optional) ---
 var googleClientId = builder.Configuration["Google:ClientId"];
 var googleClientSecret = builder.Configuration["Google:ClientSecret"];
 if (!string.IsNullOrWhiteSpace(googleClientId)
@@ -83,14 +59,24 @@ if (!string.IsNullOrWhiteSpace(googleClientId)
     && !string.IsNullOrWhiteSpace(googleClientSecret)
     && !googleClientSecret.Contains("YOUR_GOOGLE", StringComparison.OrdinalIgnoreCase))
 {
-    authBuilder.AddGoogle(options =>
-    {
-        options.ClientId = googleClientId;
-        options.ClientSecret = googleClientSecret;
-    });
+    builder.Services.AddAuthentication()
+        .AddGoogle(options =>
+        {
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
+            options.SignInScheme = IdentityConstants.ExternalScheme;
+        });
 }
 
-builder.Services.AddAuthorization();
+// --- Authorization policies ---
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(AuthPolicies.RequireAdmin, policy =>
+        policy.RequireRole(AuthRoles.Admin));
+    options.AddPolicy(AuthPolicies.RequireStaff, policy =>
+        policy.RequireRole(AuthRoles.Admin, AuthRoles.Staff));
+});
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -113,7 +99,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// --- Identity schema + seed (failure here → check Supabase URL, password, firewall, migrations) ---
+// --- Identity schema + seed ---
 try
 {
     using var scope = app.Services.CreateScope();
@@ -131,9 +117,19 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.UseSecurityHeaders();
 app.UseHttpsRedirection();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Built-in Identity API endpoints (login, register, 2FA, etc.)
+app.MapGroup("/api/auth").MapIdentityApi<ApplicationUser>();
+
 app.Run();

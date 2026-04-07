@@ -7,9 +7,9 @@ interface Props {
 }
 
 export default function ProtectedRoute({ children, allowedRoles }: Props) {
-  const { user, loading } = useAuth()
+  const { isAuthenticated, isLoading, authSession } = useAuth()
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-black border-t-transparent" />
@@ -17,11 +17,11 @@ export default function ProtectedRoute({ children, allowedRoles }: Props) {
     )
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
 
-  if (allowedRoles && !user.roles.some((r) => allowedRoles.includes(r))) {
+  if (allowedRoles && !authSession.roles.some((r) => allowedRoles.includes(r))) {
     return <Navigate to="/" replace />
   }
 

@@ -10,7 +10,7 @@ const navLinks = [
 ]
 
 export default function Navbar() {
-  const { user, logout } = useAuth()
+  const { isAuthenticated, authSession } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -33,7 +33,7 @@ export default function Navbar() {
     return () => { document.body.style.overflow = '' }
   }, [menuOpen])
 
-  const isAdminOrStaff = user?.roles.some(r => r === 'Admin' || r === 'Staff')
+  const isAdminOrStaff = authSession.roles.some(r => r === 'Admin' || r === 'Staff')
 
   return (
     <header
@@ -87,15 +87,15 @@ export default function Navbar() {
             </li>
           )}
           <li>
-            {user ? (
-              <button
-                onClick={() => logout()}
+            {isAuthenticated ? (
+              <Link
+                to="/logout"
                 className={`text-[13px] font-medium transition-colors duration-300 hover:opacity-60 ${
                   scrolled ? 'text-black' : 'text-white'
                 }`}
               >
                 Log out
-              </button>
+              </Link>
             ) : (
               <Link
                 to="/login"
@@ -168,13 +168,14 @@ export default function Navbar() {
                 Admin
               </Link>
             )}
-            {user ? (
-              <button
-                onClick={() => { logout(); setMenuOpen(false) }}
+            {isAuthenticated ? (
+              <Link
+                to="/logout"
+                onClick={() => setMenuOpen(false)}
                 className="text-4xl font-display text-white hover:opacity-60 transition-opacity"
               >
                 Log out
-              </button>
+              </Link>
             ) : (
               <Link
                 to="/login"

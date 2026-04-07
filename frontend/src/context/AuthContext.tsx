@@ -1,77 +1,55 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { apiFetch } from '../api'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+import { getAuthSession } from '../lib/authAPI'
+import type { AuthSession } from '../lib/authAPI'
 
-interface AuthUser {
-  email: string
-  roles: string[]
-  firstName: string
-  lastName: string
-  supporterId?: number
+interface AuthContextValue {
+  authSession: AuthSession
+  isAuthenticated: boolean
+  isLoading: boolean
+  refreshAuthState: () => Promise<void>
 }
 
-interface AuthContextType {
-  user: AuthUser | null
-  loading: boolean
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
-  register: (email: string, password: string, firstName: string, lastName: string, role?: string) => Promise<{ ok: boolean; error?: string }>
-  logout: () => Promise<void>
+const anonymousSession: AuthSession = {
+  isAuthenticated: false,
+  userName: null,
+  email: null,
+  firstName: null,
+  lastName: null,
+  roles: [],
+  supporterId: null,
 }
 
-const AuthContext = createContext<AuthContextType | null>(null)
+const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [authSession, setAuthSession] = useState<AuthSession>(anonymousSession)
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Check existing session on mount
-  useEffect(() => {
-    apiFetch('/api/auth/me')
-      .then(async (res) => {
-        if (res.ok) {
-          setUser(await res.json())
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+  const refreshAuthState = useCallback(async () => {
+    try {
+      const session = await getAuthSession()
+      setAuthSession(session)
+    } catch {
+      setAuthSession(anonymousSession)
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
-  const login = async (email: string, password: string) => {
-    const res = await apiFetch('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    })
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => null)
-      return { ok: false, error: data?.message || 'Invalid email or password.' }
-    }
-
-    const userData = await res.json()
-    setUser(userData)
-    return { ok: true }
-  }
-
-  const register = async (email: string, password: string, firstName: string, lastName: string, role: string = 'Donor') => {
-    const res = await apiFetch('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, firstName, lastName, role }),
-    })
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => null)
-      return { ok: false, error: data?.message || 'Registration failed.' }
-    }
-
-    return { ok: true }
-  }
-
-  const logout = async () => {
-    await apiFetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
-    setUser(null)
-  }
+  useEffect(() => {
+    void refreshAuthState()
+  }, [refreshAuthState])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        authSession,
+        isAuthenticated: authSession.isAuthenticated,
+        isLoading,
+        refreshAuthState,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -79,6 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider.')
   return ctx
 }
