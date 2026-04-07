@@ -195,21 +195,22 @@ export default function AdminDonors() {
               className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </div>
-          {/* Filter chips */}
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {filterOptions.map((f) => (
-              <button
-                key={f}
-                onClick={() => setTypeFilter(f)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  typeFilter === f
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+          <div className="mt-3">
+            <label htmlFor="donor-type-filter" className="mb-1 block text-xs font-medium text-gray-500">
+              Supporter type
+            </label>
+            <select
+              id="donor-type-filter"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-8 text-sm text-gray-800 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            >
+              {filterOptions.map((f) => (
+                <option key={f} value={f}>
+                  {f === 'All' ? 'All types' : f}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

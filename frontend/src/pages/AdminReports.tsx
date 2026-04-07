@@ -22,6 +22,97 @@ function monthLabel(year: number, month: number) {
   return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
 }
 
+const CHART_W = 960
+const CHART_H = 320
+const PAD_L = 52
+const PAD_R = 20
+const PAD_T = 28
+const PAD_B = 44
+
+function DonationTrendLineChart({
+  trends,
+  maxAmount,
+}: {
+  trends: DonationTrendPointDto[]
+  maxAmount: number
+}) {
+  const n = trends.length
+  const plotW = CHART_W - PAD_L - PAD_R
+  const plotH = CHART_H - PAD_T - PAD_B
+  const maxY = Math.max(maxAmount, 1)
+
+  const points = trends.map((t, i) => {
+    const x = PAD_L + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW)
+    const y = PAD_T + plotH - (t.totalAmount / maxY) * plotH
+    return { x, y, t }
+  })
+
+  const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+  const areaD =
+    points.length > 0
+      ? `${lineD} L ${points[points.length - 1].x.toFixed(1)} ${PAD_T + plotH} L ${points[0].x.toFixed(1)} ${PAD_T + plotH} Z`
+      : ''
+
+  const xLabelEvery = Math.max(1, Math.ceil(n / 12))
+
+  return (
+    <div className="w-full min-w-0">
+      <svg
+        className="h-[min(22rem,50vw)] w-full max-w-full"
+        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Monthly donation totals over time"
+      >
+        <defs>
+          <linearGradient id="donationTrendFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgb(59 130 246)" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="rgb(59 130 246)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
+          const gy = PAD_T + plotH * (1 - frac)
+          return (
+            <g key={frac}>
+              <line x1={PAD_L} y1={gy} x2={PAD_L + plotW} y2={gy} stroke="#f3f4f6" strokeWidth="1" />
+              <text x={PAD_L - 8} y={gy + 4} textAnchor="end" className="fill-gray-400 text-[10px]">
+                {fmtCurrency(maxY * frac)}
+              </text>
+            </g>
+          )
+        })}
+        {areaD ? <path d={areaD} fill="url(#donationTrendFill)" /> : null}
+        <path d={lineD} fill="none" stroke="rgb(37 99 235)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p) => (
+          <circle
+            key={`${p.t.year}-${p.t.month}`}
+            cx={p.x}
+            cy={p.y}
+            r="4"
+            className="fill-white stroke-blue-600"
+            strokeWidth="2"
+          >
+            <title>{`${monthLabel(p.t.year, p.t.month)}: ${fmtCurrency(p.t.totalAmount)}`}</title>
+          </circle>
+        ))}
+        {points.map((p, i) =>
+          i % xLabelEvery === 0 || i === n - 1 ? (
+            <text
+              key={`lbl-${p.t.year}-${p.t.month}`}
+              x={p.x}
+              y={CHART_H - 12}
+              textAnchor="middle"
+              className="fill-gray-500 text-[10px]"
+            >
+              {monthLabel(p.t.year, p.t.month)}
+            </text>
+          ) : null
+        )}
+      </svg>
+    </div>
+  )
+}
+
 export default function AdminReports() {
   const [trends, setTrends] = useState<DonationTrendPointDto[]>([])
   const [outcomes, setOutcomes] = useState<OutcomeTrendPointDto[]>([])
@@ -66,22 +157,7 @@ export default function AdminReports() {
             {trends.length === 0 ? (
               <p className="text-sm text-gray-400">No trend data available.</p>
             ) : (
-              <div className="flex items-end gap-2 overflow-x-auto pb-2" style={{ height: 160 }}>
-                {trends.map((t) => {
-                  const h = Math.max(4, Math.round((t.totalAmount / maxTrend) * 130))
-                  return (
-                    <div key={`${t.year}-${t.month}`} className="flex shrink-0 flex-col items-center gap-1">
-                      <span className="text-xs text-gray-400">{fmtCurrency(t.totalAmount)}</span>
-                      <div
-                        className="w-10 rounded-t bg-blue-500 hover:bg-blue-600 transition-colors"
-                        style={{ height: h }}
-                        title={`${monthLabel(t.year, t.month)}: ${fmtCurrency(t.totalAmount)}`}
-                      />
-                      <span className="text-xs text-gray-400 whitespace-nowrap">{monthLabel(t.year, t.month)}</span>
-                    </div>
-                  )
-                })}
-              </div>
+              <DonationTrendLineChart trends={trends} maxAmount={maxTrend} />
             )}
           </div>
 
