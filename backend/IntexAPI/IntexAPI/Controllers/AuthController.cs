@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 
 namespace IntexAPI.Controllers;
 
@@ -79,19 +80,21 @@ public class AuthController(
 
             await userManager.AddToRoleAsync(user, AuthRoles.Donor);
 
-            // Try to create a matching Supporter record in the operational DB
+            // Create a matching Supporter record in the operational DB
+            var maxId = await appDb.Supporters.AnyAsync() ? await appDb.Supporters.MaxAsync(s => s.SupporterId) : 0;
             var supporter = new Supporter
             {
+                SupporterId = maxId + 1,
                 SupporterType = "MonetaryDonor",
                 DisplayName = request.Email,
-                FirstName = null,
-                LastName = null,
-                OrganizationName = null,
+                FirstName = "",
+                LastName = "",
+                OrganizationName = "",
                 RelationshipType = "Local",
-                Region = null,
-                Country = null,
+                Region = "Unknown",
+                Country = "Chile",
                 Email = request.Email,
-                Phone = null,
+                Phone = "",
                 Status = "Active",
                 FirstDonationDate = null,
                 CreatedAt = DateTime.UtcNow,
@@ -107,7 +110,8 @@ public class AuthController(
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { detail = $"Registration failed: {ex.Message}" });
+            var inner = ex.InnerException?.InnerException?.Message ?? ex.InnerException?.Message ?? "none";
+            return StatusCode(500, new { detail = $"Registration failed: {ex.Message} | Inner: {inner}" });
         }
     }
 
@@ -311,21 +315,23 @@ public class AuthController(
 
         await userManager.AddToRoleAsync(user, request.Role);
 
-        // If Donor, try to create a Supporter record
+        // If Donor, create a Supporter record
         if (request.Role == AuthRoles.Donor)
         {
+            var maxId = await appDb.Supporters.AnyAsync() ? await appDb.Supporters.MaxAsync(s => s.SupporterId) : 0;
             var supporter = new Supporter
             {
+                SupporterId = maxId + 1,
                 SupporterType = "MonetaryDonor",
                 DisplayName = $"{request.FirstName} {request.LastName}".Trim(),
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                OrganizationName = null,
+                FirstName = request.FirstName ?? "",
+                LastName = request.LastName ?? "",
+                OrganizationName = "",
                 RelationshipType = "Local",
-                Region = null,
-                Country = null,
+                Region = "Unknown",
+                Country = "Chile",
                 Email = request.Email,
-                Phone = null,
+                Phone = "",
                 Status = "Active",
                 FirstDonationDate = null,
                 CreatedAt = DateTime.UtcNow,

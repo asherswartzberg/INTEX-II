@@ -20,7 +20,7 @@ export default function SettingsPage() {
   // User management state (admin only)
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
-  const [activeTab, setActiveTab] = useState<'all' | 'Admin' | 'Staff' | 'Donor'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'Admin' | 'Staff'>('all')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createEmail, setCreateEmail] = useState('')
   const [createPassword, setCreatePassword] = useState('')
@@ -96,7 +96,8 @@ export default function SettingsPage() {
     finally { setDeleteTarget(null) }
   }, [deleteTarget])
 
-  const filteredUsers = activeTab === 'all' ? users : users.filter((u) => u.roles.includes(activeTab))
+  const nonDonorUsers = users.filter((u) => !u.roles.includes('Donor'))
+  const filteredUsers = activeTab === 'all' ? nonDonorUsers : nonDonorUsers.filter((u) => u.roles.includes(activeTab))
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
@@ -128,14 +129,14 @@ export default function SettingsPage() {
             aria-checked={theme === 'dark'}
             aria-label="Toggle dark mode"
             className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ${
-              theme === 'dark' ? 'bg-white' : 'bg-border'
+              theme === 'dark' ? '!bg-white' : '!bg-border'
             }`}
           >
-            <span className={`inline-block h-5 w-5 rounded-full shadow-sm transition-transform duration-200 ${
-              theme === 'dark' ? 'bg-black' : 'bg-white'
-            } ${
-              theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
-            }`} />
+            <span
+              className={`inline-block h-5 w-5 rounded-full shadow-sm transition-transform duration-200 ${
+                theme === 'dark' ? 'translate-x-6 !bg-black' : 'translate-x-1 !bg-white'
+              }`}
+            />
           </button>
         </div>
       </section>
@@ -147,7 +148,7 @@ export default function SettingsPage() {
             <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">User Management</h2>
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
-              className="rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              className="rounded-lg !bg-[#333] px-4 py-2 text-xs font-semibold !text-white transition-all hover:!bg-[#555] hover:scale-105 active:scale-95"
             >
               {showCreateForm ? 'Cancel' : '+ Create User'}
             </button>
@@ -188,7 +189,7 @@ export default function SettingsPage() {
                 className="mt-3 w-full rounded-lg border border-border bg-off-white px-3 py-2.5 text-sm dark:bg-[#111] dark:border-[#333] dark:text-white"
               />
               <div className="mt-3 flex gap-2">
-                {(['Admin', 'Staff', 'Donor'] as const).map((r) => (
+                {(['Admin', 'Staff'] as const).map((r) => (
                   <button
                     key={r}
                     type="button"
@@ -206,7 +207,7 @@ export default function SettingsPage() {
               <button
                 type="submit"
                 disabled={creating}
-                className="btn-wipe mt-4 w-full rounded-lg bg-black py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                className="mt-4 w-full rounded-lg !bg-[#333] py-2.5 text-sm font-semibold !text-white disabled:opacity-60 transition-all hover:!bg-[#555] hover:scale-[1.01] active:scale-[0.99]"
               >
                 {creating ? 'Creating...' : 'Create User'}
               </button>
@@ -215,7 +216,7 @@ export default function SettingsPage() {
 
           {/* User list tabs */}
           <div className="mt-4 flex gap-1 rounded-lg bg-off-white p-1 dark:bg-[#1a1a1a]">
-            {(['all', 'Admin', 'Staff', 'Donor'] as const).map((tab) => (
+            {(['all', 'Admin', 'Staff'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -225,7 +226,7 @@ export default function SettingsPage() {
                     : 'text-medium-gray hover:text-black dark:hover:text-white'
                 }`}
               >
-                {tab === 'all' ? `All (${users.length})` : `${tab} (${users.filter(u => u.roles.includes(tab)).length})`}
+                {tab === 'all' ? `All (${nonDonorUsers.length})` : `${tab} (${nonDonorUsers.filter(u => u.roles.includes(tab)).length})`}
               </button>
             ))}
           </div>
