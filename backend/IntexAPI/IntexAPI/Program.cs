@@ -76,6 +76,7 @@ var authBuilder = builder.Services.AddAuthentication(options =>
     };
 });
 
+// Google OAuth — only register if real credentials are configured
 var googleClientId = builder.Configuration["Google:ClientId"];
 var googleClientSecret = builder.Configuration["Google:ClientSecret"];
 if (!string.IsNullOrWhiteSpace(googleClientId)
@@ -113,7 +114,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// --- Identity schema + seed (failure here → check Supabase URL, password, firewall, migrations) ---
+// --- Identity schema + seed ---
 try
 {
     using var scope = app.Services.CreateScope();
@@ -123,7 +124,7 @@ try
 }
 catch (Exception ex)
 {
-    app.Logger.LogError(ex, "Failed to seed data — app will still start");
+    app.Logger.LogError(ex, "Failed to migrate/seed identity data — app will still start");
 }
 
 if (app.Environment.IsDevelopment())

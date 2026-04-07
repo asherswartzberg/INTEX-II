@@ -47,7 +47,6 @@ interface AdminDashboardDto {
   latestMonthlyProgressBySafehouse: LatestSafehouseProgressDto[]
 }
 import { ApiError, fetchAdminDashboard } from '../apis'
-import type { AdminDashboardDto } from '../types/apiDtos'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatCurrency(amount: number | null, currency: string | null) {
