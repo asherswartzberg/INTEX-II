@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import LogoutPage from './pages/LogoutPage'
 import CookiePolicyPage from './pages/CookiePolicyPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import Admin from './pages/Admin'
 import AdminDonors from './pages/AdminDonors'
 import AdminCaseload from './pages/AdminCaseload'
@@ -29,6 +30,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/logout" element={<LogoutPage />} />
             <Route path="/cookies" element={<CookiePolicyPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
 
             {/* Admin portal — protected, shared sidebar layout */}
             <Route
