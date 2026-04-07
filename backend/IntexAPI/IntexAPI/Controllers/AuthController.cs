@@ -56,7 +56,7 @@ public class AuthController : ControllerBase
     }
 
     // ── Register (Donor self-registration) ────────────────
-    public record RegisterRequest(string Email, string Password, string FirstName, string LastName);
+    public record RegisterRequest(string Email, string Password, string FirstName, string LastName, string Role);
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
@@ -79,7 +79,9 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
 
-        await _userManager.AddToRoleAsync(user, "Donor");
+        string[] validRoles = ["Admin", "Staff", "Donor"];
+        var role = validRoles.Contains(request.Role) ? request.Role : "Donor";
+        await _userManager.AddToRoleAsync(user, role);
 
         return Ok(new { message = "Account created. Please log in." });
     }
