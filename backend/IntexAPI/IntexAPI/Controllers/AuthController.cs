@@ -79,22 +79,27 @@ public class AuthController(
 
             await userManager.AddToRoleAsync(user, AuthRoles.Donor);
 
-            // Create a matching Supporter record in the operational DB
+            // Try to create a matching Supporter record in the operational DB
             var supporter = new Supporter
             {
-                SupporterType = "Monetary",
+                SupporterType = "MonetaryDonor",
+                DisplayName = request.Email,
+                FirstName = null,
+                LastName = null,
+                OrganizationName = null,
+                RelationshipType = "Local",
+                Region = null,
+                Country = null,
                 Email = request.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                DisplayName = user.FirstName != null ? $"{user.FirstName} {user.LastName}".Trim() : request.Email,
+                Phone = null,
                 Status = "Active",
+                FirstDonationDate = null,
                 CreatedAt = DateTime.UtcNow,
                 AcquisitionChannel = "Website",
             };
             appDb.Supporters.Add(supporter);
             await appDb.SaveChangesAsync();
 
-            // Link the supporter ID back to the Identity user
             user.SupporterId = supporter.SupporterId;
             await userManager.UpdateAsync(user);
 
@@ -306,19 +311,25 @@ public class AuthController(
 
         await userManager.AddToRoleAsync(user, request.Role);
 
-        // If Donor, create a Supporter record
+        // If Donor, try to create a Supporter record
         if (request.Role == AuthRoles.Donor)
         {
             var supporter = new Supporter
             {
-                SupporterType = "Monetary",
-                Email = request.Email,
+                SupporterType = "MonetaryDonor",
+                DisplayName = $"{request.FirstName} {request.LastName}".Trim(),
                 FirstName = request.FirstName,
                 LastName = request.LastName,
-                DisplayName = $"{request.FirstName} {request.LastName}".Trim(),
+                OrganizationName = null,
+                RelationshipType = "Local",
+                Region = null,
+                Country = null,
+                Email = request.Email,
+                Phone = null,
                 Status = "Active",
+                FirstDonationDate = null,
                 CreatedAt = DateTime.UtcNow,
-                AcquisitionChannel = "Admin Created",
+                AcquisitionChannel = "Website",
             };
             appDb.Supporters.Add(supporter);
             await appDb.SaveChangesAsync();

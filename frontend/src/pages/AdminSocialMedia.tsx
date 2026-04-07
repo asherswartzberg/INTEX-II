@@ -243,18 +243,18 @@ export default function AdminSocialMedia() {
                     {recommendations.map((r, i) => (
                       <tr key={i} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
-                          <span className={`text-xs font-semibold ${PLATFORM_TEXT[r.platform] ?? 'text-gray-600'}`}>
+                          <span className={`text-xs font-semibold ${PLATFORM_TEXT[r.platform ?? ''] ?? 'text-gray-600'}`}>
                             {r.platform}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{r.postType}</td>
                         <td className="px-4 py-3 text-gray-600">{r.contentTopic}</td>
-                        <td className="px-4 py-3 text-gray-600">{r.bestDay}</td>
+                        <td className="px-4 py-3 text-gray-600">{r.dayOfWeek ?? '—'}</td>
                         <td className="px-4 py-3 text-gray-600">
-                          {r.bestHour === 0 ? '12 AM' : r.bestHour < 12 ? `${r.bestHour} AM` : r.bestHour === 12 ? '12 PM' : `${r.bestHour - 12} PM`}
+                          {r.postHour == null ? '—' : r.postHour === 0 ? '12 AM' : r.postHour < 12 ? `${r.postHour} AM` : r.postHour === 12 ? '12 PM' : `${r.postHour - 12} PM`}
                         </td>
                         <td className="px-4 py-3">
-                          <span className="font-semibold text-green-700">{r.predictedDonationReferrals.toFixed(1)}</span>
+                          <span className="font-semibold text-green-700">{r.predictedDonationReferrals?.toFixed(1) ?? '—'}</span>
                         </td>
                       </tr>
                     ))}
