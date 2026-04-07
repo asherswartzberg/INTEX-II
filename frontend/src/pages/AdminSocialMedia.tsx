@@ -50,10 +50,11 @@ export default function AdminSocialMedia() {
   }, [])
 
   // Unique platforms
-  const platforms = useMemo(() => {
+  const platformOptions = useMemo(() => {
     const s = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
     return ['All', ...Array.from(s)]
   }, [posts])
+  void platformOptions // used later for filter UI
 
   const filtered = useMemo(() =>
     platformFilter === 'All' ? posts : posts.filter((p) => p.platform === platformFilter),
