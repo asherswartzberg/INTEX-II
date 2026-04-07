@@ -1,225 +1,216 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using IntexAPI.Data;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace IntexAPI.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+[Route("api/auth")]
+public class AuthController(
+    UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
+    IConfiguration configuration) : ControllerBase
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-    private readonly IConfiguration _config;
+    private const string DefaultFrontendUrl = "http://localhost:5173";
 
-    public AuthController(
-        UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager,
-        IConfiguration config)
-    {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _config = config;
-    }
-
-    // ── Login ──────────────────────────────────────────────
-    public record LoginRequest(string Email, string Password);
-
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
-    {
-        var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user == null)
-            return Unauthorized(new { message = "Invalid email or password." });
-
-        var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: false);
-        if (!result.Succeeded)
-            return Unauthorized(new { message = "Invalid email or password." });
-
-        var roles = await _userManager.GetRolesAsync(user);
-        var token = GenerateJwtToken(user, roles);
-        SetTokenCookie(token);
-
-        return Ok(new
-        {
-            email = user.Email,
-            firstName = user.FirstName,
-            lastName = user.LastName,
-            roles,
-            supporterId = user.SupporterId
-        });
-    }
-
-    // ── Register (Donor self-registration) ────────────────
-    public record RegisterRequest(string Email, string Password, string FirstName, string LastName, string Role);
-
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
-    {
-        var existing = await _userManager.FindByEmailAsync(request.Email);
-        if (existing != null)
-            return BadRequest(new { message = "An account with this email already exists." });
-
-        var user = new ApplicationUser
-        {
-            UserName = request.Email,
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            EmailConfirmed = true,
-            TwoFactorEnabled = false
-        };
-
-        var result = await _userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded)
-            return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
-
-        string[] validRoles = ["Admin", "Staff", "Donor"];
-        var role = validRoles.Contains(request.Role) ? request.Role : "Donor";
-        await _userManager.AddToRoleAsync(user, role);
-
-        return Ok(new { message = "Account created. Please log in." });
-    }
-
-    // ── Me (current user info) ────────────────────────────
+    // ── Current session info (always 200) ─────────────────
     [HttpGet("me")]
-    [Authorize]
-    public async Task<IActionResult> Me()
+    public async Task<IActionResult> GetCurrentSession()
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId == null) return Unauthorized();
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return Ok(new
+            {
+                isAuthenticated = false,
+                userName = (string?)null,
+                email = (string?)null,
+                firstName = (string?)null,
+                lastName = (string?)null,
+                roles = Array.Empty<string>(),
+                supporterId = (int?)null
+            });
+        }
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return Unauthorized();
-
-        var roles = await _userManager.GetRolesAsync(user);
+        var user = await userManager.GetUserAsync(User);
+        var roles = User.Claims
+            .Where(c => c.Type == ClaimTypes.Role)
+            .Select(c => c.Value)
+            .Distinct()
+            .OrderBy(r => r)
+            .ToArray();
 
         return Ok(new
         {
-            email = user.Email,
-            firstName = user.FirstName,
-            lastName = user.LastName,
+            isAuthenticated = true,
+            userName = user?.UserName ?? User.Identity?.Name,
+            email = user?.Email,
+            firstName = user?.FirstName,
+            lastName = user?.LastName,
             roles,
-            supporterId = user.SupporterId
+            supporterId = user?.SupporterId
         });
     }
 
-    // ── Logout ────────────────────────────────────────────
-    [HttpPost("logout")]
-    [Authorize]
-    public IActionResult Logout()
+    // ── External provider discovery ───────────────────────
+    [HttpGet("providers")]
+    public IActionResult GetExternalProviders()
     {
-        Response.Cookies.Delete("access_token", new CookieOptions
+        var providers = new List<object>();
+
+        if (IsGoogleConfigured())
         {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None
+            providers.Add(new
+            {
+                name = GoogleDefaults.AuthenticationScheme,
+                displayName = "Google"
+            });
+        }
+
+        return Ok(providers);
+    }
+
+    // ── External login (Google OAuth) ─────────────────────
+    [HttpGet("external-login")]
+    public IActionResult ExternalLogin(
+        [FromQuery] string provider,
+        [FromQuery] string? returnPath = null)
+    {
+        if (!string.Equals(provider, GoogleDefaults.AuthenticationScheme, StringComparison.OrdinalIgnoreCase)
+            || !IsGoogleConfigured())
+        {
+            return BadRequest(new { message = "The requested external login provider is not available." });
+        }
+
+        var callbackUrl = Url.Action(nameof(ExternalLoginCallback), new
+        {
+            returnPath = NormalizeReturnPath(returnPath)
         });
-        return Ok(new { message = "Logged out." });
-    }
 
-    // ── Google OAuth ──────────────────────────────────────
-    [HttpGet("google-login")]
-    public IActionResult GoogleLogin()
-    {
-        var redirectUrl = Url.Action(nameof(GoogleCallback), "Auth", null, Request.Scheme);
-        var properties = new Microsoft.AspNetCore.Authentication.AuthenticationProperties { RedirectUri = redirectUrl };
-        return Challenge(properties, "Google");
-    }
-
-    [HttpGet("google-login/callback")]
-    public async Task<IActionResult> GoogleCallback()
-    {
-        var info = await _signInManager.GetExternalLoginInfoAsync();
-        if (info == null)
-            return Redirect("http://localhost:5173/login?error=google-failed");
-
-        var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-        if (email == null)
-            return Redirect("http://localhost:5173/login?error=no-email");
-
-        var user = await _userManager.FindByEmailAsync(email);
-        if (user == null)
+        if (string.IsNullOrWhiteSpace(callbackUrl))
         {
-            // Create new user from Google account
+            return Problem("Unable to create the external login callback URL.");
+        }
+
+        var properties = signInManager.ConfigureExternalAuthenticationProperties(
+            GoogleDefaults.AuthenticationScheme,
+            callbackUrl);
+
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+    }
+
+    // ── External login callback ───────────────────────────
+    [HttpGet("external-callback")]
+    public async Task<IActionResult> ExternalLoginCallback(
+        [FromQuery] string? returnPath = null,
+        [FromQuery] string? remoteError = null)
+    {
+        if (!string.IsNullOrWhiteSpace(remoteError))
+        {
+            return Redirect(BuildFrontendErrorUrl("External login failed."));
+        }
+
+        var info = await signInManager.GetExternalLoginInfoAsync();
+        if (info is null)
+        {
+            return Redirect(BuildFrontendErrorUrl("External login information was unavailable."));
+        }
+
+        // Try to sign in with existing external login
+        var signInResult = await signInManager.ExternalLoginSignInAsync(
+            info.LoginProvider,
+            info.ProviderKey,
+            isPersistent: false,
+            bypassTwoFactor: true);
+
+        if (signInResult.Succeeded)
+        {
+            return Redirect(BuildFrontendSuccessUrl(returnPath));
+        }
+
+        // New user — create account from Google profile
+        var email = info.Principal.FindFirstValue(ClaimTypes.Email)
+                    ?? info.Principal.FindFirstValue("email");
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return Redirect(BuildFrontendErrorUrl("The external provider did not return an email address."));
+        }
+
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
             user = new ApplicationUser
             {
                 UserName = email,
                 Email = email,
                 FirstName = info.Principal.FindFirstValue(ClaimTypes.GivenName) ?? "",
                 LastName = info.Principal.FindFirstValue(ClaimTypes.Surname) ?? "",
-                EmailConfirmed = true,
-                TwoFactorEnabled = false
+                EmailConfirmed = true
             };
 
-            var createResult = await _userManager.CreateAsync(user);
+            var createResult = await userManager.CreateAsync(user);
             if (!createResult.Succeeded)
-                return Redirect("http://localhost:5173/login?error=create-failed");
+            {
+                return Redirect(BuildFrontendErrorUrl("Unable to create a local account for the external login."));
+            }
 
-            await _userManager.AddToRoleAsync(user, "Donor");
-            await _userManager.AddLoginAsync(user, info);
+            await userManager.AddToRoleAsync(user, AuthRoles.Donor);
         }
-        else
+
+        var addLoginResult = await userManager.AddLoginAsync(user, info);
+        if (!addLoginResult.Succeeded)
         {
-            // Link Google login if not already linked
-            var logins = await _userManager.GetLoginsAsync(user);
-            if (!logins.Any(l => l.LoginProvider == info.LoginProvider))
-                await _userManager.AddLoginAsync(user, info);
+            // Login may already be linked — that's okay
+            var existingLogins = await userManager.GetLoginsAsync(user);
+            if (!existingLogins.Any(l => l.LoginProvider == info.LoginProvider))
+            {
+                return Redirect(BuildFrontendErrorUrl("Unable to associate the external login with the local account."));
+            }
         }
 
-        var roles = await _userManager.GetRolesAsync(user);
-        var token = GenerateJwtToken(user, roles);
-        SetTokenCookie(token);
+        await signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+        return Redirect(BuildFrontendSuccessUrl(returnPath));
+    }
 
-        // Redirect to frontend
-        var redirectPath = roles.Contains("Admin") || roles.Contains("Staff") ? "/admin" : "/donor";
-        return Redirect($"http://localhost:5173{redirectPath}");
+    // ── Logout ────────────────────────────────────────────
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await signInManager.SignOutAsync();
+        return Ok(new { message = "Logout successful." });
     }
 
     // ── Helpers ───────────────────────────────────────────
-    private string GenerateJwtToken(ApplicationUser user, IList<string> roles)
+    private bool IsGoogleConfigured()
     {
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Email, user.Email!),
-            new("firstName", user.FirstName ?? ""),
-            new("lastName", user.LastName ?? ""),
-        };
-
-        if (user.SupporterId.HasValue)
-            claims.Add(new Claim("supporterId", user.SupporterId.Value.ToString()));
-
-        foreach (var role in roles)
-            claims.Add(new Claim(ClaimTypes.Role, role));
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expMinutes = int.Parse(_config["Jwt:ExpirationMinutes"] ?? "60");
-
-        var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expMinutes),
-            signingCredentials: creds);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return !string.IsNullOrWhiteSpace(configuration["Google:ClientId"])
+               && !string.IsNullOrWhiteSpace(configuration["Google:ClientSecret"])
+               && !configuration["Google:ClientId"]!.Contains("YOUR_GOOGLE", StringComparison.OrdinalIgnoreCase);
     }
 
-    private void SetTokenCookie(string token)
+    private string GetFrontendUrl()
     {
-        Response.Cookies.Append("access_token", token, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
-            Expires = DateTimeOffset.UtcNow.AddHours(1)
-        });
+        return configuration["FrontendUrl"] ?? DefaultFrontendUrl;
+    }
+
+    private static string NormalizeReturnPath(string? returnPath)
+    {
+        if (string.IsNullOrWhiteSpace(returnPath) || !returnPath.StartsWith('/'))
+            return "/admin";
+        return returnPath;
+    }
+
+    private string BuildFrontendSuccessUrl(string? returnPath)
+    {
+        return $"{GetFrontendUrl().TrimEnd('/')}{NormalizeReturnPath(returnPath)}";
+    }
+
+    private string BuildFrontendErrorUrl(string errorMessage)
+    {
+        var loginUrl = $"{GetFrontendUrl().TrimEnd('/')}/login";
+        return QueryHelpers.AddQueryString(loginUrl, "externalError", errorMessage);
     }
 }
