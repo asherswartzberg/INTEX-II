@@ -58,10 +58,18 @@ function App() {
 
             {/* Donor portal */}
             <Route
-              path="/donor/*"
+              path="/donor"
               element={
                 <ProtectedRoute allowedRoles={['Donor']}>
                   <DonorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/donor/settings"
+              element={
+                <ProtectedRoute allowedRoles={['Donor']}>
+                  <SettingsPage />
                 </ProtectedRoute>
               }
             />

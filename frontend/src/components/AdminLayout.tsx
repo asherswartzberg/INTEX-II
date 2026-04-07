@@ -85,45 +85,58 @@ export default function AdminLayout() {
 
       {/* ── Top bar ── */}
       <header className="flex shrink-0 items-center justify-between border-b border-border bg-white px-6 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
-        {/* Branding */}
-        <Link to="/" className="flex items-center gap-2.5">
-          <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-7 w-7 object-contain" />
-          <span
-            className="text-xl font-normal text-black dark:text-white"
-            style={{ fontFamily: "'EB Garamond', serif" }}
-          >
-            Faro Safehouse
+        {/* Branding + identity */}
+        <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-2.5">
+            <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-7 w-7 object-contain" />
+            <span
+              className="text-xl font-normal text-black dark:text-white"
+              style={{ fontFamily: "'EB Garamond', serif" }}
+            >
+              Faro Safehouse
+            </span>
+          </Link>
+          <span className="text-sm italic text-medium-gray dark:text-gray-500">
+            {authSession.roles.includes('Admin') ? 'Admin' : 'Staff'} Portal
           </span>
-        </Link>
+          <span className="text-medium-gray dark:text-gray-600">|</span>
+          <span className="text-sm font-semibold text-black dark:text-white">
+            {authSession.firstName || 'User'}
+          </span>
+        </div>
 
         {/* Right-side nav */}
         <div className="flex items-center gap-5">
-          <span className="hidden text-sm text-medium-gray sm:inline dark:text-gray-500">
-            {authSession.roles.includes('Admin') ? 'Admin' : 'Staff'} · {authSession.firstName || 'User'}
-          </span>
           <Link
             to="/"
-            className="text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
+            className="flex items-center gap-1.5 text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
           >
-            Back to site
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Home
           </Link>
           <NavLink
             to="/admin/settings"
             className={({ isActive }) =>
-              `text-sm font-medium transition-colors hover:text-black dark:hover:text-white ${
-                isActive
-                  ? 'text-black dark:text-white'
-                  : 'text-medium-gray dark:text-gray-400'
+              `flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-black dark:hover:text-white ${
+                isActive ? 'text-black dark:text-white' : 'text-medium-gray dark:text-gray-400'
               }`
             }
           >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
             Settings
           </NavLink>
           <button
             onClick={() => setShowSignOut(true)}
-            className="text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
+            className="flex items-center gap-1.5 text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
           >
-            Sign out
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Log out
           </button>
         </div>
       </header>
@@ -168,9 +181,9 @@ export default function AdminLayout() {
 
       <ConfirmDialog
         open={showSignOut}
-        title="Sign out"
-        message="Are you sure you want to sign out?"
-        confirmLabel="Sign out"
+        title="Log out"
+        message="Are you sure you want to log out?"
+        confirmLabel="Log out"
         onConfirm={() => navigate('/logout')}
         onCancel={() => setShowSignOut(false)}
       />
