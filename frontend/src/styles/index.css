@@ -49,54 +49,45 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dark mode — toggled via .dark class on <html> */
-html.dark body {
+/* Dark mode — scoped to admin portal only (not landing page) */
+html.dark [data-admin] {
   background-color: #111;
   color: #e5e5e5;
 }
-html.dark ::selection {
+html.dark [data-admin] ::selection {
   background: #333;
   color: #fff;
 }
-/* Global dark overrides for admin pages */
-html.dark h1, html.dark h2, html.dark h3, html.dark h4, html.dark h5, html.dark h6 {
+html.dark [data-admin] h1, html.dark [data-admin] h2, html.dark [data-admin] h3,
+html.dark [data-admin] h4, html.dark [data-admin] h5, html.dark [data-admin] h6 {
   color: #f0f0f0;
 }
-html.dark table {
-  color: #e5e5e5;
+html.dark [data-admin] table { color: #e5e5e5; }
+html.dark [data-admin] th { color: #ccc; border-color: #333; }
+html.dark [data-admin] td { border-color: #222; }
+html.dark [data-admin] tr:hover { background-color: #1a1a1a; }
+html.dark [data-admin] input, html.dark [data-admin] select, html.dark [data-admin] textarea {
+  background-color: #1a1a1a; border-color: #333; color: #e5e5e5;
 }
-html.dark th {
-  color: #ccc;
-  border-color: #333;
+html.dark [data-admin] .bg-white { background-color: #1a1a1a !important; }
+html.dark [data-admin] .bg-gray-50, html.dark [data-admin] .bg-gray-100 { background-color: #111 !important; }
+html.dark [data-admin] [class*="bg-[#F7F8FA]"],
+html.dark [data-admin] [class*="bg-[#f7f8fa]"] { background-color: #111 !important; }
+html.dark [data-admin] .text-gray-900, html.dark [data-admin] .text-gray-800,
+html.dark [data-admin] .text-gray-700 { color: #e5e5e5 !important; }
+html.dark [data-admin] .text-gray-600, html.dark [data-admin] .text-gray-500,
+html.dark [data-admin] .text-gray-400 { color: #999 !important; }
+html.dark [data-admin] .border-gray-100, html.dark [data-admin] .border-gray-200,
+html.dark [data-admin] .border-gray-300 { border-color: #333 !important; }
+html.dark [data-admin] .shadow-sm, html.dark [data-admin] .shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
 }
-html.dark td {
-  border-color: #222;
-}
-html.dark tr:hover {
-  background-color: #1a1a1a;
-}
-html.dark input, html.dark select, html.dark textarea {
-  background-color: #1a1a1a;
-  border-color: #333;
-  color: #e5e5e5;
-}
-html.dark .bg-white {
-  background-color: #1a1a1a;
-}
-html.dark .bg-gray-50, html.dark .bg-\[\#F7F8FA\] {
-  background-color: #111;
-}
-html.dark .text-gray-900, html.dark .text-gray-800, html.dark .text-gray-700 {
-  color: #e5e5e5;
-}
-html.dark .text-gray-600, html.dark .text-gray-500 {
-  color: #999;
-}
-html.dark .border-gray-100, html.dark .border-gray-200, html.dark .border-gray-300 {
-  border-color: #333;
-}
-html.dark .shadow-sm, html.dark .shadow {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+html.dark [data-admin] .divide-gray-100 > * + * { border-color: #333 !important; }
+html.dark [data-admin] .bg-blue-50 { background-color: #1a1a2e !important; }
+html.dark [data-admin] .bg-blue-100 { background-color: #1a1a3e !important; }
+html.dark [data-admin] .bg-red-50 { background-color: #2a1a1a !important; }
+html.dark [data-admin] p, html.dark [data-admin] span, html.dark [data-admin] label {
+  color: inherit;
 }
 
 /* Custom selection */

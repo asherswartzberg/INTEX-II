@@ -214,6 +214,82 @@ public class AuthController(
         return Ok(new { message = "Logout successful." });
     }
 
+    // ── User management (Admin only) ──────────────────────
+
+    public record CreateUserRequest(string Email, string Password, string FirstName, string LastName, string Role);
+
+    [HttpPost("users")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = AuthRoles.Admin)]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+    {
+        string[] validRoles = [AuthRoles.Admin, AuthRoles.Staff, AuthRoles.Donor];
+        if (!validRoles.Contains(request.Role))
+            return BadRequest(new { message = "Invalid role." });
+
+        var existing = await userManager.FindByEmailAsync(request.Email);
+        if (existing != null)
+            return BadRequest(new { message = "An account with this email already exists." });
+
+        var user = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            EmailConfirmed = true
+        };
+
+        var result = await userManager.CreateAsync(user, request.Password);
+        if (!result.Succeeded)
+            return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
+
+        await userManager.AddToRoleAsync(user, request.Role);
+        return Ok(new { message = "User created.", userId = user.Id });
+    }
+
+    [HttpGet("users")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = AuthRoles.Admin)]
+    public async Task<IActionResult> ListUsers([FromQuery] string? role = null)
+    {
+        var users = userManager.Users.AsEnumerable();
+        var result = new List<object>();
+
+        foreach (var u in users)
+        {
+            var roles = await userManager.GetRolesAsync(u);
+            if (role != null && !roles.Contains(role)) continue;
+            result.Add(new
+            {
+                id = u.Id,
+                email = u.Email,
+                firstName = u.FirstName,
+                lastName = u.LastName,
+                roles
+            });
+        }
+
+        return Ok(result);
+    }
+
+    [HttpDelete("users/{id}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = AuthRoles.Admin)]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        // Prevent deleting yourself
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (user.Id == currentUserId)
+            return BadRequest(new { message = "You cannot delete your own account." });
+
+        var result = await userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+            return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
+
+        return Ok(new { message = "User deleted." });
+    }
+
     // ── Helpers ───────────────────────────────────────────
     private bool IsGoogleConfigured()
     {

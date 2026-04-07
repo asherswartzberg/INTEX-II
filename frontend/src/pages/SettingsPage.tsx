@@ -1,20 +1,111 @@
+import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { getApiBaseUrl } from '../apis/client'
+import ConfirmDialog from '../components/ConfirmDialog'
+
+interface ManagedUser {
+  id: string
+  email: string
+  firstName: string | null
+  lastName: string | null
+  roles: string[]
+}
 
 export default function SettingsPage() {
   const { authSession } = useAuth()
   const { theme, toggleTheme } = useTheme()
+  const isAdmin = authSession.roles.includes('Admin')
+
+  // User management state (admin only)
+  const [users, setUsers] = useState<ManagedUser[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [activeTab, setActiveTab] = useState<'all' | 'Admin' | 'Staff' | 'Donor'>('all')
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [createEmail, setCreateEmail] = useState('')
+  const [createPassword, setCreatePassword] = useState('')
+  const [createFirstName, setCreateFirstName] = useState('')
+  const [createLastName, setCreateLastName] = useState('')
+  const [createRole, setCreateRole] = useState('Staff')
+  const [createError, setCreateError] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<ManagedUser | null>(null)
+
+  const fetchUsers = useCallback(async () => {
+    setLoadingUsers(true)
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/auth/users`, { credentials: 'include' })
+      if (res.ok) setUsers(await res.json())
+    } catch { /* ignore */ }
+    finally { setLoadingUsers(false) }
+  }, [])
+
+  useEffect(() => {
+    if (isAdmin) fetchUsers()
+  }, [isAdmin, fetchUsers])
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCreateError('')
+    if (!createEmail || !createPassword || !createFirstName || !createLastName) {
+      setCreateError('All fields are required.')
+      return
+    }
+    setCreating(true)
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/auth/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email: createEmail,
+          password: createPassword,
+          firstName: createFirstName,
+          lastName: createLastName,
+          role: createRole,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setCreateError(data?.message || 'Failed to create user.')
+        return
+      }
+      setShowCreateForm(false)
+      setCreateEmail('')
+      setCreatePassword('')
+      setCreateFirstName('')
+      setCreateLastName('')
+      setCreateRole('Staff')
+      fetchUsers()
+    } catch {
+      setCreateError('Failed to create user.')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return
+    try {
+      await fetch(`${getApiBaseUrl()}/api/auth/users/${deleteTarget.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id))
+    } catch { /* ignore */ }
+    finally { setDeleteTarget(null) }
+  }, [deleteTarget])
+
+  const filteredUsers = activeTab === 'all' ? users : users.filter((u) => u.roles.includes(activeTab))
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-3xl px-6 py-10">
       <h1 className="text-2xl font-bold text-black dark:text-white">Settings</h1>
       <p className="mt-1 text-sm text-medium-gray">Manage your preferences and account info.</p>
 
       {/* Profile info */}
       <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">
-          Profile
-        </h2>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">Profile</h2>
         <div className="mt-4 divide-y divide-border rounded-xl border border-border bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
           <Row label="Email" value={authSession.email ?? '—'} />
           <Row label="Name" value={[authSession.firstName, authSession.lastName].filter(Boolean).join(' ') || '—'} />
@@ -24,15 +115,11 @@ export default function SettingsPage() {
 
       {/* Appearance */}
       <section className="mt-10">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">
-          Appearance
-        </h2>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">Appearance</h2>
         <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-white px-5 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
           <div>
             <p className="text-sm font-medium text-black dark:text-white">Dark mode</p>
-            <p className="mt-0.5 text-xs text-medium-gray">
-              Preference is saved in a browser cookie.
-            </p>
+            <p className="mt-0.5 text-xs text-medium-gray">Preference is saved in a browser cookie.</p>
           </div>
           <button
             type="button"
@@ -44,14 +131,152 @@ export default function SettingsPage() {
               theme === 'dark' ? 'bg-black' : 'bg-border'
             }`}
           >
-            <span
-              className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
+            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+              theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+            }`} />
           </button>
         </div>
       </section>
+
+      {/* User Management — Admin only */}
+      {isAdmin && (
+        <section className="mt-10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">User Management</h2>
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+            >
+              {showCreateForm ? 'Cancel' : '+ Create User'}
+            </button>
+          </div>
+
+          {/* Create user form */}
+          {showCreateForm && (
+            <form onSubmit={handleCreate} className="mt-4 rounded-xl border border-border bg-white p-5 dark:bg-[#1a1a1a] dark:border-[#333]">
+              {createError && (
+                <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 border border-red-200">{createError}</div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  placeholder="First name"
+                  value={createFirstName}
+                  onChange={(e) => setCreateFirstName(e.target.value)}
+                  className="rounded-lg border border-border bg-off-white px-3 py-2.5 text-sm dark:bg-[#111] dark:border-[#333] dark:text-white"
+                />
+                <input
+                  placeholder="Last name"
+                  value={createLastName}
+                  onChange={(e) => setCreateLastName(e.target.value)}
+                  className="rounded-lg border border-border bg-off-white px-3 py-2.5 text-sm dark:bg-[#111] dark:border-[#333] dark:text-white"
+                />
+              </div>
+              <input
+                type="email"
+                placeholder="Email"
+                value={createEmail}
+                onChange={(e) => setCreateEmail(e.target.value)}
+                className="mt-3 w-full rounded-lg border border-border bg-off-white px-3 py-2.5 text-sm dark:bg-[#111] dark:border-[#333] dark:text-white"
+              />
+              <input
+                type="password"
+                placeholder="Password (min 14 characters)"
+                value={createPassword}
+                onChange={(e) => setCreatePassword(e.target.value)}
+                className="mt-3 w-full rounded-lg border border-border bg-off-white px-3 py-2.5 text-sm dark:bg-[#111] dark:border-[#333] dark:text-white"
+              />
+              <div className="mt-3 flex gap-2">
+                {(['Admin', 'Staff', 'Donor'] as const).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setCreateRole(r)}
+                    className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
+                      createRole === r
+                        ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
+                        : 'border-border text-medium-gray hover:border-gray-400 dark:border-[#333]'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="submit"
+                disabled={creating}
+                className="btn-wipe mt-4 w-full rounded-lg bg-black py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {creating ? 'Creating...' : 'Create User'}
+              </button>
+            </form>
+          )}
+
+          {/* User list tabs */}
+          <div className="mt-4 flex gap-1 rounded-lg bg-off-white p-1 dark:bg-[#1a1a1a]">
+            {(['all', 'Admin', 'Staff', 'Donor'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === tab
+                    ? 'bg-white text-black shadow-sm dark:bg-[#333] dark:text-white'
+                    : 'text-medium-gray hover:text-black dark:hover:text-white'
+                }`}
+              >
+                {tab === 'all' ? `All (${users.length})` : `${tab} (${users.filter(u => u.roles.includes(tab)).length})`}
+              </button>
+            ))}
+          </div>
+
+          {/* User list */}
+          <div className="mt-3 divide-y divide-border rounded-xl border border-border bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
+            {loadingUsers ? (
+              <p className="px-5 py-8 text-center text-sm text-medium-gray">Loading users...</p>
+            ) : filteredUsers.length === 0 ? (
+              <p className="px-5 py-8 text-center text-sm text-medium-gray">No users found.</p>
+            ) : (
+              filteredUsers.map((u) => (
+                <div key={u.id} className="flex items-center justify-between px-5 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-black dark:text-white">
+                      {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}
+                    </p>
+                    <p className="text-xs text-medium-gray">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      u.roles.includes('Admin')
+                        ? 'bg-black text-white dark:bg-white dark:text-black'
+                        : u.roles.includes('Staff')
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {u.roles[0] ?? 'None'}
+                    </span>
+                    {u.email !== authSession.email && (
+                      <button
+                        onClick={() => setDeleteTarget(u)}
+                        className="text-xs text-red-500 hover:text-red-700 transition-colors"
+                        aria-label={`Delete ${u.email}`}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete user"
+        message={`Are you sure you want to delete ${deleteTarget?.email}? This action cannot be undone.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
