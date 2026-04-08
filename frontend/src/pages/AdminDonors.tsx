@@ -33,7 +33,7 @@ function avatarColor(name: string | null) {
 
 function fmtCurrency(n: number | null, code: string | null = 'PHP') {
   if (n == null) return '—'
-  const sym = (code ?? 'PHP') === 'PHP' ? '₱' : code + ' '
+  const sym = (code ?? 'PHP') === 'PHP' ? '$' : code + ' '
   return sym + n.toLocaleString('en-PH', { maximumFractionDigits: 0 })
 }
 
