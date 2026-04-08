@@ -18,6 +18,7 @@ import AdminVisitations from './pages/AdminVisitations'
 import AdminSocialMedia from './pages/AdminSocialMedia'
 import AdminReports from './pages/AdminReports'
 import DonorDashboard from './pages/DonorDashboard'
+import SettingsPage from './pages/SettingsPage'
 import { ThemeProvider } from './context/ThemeContext'
 
 function App() {
@@ -52,6 +53,7 @@ function App() {
               <Route path="visitations" element={<AdminVisitations />} />
               <Route path="social-media" element={<AdminSocialMedia />} />
               <Route path="reports" element={<AdminReports />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* Donor portal */}

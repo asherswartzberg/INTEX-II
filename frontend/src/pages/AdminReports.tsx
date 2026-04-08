@@ -226,7 +226,7 @@ export default function AdminReports() {
                   <thead>
                     <tr className="border-b border-gray-50">
                       {['SAFEHOUSE', 'RESIDENTS', 'AVG EDUCATION', 'AVG HEALTH', 'PROCESS RECORDINGS', 'HOME VISITS', 'INCIDENTS'].map((h) => (
-                        <th key={h} className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">{h}</th>
+                        <th key={h} scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-gray-500">{h}</th>
                       ))}
                     </tr>
                   </thead>

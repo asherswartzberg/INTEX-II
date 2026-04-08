@@ -317,7 +317,7 @@ export default function AdminCaseload() {
               <thead className="sticky top-0 bg-white">
                 <tr className="border-b border-gray-100">
                   {['CASE NO', 'CODE', 'SAFEHOUSE', 'STATUS', 'RISK LEVEL', 'INCIDENT RISK', 'CATEGORY', 'ADMITTED', 'SOCIAL WORKER'].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">
+                    <th key={h} scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500">
                       {h}
                     </th>
                   ))}

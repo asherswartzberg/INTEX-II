@@ -207,7 +207,7 @@ export default function AdminSocialMedia() {
                 <thead>
                   <tr className="border-b border-gray-50">
                     {['DATE', 'PLATFORM', 'TYPE', 'TOPIC', 'REACH', 'ENGAGEMENT', 'REFERRALS', 'BOOSTED'].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">{h}</th>
+                      <th key={h} scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -307,7 +307,7 @@ export default function AdminSocialMedia() {
                         ? ['#', 'POST TYPE', 'MEDIA', 'TOPIC', 'BEST DAY', 'REFERRALS', 'ENGAGEMENT']
                         : ['#', 'PLATFORM', 'POST TYPE', 'MEDIA', 'BEST DAY', 'REFERRALS', 'ENGAGEMENT']
                       ).map((h) => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">{h}</th>
+                        <th key={h} scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500">{h}</th>
                       ))}
                     </tr>
                   </thead>
