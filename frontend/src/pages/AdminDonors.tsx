@@ -70,6 +70,7 @@ export default function AdminDonors() {
   const [loadingList, setLoadingList] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('All')
+  const [sortBy, setSortBy] = useState<'name' | 'churnRisk'>('name')
 
   const [riskScores, setRiskScores] = useState<DonorRiskScore[]>([])
 
@@ -127,7 +128,14 @@ export default function AdminDonors() {
       .finally(() => setLoadingDetail(false))
   }, [selected])
 
-  // Filtered list
+  // O(1) risk score lookups
+  const riskMap = useMemo(() => {
+    const m = new Map<number, DonorRiskScore>()
+    riskScores.forEach((r) => m.set(r.supporterId, r))
+    return m
+  }, [riskScores])
+
+  // Filtered + sorted list
   const filtered = useMemo(() => {
     let list = supporters
     if (typeFilter !== 'All') list = list.filter((s) => s.supporterType === typeFilter)
@@ -140,8 +148,18 @@ export default function AdminDonors() {
           s.organizationName?.toLowerCase().includes(q)
       )
     }
+    list = [...list]
+    if (sortBy === 'churnRisk') {
+      list.sort((a, b) => {
+        const ra = riskMap.get(a.supporterId)?.churnRiskScore ?? -1
+        const rb = riskMap.get(b.supporterId)?.churnRiskScore ?? -1
+        return rb - ra
+      })
+    } else {
+      list.sort((a, b) => (a.displayName ?? '').localeCompare(b.displayName ?? ''))
+    }
     return list
-  }, [supporters, typeFilter, search])
+  }, [supporters, typeFilter, search, sortBy, riskMap])
 
   // Derived donor detail metrics
   const lifetimeTotal = donations
@@ -211,6 +229,24 @@ export default function AdminDonors() {
               ))}
             </select>
           </div>
+          <div className="mt-3">
+            <label className="mb-1 block text-xs font-medium text-gray-500">Sort by</label>
+            <div className="flex gap-1.5">
+              {([['name', 'Name'], ['churnRisk', 'Churn Risk']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  onClick={() => setSortBy(val)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    sortBy === val
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* List */}
@@ -240,7 +276,7 @@ export default function AdminDonors() {
                 <div className="min-w-0">
                   <p className="flex items-center gap-1.5 truncate text-sm font-medium text-gray-800">
                     {(() => {
-                      const risk = riskScores.find((r) => r.supporterId === s.supporterId)
+                      const risk = riskMap.get(s.supporterId)
                       if (!risk?.riskLabel) return null
                       const dotColor =
                         risk.riskLabel === 'Low Risk'
