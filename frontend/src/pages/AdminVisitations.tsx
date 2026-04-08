@@ -68,7 +68,7 @@ export default function AdminVisitations() {
   return (
     <div className="flex h-full">
       {/* ── Resident selector ── */}
-      <div className="flex w-[260px] shrink-0 flex-col border-r border-gray-100 bg-white">
+      <div className={`flex w-full flex-col border-r border-gray-100 bg-white md:w-[260px] md:shrink-0 ${selectedResident ? 'hidden md:flex' : 'flex'}`}>
         <div className="border-b border-gray-50 p-4">
           <h2 className="mb-3 text-sm font-semibold text-gray-700">Active Residents</h2>
           <input
@@ -104,13 +104,20 @@ export default function AdminVisitations() {
       </div>
 
       {/* ── Visitations panel ── */}
-      <div className="flex-1 overflow-y-auto bg-[#F7F8FA] p-6">
+      <div className={`flex-1 overflow-y-auto bg-[#F7F8FA] p-4 md:p-6 ${!selectedResident ? 'hidden md:block' : ''}`}>
         {!selectedResident ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-gray-400">Select a resident to view their home visitations.</p>
           </div>
         ) : (
           <>
+            <button
+              onClick={() => setSelectedResident(null)}
+              className="mb-4 flex items-center gap-1.5 text-sm text-medium-gray hover:text-black md:hidden"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back to list
+            </button>
             <div className="mb-5">
               <h1 className="text-xl font-bold text-gray-900">
                 {selectedResident.internalCode} — Home Visitations
@@ -135,21 +142,24 @@ export default function AdminVisitations() {
                     <div key={v.visitationId} className="rounded-xl border border-gray-100 bg-white overflow-hidden">
                       <button
                         onClick={() => setExpanded(isOpen ? null : v.visitationId)}
-                        className="flex w-full items-center gap-4 px-5 py-4 text-left hover:bg-gray-50"
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 md:px-5 md:py-4"
                       >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
                             <span className="text-sm font-semibold text-gray-800">{fmtDate(v.visitDate)}</span>
-                            <span className="text-xs text-gray-400">{v.visitType ?? '—'}</span>
+                            <span className="ml-2 text-xs text-gray-400">{v.visitType ?? '—'}</span>
+                            <p className="mt-0.5 text-xs text-gray-500">
+                              {v.socialWorker ?? 'Unknown'} · {v.locationVisited ?? '—'}
+                            </p>
                           </div>
-                          <p className="mt-0.5 text-xs text-gray-500">
-                            {v.socialWorker ?? 'Unknown'} · {v.locationVisited ?? '—'}
-                          </p>
+                          <svg className={`shrink-0 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="mt-2 flex flex-wrap gap-1.5">
                           {v.familyCooperationLevel && (
                             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${coopCls}`}>
-                              {v.familyCooperationLevel} cooperation
+                              {v.familyCooperationLevel}
                             </span>
                           )}
                           {v.safetyConcernsNoted && (
@@ -158,9 +168,6 @@ export default function AdminVisitations() {
                           {v.followUpNeeded && (
                             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Follow-up needed</span>
                           )}
-                          <svg className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
                         </div>
                       </button>
 
