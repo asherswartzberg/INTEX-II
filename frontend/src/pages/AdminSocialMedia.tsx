@@ -57,27 +57,18 @@ export default function AdminSocialMedia() {
       .finally(() => setLoading(false))
   }, [])
 
-  // All available recommendations (fetched once for extracting filter options)
-  const [allRecs, setAllRecs] = useState<SocialMediaRecommendation[]>([])
-
-  useEffect(() => {
-    fetchSocialMediaRecommendations({ top: 200 })
-      .then(setAllRecs)
-      .catch(console.error)
-  }, [])
-
-  // Unique values for recommendation filter pills (derived from all recs)
+  // Filter options — sourced from posts data with hardcoded fallbacks
   const recPlatformOptions = useMemo(() => {
-    const fromRecs = new Set(allRecs.map((r) => r.platform).filter(Boolean) as string[])
-    const fromPosts = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
-    return Array.from(new Set([...fromRecs, ...fromPosts])).sort()
-  }, [allRecs, posts])
+    const s = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
+    return s.size > 0 ? Array.from(s).sort()
+      : ['Facebook', 'Instagram', 'LinkedIn', 'TikTok', 'Twitter', 'WhatsApp', 'YouTube']
+  }, [posts])
 
   const recTopicOptions = useMemo(() => {
-    const fromRecs = new Set(allRecs.map((r) => r.contentTopic).filter(Boolean) as string[])
-    const fromPosts = new Set(posts.map((p) => p.contentTopic).filter(Boolean) as string[])
-    return Array.from(new Set([...fromRecs, ...fromPosts])).sort()
-  }, [allRecs, posts])
+    const s = new Set(posts.map((p) => p.contentTopic).filter(Boolean) as string[])
+    return s.size > 0 ? Array.from(s).sort()
+      : ['AwarenessRaising', 'CampaignLaunch', 'DonorImpact', 'Education', 'EventRecap', 'Gratitude', 'Health', 'Reintegration', 'SafehouseLife']
+  }, [posts])
 
   // Current options for the active filter type
   const recOptions = recFilterType === 'platform' ? recPlatformOptions : recTopicOptions

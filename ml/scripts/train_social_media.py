@@ -276,10 +276,21 @@ def train_engagement_model(df: pd.DataFrame):
 
 def run_batch_inference(df_raw: pd.DataFrame, best_model, feature_cols: list,
                         engagement_model=None) -> pd.DataFrame:
-    """Score all platform × post_type × media_type × content_topic × day_of_week combos."""
-    platforms      = sorted(df_raw["platform"].unique())
+    """Score realistic platform × post_type × media_type × content_topic × day combos.
+
+    Only generates combinations where the platform–media_type pair has
+    actually been observed in the training data (e.g., no YouTube+Photo).
+    """
+    # Discover which media types are valid for each platform
+    valid_platform_media = (
+        df_raw.groupby(["platform", "media_type"])
+        .size()
+        .reset_index(name="count")
+        [["platform", "media_type"]]
+    )
+    valid_pairs = set(zip(valid_platform_media["platform"], valid_platform_media["media_type"]))
+
     post_types     = sorted(df_raw["post_type"].unique())
-    media_types    = sorted(df_raw["media_type"].unique())
     content_topics = sorted(df_raw["content_topic"].unique())
     days = ["Monday", "Tuesday", "Wednesday", "Thursday",
             "Friday", "Saturday", "Sunday"]
@@ -291,25 +302,24 @@ def run_batch_inference(df_raw: pd.DataFrame, best_model, feature_cols: list,
     median_caption  = int(df_raw["caption_length"].median())
 
     combos = []
-    for plat, pt, mt, topic, day in product(
-        platforms, post_types, media_types, content_topics, days
-    ):
-        combos.append({
-            "platform":               plat,
-            "post_type":              pt,
-            "media_type":             mt,
-            "content_topic":          topic,
-            "sentiment_tone":         mode_sentiment,
-            "day_of_week":            day,
-            "post_hour":              median_hour,
-            "has_call_to_action":     True,
-            "is_boosted":             False,
-            "num_hashtags":           median_hashtags,
-            "caption_length":         median_caption,
-            "features_resident_story": False,
-            "mentions_count":         1,
-            "boost_budget_php":       0,
-        })
+    for plat, mt in valid_pairs:
+        for pt, topic, day in product(post_types, content_topics, days):
+            combos.append({
+                "platform":               plat,
+                "post_type":              pt,
+                "media_type":             mt,
+                "content_topic":          topic,
+                "sentiment_tone":         mode_sentiment,
+                "day_of_week":            day,
+                "post_hour":              median_hour,
+                "has_call_to_action":     True,
+                "is_boosted":             False,
+                "num_hashtags":           median_hashtags,
+                "caption_length":         median_caption,
+                "features_resident_story": False,
+                "mentions_count":         1,
+                "boost_budget_php":       0,
+            })
 
     combos_df = pd.DataFrame(combos)
     combos_df["predicted_donation_referrals"] = (
