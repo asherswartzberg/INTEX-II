@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Outlet, NavLink, Link, useNavigate } from 'react-router'
 import { useAuth } from '../context/AuthContext'
 import ConfirmDialog from './ConfirmDialog'
+import SettingsPanel from './SettingsPanel'
 
 type NavItem = { label: string; to: string; badge?: number; icon: React.ReactNode }
 
@@ -80,6 +81,7 @@ export default function AdminLayout() {
   const { authSession } = useAuth()
   const navigate = useNavigate()
   const [showSignOut, setShowSignOut] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   return (
     <div data-admin className="flex flex-col h-screen bg-off-white dark:bg-[#111] font-sans overflow-hidden">
 
@@ -116,19 +118,16 @@ export default function AdminLayout() {
             </svg>
             Home
           </Link>
-          <NavLink
-            to="/admin/settings"
-            className={({ isActive }) =>
-              `flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-black dark:hover:text-white ${
-                isActive ? 'text-black dark:text-white' : 'text-medium-gray dark:text-gray-400'
-              }`
-            }
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="flex items-center gap-1.5 text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
             </svg>
             Settings
-          </NavLink>
+          </button>
           <button
             onClick={() => setShowSignOut(true)}
             className="flex items-center gap-1.5 text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
@@ -187,6 +186,8 @@ export default function AdminLayout() {
         onConfirm={() => navigate('/logout')}
         onCancel={() => setShowSignOut(false)}
       />
+
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }

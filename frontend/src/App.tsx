@@ -17,7 +17,6 @@ import AdminCounseling from './pages/AdminCounseling'
 import AdminVisitations from './pages/AdminVisitations'
 import AdminSocialMedia from './pages/AdminSocialMedia'
 import AdminReports from './pages/AdminReports'
-import SettingsPage from './pages/SettingsPage'
 import DonorDashboard from './pages/DonorDashboard'
 import { ThemeProvider } from './context/ThemeContext'
 
@@ -53,7 +52,6 @@ function App() {
               <Route path="visitations" element={<AdminVisitations />} />
               <Route path="social-media" element={<AdminSocialMedia />} />
               <Route path="reports" element={<AdminReports />} />
-              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* Donor portal */}
@@ -62,14 +60,6 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['Donor']}>
                   <DonorDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/donor/settings"
-              element={
-                <ProtectedRoute allowedRoles={['Donor']}>
-                  <SettingsPage />
                 </ProtectedRoute>
               }
             />

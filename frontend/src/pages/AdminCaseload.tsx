@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { createResident, deleteResident, fetchResidents, updateResident } from '../apis/residentsApi'
 import { fetchResidentRiskScores } from '../apis/residentRiskScoresApi'
 import type { Resident } from '../types/Resident'
@@ -115,6 +115,9 @@ export default function AdminCaseload() {
     fetchResidentRiskScores().then(setRiskScores).catch(console.error)
   }, [])
 
+  const selectedRef = React.useRef(selected)
+  selectedRef.current = selected
+
   const refreshResidents = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -128,8 +131,8 @@ export default function AdminCaseload() {
         pageSize: 500,
       })
       setResidents(rows)
-      if (selected) {
-        const updatedSelected = rows.find((r) => r.residentId === selected.residentId) ?? null
+      if (selectedRef.current) {
+        const updatedSelected = rows.find((r) => r.residentId === selectedRef.current!.residentId) ?? null
         setSelected(updatedSelected)
       }
     } catch (err) {
@@ -137,7 +140,7 @@ export default function AdminCaseload() {
     } finally {
       setLoading(false)
     }
-  }, [categoryFilter, safehouseFilter, search, selected, statusFilter])
+  }, [categoryFilter, safehouseFilter, search, statusFilter])
 
   const handleDelete = useCallback(async () => {
     if (!confirmDelete) return
@@ -313,7 +316,7 @@ export default function AdminCaseload() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white">
                 <tr className="border-b border-gray-100">
-                  {['CASE NO', 'CODE', 'SAFEHOUSE', 'STATUS', 'RISK LEVEL', 'READINESS', 'CATEGORY', 'ADMITTED', 'SOCIAL WORKER'].map((h) => (
+                  {['CASE NO', 'CODE', 'SAFEHOUSE', 'STATUS', 'RISK LEVEL', 'INCIDENT RISK', 'CATEGORY', 'ADMITTED', 'SOCIAL WORKER'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">
                       {h}
                     </th>
