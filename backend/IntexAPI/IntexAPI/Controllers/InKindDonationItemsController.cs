@@ -44,7 +44,8 @@ public class InKindDonationItemsController : ControllerBase
         [FromBody] InKindDonationItem entity,
         CancellationToken cancellationToken)
     {
-        entity.ItemId = 0;
+        var maxId = await _db.InKindDonationItems.MaxAsync(e => (int?)e.ItemId, cancellationToken) ?? 0;
+        entity.ItemId = maxId + 1;
         _db.InKindDonationItems.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.ItemId }, entity);

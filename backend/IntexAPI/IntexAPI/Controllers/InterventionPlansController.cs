@@ -57,7 +57,8 @@ public class InterventionPlansController : ControllerBase
         [FromBody] InterventionPlan entity,
         CancellationToken cancellationToken)
     {
-        entity.PlanId = 0;
+        var maxId = await _db.InterventionPlans.MaxAsync(e => (int?)e.PlanId, cancellationToken) ?? 0;
+        entity.PlanId = maxId + 1;
         _db.InterventionPlans.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.PlanId }, entity);

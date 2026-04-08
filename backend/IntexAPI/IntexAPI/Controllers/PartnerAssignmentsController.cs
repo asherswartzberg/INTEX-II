@@ -50,7 +50,8 @@ public class PartnerAssignmentsController : ControllerBase
         [FromBody] PartnerAssignment entity,
         CancellationToken cancellationToken)
     {
-        entity.AssignmentId = 0;
+        var maxId = await _db.PartnerAssignments.MaxAsync(e => (int?)e.AssignmentId, cancellationToken) ?? 0;
+        entity.AssignmentId = maxId + 1;
         _db.PartnerAssignments.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.AssignmentId }, entity);
