@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,16 +12,25 @@ namespace IntexAPI.Controllers;
 public class SafehousesController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly FacilityAccessService _facilityAccess;
 
-    public SafehousesController(AppDbContext db)
+    public SafehousesController(AppDbContext db, FacilityAccessService facilityAccess)
     {
         _db = db;
+        _facilityAccess = facilityAccess;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Safehouse>>> GetAll(CancellationToken cancellationToken)
     {
-        var list = await _db.Safehouses.AsNoTracking()
+        var query = _db.Safehouses.AsNoTracking().AsQueryable();
+        if (!User.IsInRole(AuthRoles.Admin))
+        {
+            var allowed = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+            query = query.Where(s => allowed.Contains(s.SafehouseId));
+        }
+
+        var list = await query
             .OrderBy(s => s.SafehouseCode)
             .ToListAsync(cancellationToken);
         return Ok(list);
@@ -31,6 +41,12 @@ public class SafehousesController : ControllerBase
     {
         var safehouse = await _db.Safehouses.AsNoTracking()
             .FirstOrDefaultAsync(s => s.SafehouseId == id, cancellationToken);
+        if (safehouse is not null && !User.IsInRole(AuthRoles.Admin))
+        {
+            var allowed = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+            if (!allowed.Contains(safehouse.SafehouseId))
+                return NotFound();
+        }
         return safehouse is null ? NotFound() : Ok(safehouse);
     }
 

@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using IntexAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,12 @@ namespace IntexAPI.Controllers;
 public class SafehouseMonthlyMetricsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly FacilityAccessService _facilityAccess;
 
-    public SafehouseMonthlyMetricsController(AppDbContext db)
+    public SafehouseMonthlyMetricsController(AppDbContext db, FacilityAccessService facilityAccess)
     {
         _db = db;
+        _facilityAccess = facilityAccess;
     }
 
     [HttpGet]
@@ -28,6 +31,11 @@ public class SafehouseMonthlyMetricsController : ControllerBase
     {
         var (skip, take) = Pagination.ToSkipTake(page, pageSize);
         var q = _db.SafehouseMonthlyMetrics.AsNoTracking().AsQueryable();
+        if (!User.IsInRole(AuthRoles.Admin))
+        {
+            var allowed = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+            q = q.Where(m => m.SafehouseId != null && allowed.Contains(m.SafehouseId.Value));
+        }
         if (safehouseId is int s)
             q = q.Where(m => m.SafehouseId == s);
         if (monthStart is DateOnly m)

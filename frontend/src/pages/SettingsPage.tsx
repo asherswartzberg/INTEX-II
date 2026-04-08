@@ -11,6 +11,7 @@ interface ManagedUser {
   firstName: string | null
   lastName: string | null
   roles: string[]
+  accessibleSafehouseIds: number[]
 }
 
 export default function SettingsPage() {
@@ -37,7 +38,17 @@ export default function SettingsPage() {
     setLoadingUsers(true)
     try {
       const res = await fetch(`${getApiBaseUrl()}/api/auth/users`, { credentials: 'include' })
-      if (res.ok) setUsers(await res.json())
+      if (res.ok) {
+        const data = await res.json()
+        setUsers(
+          Array.isArray(data)
+            ? data.map((u) => ({
+                ...u,
+                accessibleSafehouseIds: Array.isArray(u.accessibleSafehouseIds) ? u.accessibleSafehouseIds : [],
+              }))
+            : [],
+        )
+      }
     } catch { /* ignore */ }
     finally { setLoadingUsers(false) }
   }, [])

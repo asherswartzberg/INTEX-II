@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,7 @@ public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     AppDbContext appDb,
+    FacilityAccessService facilityAccess,
     IConfiguration configuration) : ControllerBase
 {
     private const string DefaultFrontendUrl = "http://localhost:5173";
@@ -52,7 +54,8 @@ public class AuthController(
             firstName = user?.FirstName,
             lastName = user?.LastName,
             roles,
-            supporterId = user?.SupporterId
+            supporterId = user?.SupporterId,
+            accessibleSafehouseIds = await facilityAccess.GetAccessibleSafehouseIdsAsync(User, HttpContext.RequestAborted)
         });
     }
 
@@ -354,7 +357,8 @@ public class AuthController(
 
     // ── User management (Admin only) ──────────────────────
 
-    public record CreateUserRequest(string Email, string Password, string FirstName, string LastName, string Role);
+    public record CreateUserRequest(string Email, string Password, string FirstName, string LastName, string Role, int[]? AccessibleSafehouseIds);
+    public record UpdateUserRequest(string Email, string? Password, string FirstName, string LastName, string Role, int[]? AccessibleSafehouseIds);
 
     [HttpPost("users")]
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = AuthRoles.Admin)]
@@ -382,6 +386,9 @@ public class AuthController(
             return BadRequest(new { message = string.Join(" ", result.Errors.Select(e => e.Description)) });
 
         await userManager.AddToRoleAsync(user, request.Role);
+        user.AccessibleSafehouseIdsJson = request.Role == AuthRoles.Staff
+            ? UserFacilityAccess.Serialize(request.AccessibleSafehouseIds ?? [])
+            : "[]";
 
         // If Donor, create a Supporter record
         if (request.Role == AuthRoles.Donor)
@@ -408,8 +415,9 @@ public class AuthController(
             appDb.Supporters.Add(supporter);
             await appDb.SaveChangesAsync();
             user.SupporterId = supporter.SupporterId;
-            await userManager.UpdateAsync(user);
         }
+
+        await userManager.UpdateAsync(user);
 
         return Ok(new { message = "User created.", userId = user.Id });
     }
@@ -431,11 +439,59 @@ public class AuthController(
                 email = u.Email,
                 firstName = u.FirstName,
                 lastName = u.LastName,
-                roles
+                roles,
+                accessibleSafehouseIds = UserFacilityAccess.Parse(u.AccessibleSafehouseIdsJson)
             });
         }
 
         return Ok(result);
+    }
+
+    [HttpPut("users/{id}")]
+    [HttpPost("users/{id}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = AuthRoles.Admin)]
+    public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
+    {
+        string[] validRoles = [AuthRoles.Admin, AuthRoles.Staff, AuthRoles.Donor];
+        if (!validRoles.Contains(request.Role))
+            return BadRequest(new { message = "Invalid role." });
+
+        var user = await userManager.FindByIdAsync(id);
+        if (user == null)
+            return NotFound();
+
+        var existingEmailUser = await userManager.FindByEmailAsync(request.Email);
+        if (existingEmailUser != null && existingEmailUser.Id != user.Id)
+            return BadRequest(new { message = "An account with this email already exists." });
+
+        user.UserName = request.Email;
+        user.Email = request.Email;
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.AccessibleSafehouseIdsJson = request.Role == AuthRoles.Staff
+            ? UserFacilityAccess.Serialize(request.AccessibleSafehouseIds ?? [])
+            : "[]";
+
+        var updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+            return BadRequest(new { message = string.Join(" ", updateResult.Errors.Select(e => e.Description)) });
+
+        var existingRoles = await userManager.GetRolesAsync(user);
+        var rolesToRemove = existingRoles.Where(r => r != request.Role).ToArray();
+        if (rolesToRemove.Length > 0)
+            await userManager.RemoveFromRolesAsync(user, rolesToRemove);
+        if (!existingRoles.Contains(request.Role))
+            await userManager.AddToRoleAsync(user, request.Role);
+
+        if (!string.IsNullOrWhiteSpace(request.Password))
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var resetResult = await userManager.ResetPasswordAsync(user, token, request.Password);
+            if (!resetResult.Succeeded)
+                return BadRequest(new { message = string.Join(" ", resetResult.Errors.Select(e => e.Description)) });
+        }
+
+        return Ok(new { message = "User updated." });
     }
 
     [HttpDelete("users/{id}")]

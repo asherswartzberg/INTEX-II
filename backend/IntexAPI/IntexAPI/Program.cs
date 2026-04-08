@@ -88,6 +88,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<FacilityAccessService>();
 
 // --- CORS ---
 builder.Services.AddCors(options =>
@@ -113,7 +114,7 @@ try
 {
     using var scope = app.Services.CreateScope();
     var identityDb = scope.ServiceProvider.GetRequiredService<IdentityContext>();
-    await identityDb.Database.EnsureCreatedAsync();
+    await IdentitySchemaInitializer.EnsureAsync(identityDb);
     await SeedData.Initialize(scope.ServiceProvider);
     await CsvSeedData.InitializeAsync(scope.ServiceProvider);
 }

@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,12 @@ namespace IntexAPI.Controllers;
 public class InterventionPlansController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly FacilityAccessService _facilityAccess;
 
-    public InterventionPlansController(AppDbContext db)
+    public InterventionPlansController(AppDbContext db, FacilityAccessService facilityAccess)
     {
         _db = db;
+        _facilityAccess = facilityAccess;
     }
 
     [HttpGet]
@@ -24,7 +27,21 @@ public class InterventionPlansController : ControllerBase
         [FromQuery] bool upcomingConferencesOnly = false,
         CancellationToken cancellationToken = default)
     {
+        var isAdmin = User.IsInRole(AuthRoles.Admin);
+        var visibleSafehouseIds = isAdmin
+            ? await _db.Safehouses.AsNoTracking().Select(s => s.SafehouseId).ToHashSetAsync(cancellationToken)
+            : await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+
         var q = _db.InterventionPlans.AsNoTracking().AsQueryable();
+
+        if (!isAdmin)
+        {
+            var visibleResidentIds = await _db.Residents.AsNoTracking()
+                .Where(r => r.SafehouseId != null && visibleSafehouseIds.Contains(r.SafehouseId.Value))
+                .Select(r => r.ResidentId)
+                .ToListAsync(cancellationToken);
+            q = q.Where(p => p.ResidentId != null && visibleResidentIds.Contains(p.ResidentId.Value));
+        }
 
         if (residentId is int rid)
             q = q.Where(p => p.ResidentId == rid);
@@ -48,6 +65,16 @@ public class InterventionPlansController : ControllerBase
     {
         var entity = await _db.InterventionPlans.AsNoTracking()
             .FirstOrDefaultAsync(p => p.PlanId == id, cancellationToken);
+        if (entity is not null && !User.IsInRole(AuthRoles.Admin))
+        {
+            var residentSafehouseId = await _db.Residents.AsNoTracking()
+                .Where(r => r.ResidentId == entity.ResidentId)
+                .Select(r => r.SafehouseId)
+                .FirstOrDefaultAsync(cancellationToken);
+            var allowed = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+            if (!residentSafehouseId.HasValue || !allowed.Contains(residentSafehouseId.Value))
+                return NotFound();
+        }
         return entity is null ? NotFound() : Ok(entity);
     }
 

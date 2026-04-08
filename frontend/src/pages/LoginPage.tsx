@@ -26,13 +26,18 @@ export default function LoginPage() {
     void getExternalProviders().then(setExternalProviders)
   }, [])
 
-  // Already logged in — redirect by role
-  if (!isLoading && isAuthenticated) {
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return
+
     const dest =
       authSession.roles.includes('Admin') || authSession.roles.includes('Staff')
         ? '/admin'
         : '/donor'
+
     navigate(dest, { replace: true })
+  }, [authSession.roles, isAuthenticated, isLoading, navigate])
+
+  if (!isLoading && isAuthenticated) {
     return null
   }
 
