@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ApiError, fetchAdminDashboard } from '../apis'
+import { ApiError, fetchAdminDashboard, fetchDonationAllocations } from '../apis'
 import type { AdminDashboardDto } from '../types/apiDtos'
+import type { DonationAllocation } from '../types/DonationAllocation'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function formatCurrency(amount: number | null, currency: string | null) {
+function formatCurrency(amount: number | null, _currency?: string | null) {
   if (amount == null) return '—'
-  const symbol = (currency ?? 'PHP') === 'PHP' ? '$' : (currency ?? '') + ' '
-  return symbol + amount.toLocaleString('en-PH', { maximumFractionDigits: 0 })
+  return '$' + amount.toLocaleString('en', { maximumFractionDigits: 0 })
 }
 
 function formatDate(dateStr: string | null) {
@@ -27,14 +27,18 @@ const SAFEHOUSE_COLORS = [
 // ── Component ────────────────────────────────────────────────────────────────
 export default function Admin() {
   const [data, setData] = useState<AdminDashboardDto | null>(null)
+  const [allocations, setAllocations] = useState<DonationAllocation[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-    fetchAdminDashboard()
-      .then((d) => {
-        if (!cancelled) setData(d)
+    Promise.all([
+      fetchAdminDashboard(),
+      fetchDonationAllocations().catch(() => [] as DonationAllocation[]),
+    ])
+      .then(([d, allocs]) => {
+        if (!cancelled) { setData(d); setAllocations(allocs) }
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -340,6 +344,39 @@ export default function Admin() {
           </div>
         )}
       </motion.div>
+
+      {/* ── Allocation by Program Area ── */}
+      {allocations.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.5 }}
+          className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm"
+        >
+          <h2 className="mb-5 text-base font-semibold text-gray-800">Funds by program area</h2>
+          <div className="space-y-3">
+            {(() => {
+              const totals: Record<string, number> = {}
+              allocations.forEach(a => {
+                const area = a.programArea ?? 'Other'
+                totals[area] = (totals[area] ?? 0) + (a.amountAllocated ?? 0)
+              })
+              const max = Math.max(...Object.values(totals), 1)
+              return Object.entries(totals).sort((a, b) => b[1] - a[1]).map(([area, amount]) => (
+                <div key={area}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-800">{area}</span>
+                    <span className="text-gray-500">${Math.round(amount).toLocaleString()}</span>
+                  </div>
+                  <div className="mt-1 h-2 w-full rounded-full bg-gray-100">
+                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${(amount / max) * 100}%` }} />
+                  </div>
+                </div>
+              ))
+            })()}
+          </div>
+        </motion.div>
+      )}
 
       {/* ── Safehouse Health & Progress ── */}
       {data.latestMonthlyProgressBySafehouse.length > 0 && (

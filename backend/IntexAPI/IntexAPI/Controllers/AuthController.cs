@@ -290,7 +290,21 @@ public class AuthController(
         }
         catch { /* type mismatch — return empty */ }
 
-        return Ok(new { supporter, donations });
+        object[] allocations = [];
+        try
+        {
+            var donationIds = await appDb.Donations
+                .Where(d => d.SupporterId == user.SupporterId)
+                .Select(d => d.DonationId)
+                .ToListAsync();
+            allocations = await appDb.DonationAllocations
+                .Where(a => donationIds.Contains(a.DonationId ?? 0))
+                .Select(a => new { a.AllocationId, a.DonationId, a.ProgramArea })
+                .ToArrayAsync<object>();
+        }
+        catch { /* ignore */ }
+
+        return Ok(new { supporter, donations, allocations });
     }
 
     // ── Donor: submit donation ─────────────────────────────
@@ -298,6 +312,7 @@ public class AuthController(
     public record DonorDonationRequest(
         int Amount,
         string? CurrencyCode,
+        string? DonationType,
         string? CampaignName,
         bool IsRecurring,
         string? Notes
@@ -319,7 +334,7 @@ public class AuthController(
         {
             DonationId = maxDonationId + 1,
             SupporterId = user.SupporterId ?? 0,
-            DonationType = "Monetary",
+            DonationType = request.DonationType ?? "Monetary",
             DonationDate = DateOnly.FromDateTime(DateTime.UtcNow),
             IsRecurring = request.IsRecurring,
             CampaignName = request.CampaignName,

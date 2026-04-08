@@ -54,7 +54,9 @@ public class DonationAllocationsController : ControllerBase
         [FromBody] DonationAllocation entity,
         CancellationToken cancellationToken)
     {
-        entity.AllocationId = 0;
+        var maxId = await _db.DonationAllocations.AnyAsync(cancellationToken)
+            ? await _db.DonationAllocations.MaxAsync(a => a.AllocationId, cancellationToken) : 0;
+        entity.AllocationId = maxId + 1;
         _db.DonationAllocations.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.AllocationId }, entity);
