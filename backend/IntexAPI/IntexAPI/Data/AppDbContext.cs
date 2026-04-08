@@ -43,6 +43,10 @@ public class AppDbContext : DbContext
             .Property(d => d.DonationId)
             .ValueGeneratedNever();
 
+        modelBuilder.Entity<DonationAllocation>()
+            .Property(a => a.AllocationId)
+            .ValueGeneratedNever();
+
         modelBuilder.Entity<Donation>()
             .HasOne<SocialMediaPost>()
             .WithMany()

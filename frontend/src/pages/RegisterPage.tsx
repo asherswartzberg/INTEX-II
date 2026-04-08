@@ -10,7 +10,6 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [supporterType, setSupporterType] = useState('MonetaryDonor')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -44,7 +43,7 @@ export default function RegisterPage() {
 
     setSubmitting(true)
     try {
-      await registerUser(email, password, firstName, lastName, supporterType)
+      await registerUser(email, password, firstName, lastName)
       // Auto-login after registration
       await loginUser(email, password, true)
       await refreshAuthState()
@@ -99,24 +98,6 @@ export default function RegisterPage() {
                 <input id="lastName" type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)}
                   className="w-full rounded-lg border border-border bg-off-white px-4 py-3 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black" />
               </div>
-            </div>
-            <div className="mb-5">
-              <label htmlFor="supporterType" className="mb-1.5 block text-sm font-medium text-black">
-                How would you like to support us?
-              </label>
-              <select
-                id="supporterType"
-                value={supporterType}
-                onChange={(e) => setSupporterType(e.target.value)}
-                className="w-full rounded-lg border border-border bg-off-white px-4 py-3 text-sm text-black transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
-              >
-                <option value="MonetaryDonor">Monetary Donor</option>
-                <option value="InKindDonor">In-Kind Donor (goods, supplies)</option>
-                <option value="Volunteer">Volunteer (time)</option>
-                <option value="SkillsContributor">Skills Contributor</option>
-                <option value="SocialMediaAdvocate">Social Media Advocate</option>
-                <option value="PartnerOrganization">Partner Organization</option>
-              </select>
             </div>
             <div className="mb-5">
               <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-black">

@@ -24,6 +24,7 @@ function fmtDate(s: string | null) {
 function DonateSection({ onRecordSuccess }: { onRecordSuccess: () => void }) {
   const [amount, setAmount] = useState('')
   const [currency, setCurrency] = useState('USD')
+  const [donationType, setDonationType] = useState('Monetary')
   const [campaign, setCampaign] = useState('')
   const [recurring, setRecurring] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -42,7 +43,7 @@ function DonateSection({ onRecordSuccess }: { onRecordSuccess: () => void }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ amount: num, currencyCode: currency, campaignName: campaign || null, isRecurring: recurring, notes: null }),
+        body: JSON.stringify({ amount: num, currencyCode: currency, donationType, campaignName: campaign || null, isRecurring: recurring, notes: null }),
       })
       if (!res.ok) {
         const d = await res.json().catch(() => null)
@@ -93,9 +94,26 @@ function DonateSection({ onRecordSuccess }: { onRecordSuccess: () => void }) {
               </div>
             </div>
             <div>
+              <label htmlFor="donate-type" className="mb-1 block text-xs font-medium text-medium-gray">Donation type</label>
+              <select id="donate-type" value={donationType} onChange={(e) => setDonationType(e.target.value)}
+                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm">
+                <option value="Monetary">Monetary</option>
+                <option value="InKind">In-Kind (goods, supplies)</option>
+                <option value="Time">Time (volunteering)</option>
+                <option value="Skills">Skills</option>
+                <option value="SocialMedia">Social Media Advocacy</option>
+              </select>
+            </div>
+            <div>
               <label htmlFor="donate-campaign" className="mb-1 block text-xs font-medium text-medium-gray">Campaign (optional)</label>
-              <input id="donate-campaign" placeholder="e.g., Holiday Giving" value={campaign} onChange={(e) => setCampaign(e.target.value)}
-                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm" />
+              <select id="donate-campaign" value={campaign} onChange={(e) => setCampaign(e.target.value)}
+                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm">
+                <option value="">None</option>
+                <option value="Year-End Hope">Year-End Hope</option>
+                <option value="Back to School">Back to School</option>
+                <option value="Summer of Safety">Summer of Safety</option>
+                <option value="GivingTuesday">GivingTuesday</option>
+              </select>
             </div>
             <label className="flex items-center gap-2 text-sm text-medium-gray">
               <input type="checkbox" checked={recurring} onChange={(e) => setRecurring(e.target.checked)} className="h-4 w-4 rounded border-border" />
@@ -116,6 +134,7 @@ export default function DonorDashboard() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [, setSupporter] = useState<Supporter | null>(null)
   const [donations, setDonations] = useState<Donation[]>([])
+  const [allocations, setAllocations] = useState<{ allocationId: number; donationId: number; programArea: string }[]>([])
   const [impact, setImpact] = useState<PublicImpactSummaryDto | null>(null)
   const [loading, setLoading] = useState(true)
   const [successMsg, setSuccessMsg] = useState('')
@@ -131,6 +150,7 @@ export default function DonorDashboard() {
         const profile = await profileRes.json()
         if (profile.supporter) setSupporter(profile.supporter)
         if (profile.donations) setDonations(profile.donations)
+        if (profile.allocations) setAllocations(profile.allocations)
       }
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
@@ -218,11 +238,43 @@ export default function DonorDashboard() {
           <StatCard label="Donations" value={String(donations.length)} />
         </div>
 
-        {/* ── Two columns: left 2/3 (history + impact), right 1/3 (donate) ── */}
+        {/* ── Two columns: left 2/3 (impact + history), right 1/3 (donate) ── */}
+        {/* On mobile: donate first, then impact, then history */}
         <div className="mt-8 grid gap-8 lg:grid-cols-3">
 
           {/* Left: Impact updates + Donation history */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="order-2 lg:order-1 lg:col-span-2 space-y-8">
+            {/* Allocation breakdown */}
+            {allocations.length > 0 && (
+              <div>
+                <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-medium-gray">Where Your Money Goes</h2>
+                <div className="mt-3 rounded-xl border border-border bg-white p-5">
+                  <div className="space-y-3">
+                    {(() => {
+                      const totals: Record<string, number> = {}
+                      allocations.forEach(a => {
+                        const area = a.programArea ?? 'Other'
+                        const donation = donations.find(d => d.donationId === a.donationId)
+                        totals[area] = (totals[area] ?? 0) + (donation?.amount ?? donation?.estimatedValue ?? 0)
+                      })
+                      const max = Math.max(...Object.values(totals), 1)
+                      return Object.entries(totals).sort((a, b) => b[1] - a[1]).map(([area, amount]) => (
+                        <div key={area}>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium text-black">{area}</span>
+                            <span className="text-medium-gray">{fmtCurrency(amount)}</span>
+                          </div>
+                          <div className="mt-1 h-2 w-full rounded-full bg-off-white">
+                            <div className="h-full rounded-full bg-black" style={{ width: `${(amount / max) * 100}%` }} />
+                          </div>
+                        </div>
+                      ))
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Impact updates */}
             {impact?.latestPublishedSnapshots && impact.latestPublishedSnapshots.length > 0 && (
               <div>
@@ -248,30 +300,37 @@ export default function DonorDashboard() {
                 </div>
               ) : (
                 <div className="mt-3 overflow-hidden rounded-xl border border-border bg-white">
-                  <div className="grid grid-cols-3 gap-3 border-b border-border bg-off-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-medium-gray sm:grid-cols-4 sm:gap-4 sm:px-5">
+                  <div className="grid grid-cols-3 gap-3 border-b border-border bg-off-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-medium-gray sm:grid-cols-5 sm:gap-4 sm:px-5">
                     <span>Date</span>
                     <span>Type</span>
                     <span className="hidden sm:block">Campaign</span>
+                    <span className="hidden sm:block">Allocated to</span>
                     <span className="text-right">Amount</span>
                   </div>
-                  {sortedDonations.map((d) => (
-                    <div key={d.donationId} className="grid grid-cols-3 gap-3 border-b border-border px-4 py-3 last:border-0 text-sm sm:grid-cols-4 sm:gap-4 sm:px-5">
+                  {sortedDonations.map((d) => {
+                    const alloc = allocations.find(a => a.donationId === d.donationId)
+                    return (
+                    <div key={d.donationId} className="grid grid-cols-3 gap-3 border-b border-border px-4 py-3 last:border-0 text-sm sm:grid-cols-5 sm:gap-4 sm:px-5">
                       <span className="text-medium-gray">{fmtDate(d.donationDate)}</span>
                       <span className="text-black">
                         {d.donationType ?? 'Donation'}
                         {d.isRecurring && <span className="ml-1.5 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-600">Recurring</span>}
                       </span>
                       <span className="hidden text-medium-gray sm:block">{d.campaignName ?? '—'}</span>
+                      <span className="hidden sm:block">
+                        {alloc ? <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">{alloc.programArea}</span> : <span className="text-medium-gray">—</span>}
+                      </span>
                       <span className="text-right font-semibold text-black">{fmtCurrency(d.amount ?? d.estimatedValue, d.currencyCode)}</span>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right: Donate tools */}
-          <div className="space-y-5">
+          {/* Right: Donate tools (shows first on mobile) */}
+          <div className="order-1 lg:order-2 space-y-5">
             <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-medium-gray">Support Faro Safehouse</h2>
 
             {/* Givebutter iframe */}

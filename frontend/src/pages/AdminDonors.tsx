@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { fetchSupporters } from '../apis/supportersApi'
 import { fetchDonationsForSupporter } from '../apis/supportersApi'
 import { deleteSupporter } from '../apis/supportersApi'
-import { fetchDonationAllocations } from '../apis/donationAllocationsApi'
+import { fetchDonationAllocations, createDonationAllocation, updateDonationAllocation } from '../apis/donationAllocationsApi'
 import { fetchDonorRiskScores } from '../apis/donorRiskScoresApi'
 import type { Supporter } from '../types/Supporter'
 import type { Donation } from '../types/Donation'
@@ -31,10 +31,9 @@ function avatarColor(name: string | null) {
   return AVATAR_COLORS[h % AVATAR_COLORS.length]
 }
 
-function fmtCurrency(n: number | null, code: string | null = 'PHP') {
+function fmtCurrency(n: number | null, _code?: string | null) {
   if (n == null) return '—'
-  const sym = (code ?? 'PHP') === 'PHP' ? '$' : code + ' '
-  return sym + n.toLocaleString('en-PH', { maximumFractionDigits: 0 })
+  return '$' + n.toLocaleString('en', { maximumFractionDigits: 0 })
 }
 
 function fmtDate(s: string | null) {
@@ -434,7 +433,36 @@ export default function AdminDonors() {
                             <td className="px-5 py-3 text-gray-600">{d.donationType ?? '—'}</td>
                             <td className="px-5 py-3 text-gray-600">{d.campaignName ?? '—'}</td>
                             <td className="px-5 py-3 text-gray-500">
-                              {alloc ? `${alloc.programArea ?? '—'}` : '—'}
+                              <select
+                                value={alloc?.programArea ?? ''}
+                                onChange={async (e) => {
+                                  const area = e.target.value
+                                  if (!area) return
+                                  try {
+                                    if (alloc) {
+                                      await updateDonationAllocation(alloc.allocationId, { ...alloc, programArea: area })
+                                      setAllocations(prev => prev.map(a => a.allocationId === alloc.allocationId ? { ...a, programArea: area } : a))
+                                    } else {
+                                      const newAlloc = await createDonationAllocation({
+                                        allocationId: 0,
+                                        donationId: d.donationId,
+                                        safehouseId: null,
+                                        programArea: area,
+                                        amountAllocated: d.amount ?? d.estimatedValue ?? 0,
+                                        allocationDate: d.donationDate ?? null,
+                                        allocationNotes: null,
+                                      })
+                                      setAllocations(prev => [...prev, newAlloc])
+                                    }
+                                  } catch { /* ignore */ }
+                                }}
+                                className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 focus:border-blue-400 focus:outline-none"
+                              >
+                                <option value="">Allocate...</option>
+                                {['Education', 'Wellbeing', 'Operations', 'Transport', 'Maintenance', 'Outreach'].map(a => (
+                                  <option key={a} value={a}>{a}</option>
+                                ))}
+                              </select>
                             </td>
                           </tr>
                         )
