@@ -1,10 +1,12 @@
-import { useRef } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useAnimateInView } from '../hooks/useAnimateInView'
 import { useCountUp } from '../hooks/useCountUp'
+import { fetchPublicImpactSummary } from '../apis/publicImpactApi'
+import type { PublicImpactSummaryDto } from '../types/apiDtos'
 import girlsLookingAtSky from '../assets/girlsLookingAtSky.jpg'
 
-const impactStats = [
+const fallbackStats = [
   { value: 500, suffix: '+', label: 'Children sheltered' },
   { value: 200, suffix: '+', label: 'Families reunited' },
   { value: 15, suffix: '', label: 'Safe homes' },
@@ -32,6 +34,21 @@ function ImpactStat({ value, suffix, label, trigger, index }: {
 }
 
 export default function ImpactSection() {
+  const [impact, setImpact] = useState<PublicImpactSummaryDto | null>(null)
+
+  useEffect(() => {
+    fetchPublicImpactSummary().then(setImpact).catch(() => {})
+  }, [])
+
+  const impactStats = impact
+    ? [
+        { value: impact.activeResidentsCount, suffix: '', label: 'Active residents' },
+        { value: impact.safehouseCount, suffix: '', label: 'Safe homes operating' },
+        { value: Math.round(impact.totalDonationsAllTime), suffix: '', label: 'Total donated ($)' },
+        { value: impact.latestPublishedSnapshots.length, suffix: '', label: 'Impact reports published' },
+      ]
+    : fallbackStats
+
   const sectionRef = useRef(null)
   const { ref: viewRef, isInView } = useAnimateInView({ amount: 0.15 })
   const { scrollYProgress } = useScroll({
@@ -92,7 +109,7 @@ export default function ImpactSection() {
             is seen, heard, and loved."
           </p>
           <footer className="mt-4 text-sm text-medium-gray">
-            — Lighthouse Sanctuary, our inspiration
+            — Faro Safehouse
           </footer>
         </motion.blockquote>
       </div>
