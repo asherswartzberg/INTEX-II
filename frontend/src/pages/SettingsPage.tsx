@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router'
-import QRCode from 'qrcode'
+import { QRCodeSVG } from 'qrcode.react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { getApiBaseUrl } from '../apis/client'
@@ -134,7 +134,6 @@ export default function SettingsPage() {
   const [mfaError, setMfaError] = useState('')
   const [mfaSuccess, setMfaSuccess] = useState('')
   const [mfaSubmitting, setMfaSubmitting] = useState(false)
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('')
 
   useEffect(() => {
     getTwoFactorStatus().then(setTwoFactorStatus).catch(() => {})
@@ -147,13 +146,6 @@ export default function SettingsPage() {
     const params = new URLSearchParams({ secret: twoFactorStatus.sharedKey, issuer })
     return `otpauth://totp/${encodeURIComponent(label)}?${params.toString()}`
   }, [authSession.email, twoFactorStatus?.sharedKey])
-
-  useEffect(() => {
-    if (!authenticatorUri) { setQrCodeDataUrl(''); return }
-    QRCode.toDataURL(authenticatorUri, { width: 224, margin: 1 })
-      .then(setQrCodeDataUrl)
-      .catch(() => setQrCodeDataUrl(''))
-  }, [authenticatorUri])
 
   async function handleEnableMfa(e: FormEvent) {
     e.preventDefault()
@@ -328,8 +320,10 @@ export default function SettingsPage() {
               <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
                 {/* QR code */}
                 <div className="shrink-0">
-                  {qrCodeDataUrl ? (
-                    <img src={qrCodeDataUrl} alt="Authenticator QR code" className="h-56 w-56 rounded-lg border border-border bg-white p-2" />
+                  {authenticatorUri ? (
+                    <div className="rounded-lg border border-border bg-white p-3">
+                      <QRCodeSVG value={authenticatorUri} size={200} />
+                    </div>
                   ) : (
                     <div className="flex h-56 w-56 items-center justify-center rounded-lg border border-border bg-off-white text-sm text-medium-gray">No QR code</div>
                   )}
