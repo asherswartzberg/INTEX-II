@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Link } from 'react-router'
+import { useNavigate } from 'react-router'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
 import { getApiBaseUrl } from '../apis/client'
@@ -16,6 +16,7 @@ interface ManagedUser {
 export default function SettingsPage() {
   const { authSession } = useAuth()
   const { theme, toggleTheme } = useTheme()
+  const navigate = useNavigate()
   const isAdmin = authSession.roles.includes('Admin')
 
   // User management state (admin only)
@@ -102,18 +103,26 @@ export default function SettingsPage() {
 
   const isDonor = authSession.roles.includes('Donor')
 
+  const backTo = isDonor ? '/donor' : '/admin/dashboard'
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      {isDonor && (
-        <Link to="/donor" className="mb-6 inline-flex items-center gap-1.5 text-sm text-medium-gray hover:text-black transition-colors">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-black dark:text-white">Settings</h1>
+          <p className="mt-1 text-sm text-medium-gray">Manage your preferences and account info.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate(backTo)}
+          aria-label="Back to dashboard"
+          className="flex items-center justify-center w-9 h-9 rounded-full border border-border bg-white text-medium-gray transition-colors hover:bg-off-white hover:text-black dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400 dark:hover:bg-[#2a2a2a] dark:hover:text-white"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
-          Back to dashboard
-        </Link>
-      )}
-      <h1 className="text-2xl font-bold text-black dark:text-white">Settings</h1>
-      <p className="mt-1 text-sm text-medium-gray">Manage your preferences and account info.</p>
+        </button>
+      </div>
 
       {/* Profile info */}
       <section className="mt-10">
