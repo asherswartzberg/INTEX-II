@@ -1,4 +1,11 @@
 {
     "appService.defaultWebAppToDeploy": "/subscriptions/420facb9-9099-4fc2-86b7-fe7da2e97425/resourceGroups/appsvc_windows_australiaeast/providers/Microsoft.Web/sites/intex-backend",
-    "appService.deploySubpath": "backend\\IntexAPI\\IntexAPI\\publish"
+    "appService.deploySubpath": "backend\\IntexAPI\\IntexAPI\\publish",
+    "azureFunctions.deploySubpath": "api",
+    "azureFunctions.postDeployTask": "npm install (functions)",
+    "azureFunctions.projectLanguage": "JavaScript",
+    "azureFunctions.projectRuntime": "~4",
+    "debug.internalConsoleOptions": "neverOpen",
+    "azureFunctions.projectLanguageModel": 4,
+    "azureFunctions.preDeployTask": "npm prune (functions)"
 }
