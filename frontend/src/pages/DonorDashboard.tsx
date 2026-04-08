@@ -202,6 +202,7 @@ export default function DonorDashboard() {
   )
 
   return (
+    <>
     <div data-donor className="min-h-screen bg-off-white dark:bg-[#111] dark:text-[#e5e5e5]">
       {/* ── Header ── */}
       <header className="border-b border-border bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
