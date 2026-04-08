@@ -292,20 +292,20 @@ def train(df_model: pd.DataFrame):
         ]),
         "Decision Tree": Pipeline(steps=[
             ("prep", preprocessor),
-            ("clf", DecisionTreeClassifier(max_depth=5, random_state=config.SEED)),
+            ("clf", DecisionTreeClassifier(max_depth=3, min_samples_leaf=5, random_state=config.SEED)),
         ]),
         "Random Forest": Pipeline(steps=[
             ("prep", preprocessor),
-            ("clf", RandomForestClassifier(n_estimators=100, random_state=config.SEED)),
+            ("clf", RandomForestClassifier(n_estimators=200, max_depth=4, min_samples_leaf=5, max_features="sqrt", random_state=config.SEED)),
         ]),
         "Gradient Boosting": Pipeline(steps=[
             ("prep", preprocessor),
-            ("clf", GradientBoostingClassifier(n_estimators=100, random_state=config.SEED)),
+            ("clf", GradientBoostingClassifier(n_estimators=200, max_depth=3, learning_rate=0.05, min_samples_leaf=5, subsample=0.8, random_state=config.SEED)),
         ]),
     }
 
     # Cross-validation — RepeatedStratifiedKFold for small dataset (48 train rows)
-    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=config.SEED)
+    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=5, random_state=config.SEED)
     cv_results = []
     for name, model in models.items():
         scores = cross_val_score(

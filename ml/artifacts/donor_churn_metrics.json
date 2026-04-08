@@ -3,6 +3,6 @@
   "test_f1": 1.0,
   "test_roc_auc": 1.0,
   "baseline_accuracy": 0.75,
-  "cv_roc_auc_mean": 0.9888888888888889,
-  "cv_roc_auc_std": 0.041573970964154924
+  "cv_roc_auc_mean": 1.0,
+  "cv_roc_auc_std": 0.0
 }
