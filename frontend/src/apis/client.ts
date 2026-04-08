@@ -1,6 +1,6 @@
 const DEFAULT_BASE = import.meta.env.DEV
   ? ""  // local dev uses Vite proxy
-  : "https://intex-backend-fvgedfcwcxf8cnc9.australiaeast-01.azurewebsites.net";
+  : ""; // TEST: routing all traffic through SWA proxy to test Safari login
 
 export type QueryParams = Record<
   string,
