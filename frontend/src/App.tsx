@@ -27,6 +27,8 @@ function App() {
     <CookieConsentProvider>
       <AuthProvider>
         <BrowserRouter>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <div id="main-content">
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Landing />} />
@@ -66,6 +68,7 @@ function App() {
               }
             />
           </Routes>
+          </div>
           <CookieConsentBanner />
         </BrowserRouter>
       </AuthProvider>
