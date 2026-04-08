@@ -15,6 +15,14 @@ export interface ExternalAuthProvider {
   displayName: string
 }
 
+export interface TwoFactorStatus {
+  sharedKey: string | null
+  recoveryCodesLeft: number
+  recoveryCodes: string[] | null
+  isTwoFactorEnabled: boolean
+  isMachineRemembered: boolean
+}
+
 const anonymousSession: AuthSession = {
   isAuthenticated: false,
   userName: null,
@@ -61,6 +69,8 @@ export async function loginUser(
   email: string,
   password: string,
   rememberMe: boolean,
+  twoFactorCode?: string,
+  twoFactorRecoveryCode?: string,
 ): Promise<void> {
   const params = new URLSearchParams()
   if (rememberMe) {
@@ -69,15 +79,19 @@ export async function loginUser(
     params.set('useSessionCookies', 'true')
   }
 
+  const body: Record<string, string> = { email, password }
+  if (twoFactorCode) body.twoFactorCode = twoFactorCode
+  if (twoFactorRecoveryCode) body.twoFactorRecoveryCode = twoFactorRecoveryCode
+
   const res = await fetch(`${getApiBaseUrl()}/api/identity/login?${params}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(body),
   })
 
   if (!res.ok) {
-    throw new Error(await readApiError(res, 'Invalid email or password.'))
+    throw new Error(await readApiError(res, 'Invalid email or password. If MFA is enabled, include an authenticator or recovery code.'))
   }
 }
 
@@ -120,4 +134,41 @@ export async function getExternalProviders(): Promise<ExternalAuthProvider[]> {
 export function buildExternalLoginUrl(provider: string, returnPath = '/admin'): string {
   const params = new URLSearchParams({ provider, returnPath })
   return `${getApiBaseUrl()}/api/auth/external-login?${params}`
+}
+
+// ── Two-Factor Authentication ────────────────────────────
+
+async function postTwoFactorRequest(payload: object): Promise<TwoFactorStatus> {
+  const res = await fetch(`${getApiBaseUrl()}/api/identity/manage/2fa`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    throw new Error(await readApiError(res, 'Unable to update MFA settings.'))
+  }
+
+  return res.json()
+}
+
+export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
+  return postTwoFactorRequest({})
+}
+
+export async function enableTwoFactor(twoFactorCode: string): Promise<TwoFactorStatus> {
+  return postTwoFactorRequest({
+    enable: true,
+    twoFactorCode,
+    resetRecoveryCodes: true,
+  })
+}
+
+export async function disableTwoFactor(): Promise<TwoFactorStatus> {
+  return postTwoFactorRequest({ enable: false })
+}
+
+export async function resetRecoveryCodes(): Promise<TwoFactorStatus> {
+  return postTwoFactorRequest({ resetRecoveryCodes: true })
 }
