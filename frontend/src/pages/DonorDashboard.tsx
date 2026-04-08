@@ -205,12 +205,11 @@ export default function DonorDashboard() {
     <>
     <div data-donor className="min-h-screen bg-off-white dark:bg-[#111] dark:text-[#e5e5e5]">
       {/* ── Header ── */}
-      <header role="banner" className="border-b border-border bg-white px-4 py-3 md:px-6 md:py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-3 min-w-0">
-            <Link to="/" className="flex shrink-0 items-center gap-2">
-              <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-6 w-6 md:h-7 md:w-7 object-contain" />
-              <span className="hidden text-xl font-normal text-black sm:inline" style={{ fontFamily: "'EB Garamond', serif" }}>Faro Safehouse</span>
+      <header role="banner" className="flex items-center justify-between border-b border-border bg-white px-6 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
+          <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-2.5">
+              <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-7 w-7 object-contain" />
+              <span className="text-xl font-normal text-black" style={{ fontFamily: "'EB Garamond', serif" }}>Faro Safehouse</span>
             </Link>
             <span className="hidden text-sm italic text-medium-gray md:inline">Donor Portal</span>
             <span className="hidden text-medium-gray md:inline">|</span>
@@ -240,7 +239,6 @@ export default function DonorDashboard() {
               <span className="hidden sm:inline">Log out</span>
             </Link>
           </div>
-        </div>
       </header>
 
       <main className="px-6 py-8">
