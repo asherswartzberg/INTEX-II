@@ -81,12 +81,12 @@ export async function loginUser(
   }
 }
 
-export async function registerUser(email: string, password: string): Promise<void> {
+export async function registerUser(email: string, password: string, firstName?: string, lastName?: string, supporterType?: string): Promise<void> {
   const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, firstName: firstName ?? '', lastName: lastName ?? '', supporterType: supporterType ?? 'MonetaryDonor' }),
   })
 
   if (!res.ok) {

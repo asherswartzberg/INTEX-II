@@ -69,6 +69,8 @@ public class AuthController(
             {
                 UserName = request.Email,
                 Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
             };
 
             var result = await userManager.CreateAsync(user, request.Password);
@@ -85,10 +87,10 @@ public class AuthController(
             var supporter = new Supporter
             {
                 SupporterId = maxId + 1,
-                SupporterType = "MonetaryDonor",
-                DisplayName = request.Email,
-                FirstName = "",
-                LastName = "",
+                SupporterType = request.SupporterType ?? "MonetaryDonor",
+                DisplayName = !string.IsNullOrWhiteSpace(request.FirstName) ? $"{request.FirstName} {request.LastName}".Trim() : request.Email,
+                FirstName = request.FirstName ?? "",
+                LastName = request.LastName ?? "",
                 OrganizationName = "",
                 RelationshipType = "Local",
                 Region = "Unknown",
@@ -474,4 +476,4 @@ public class AuthController(
     }
 }
 
-public record RegisterRequest(string Email, string Password);
+public record RegisterRequest(string Email, string Password, string? FirstName = null, string? LastName = null, string? SupporterType = null);

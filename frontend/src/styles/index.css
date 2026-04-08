@@ -80,7 +80,8 @@ html.dark [data-admin] [class*="bg-[#FFFBF3]"] { background-color: #111 !importa
 /* Catch-all: any element inside admin with an inline/arbitrary light bg */
 html.dark [data-admin] [style*="background"],
 html.dark [data-admin] .min-h-screen,
-html.dark [data-admin] .min-h-full { background-color: #111 !important; }
+html.dark [data-admin] .min-h-full,
+html.dark [data-admin] main > * { background-color: #111 !important; }
 html.dark [data-admin] [class*="border-[#e7ddcc]"],
 html.dark [data-admin] [class*="border-[#e8dbc4]"],
 html.dark [data-admin] [class*="border-[#f0e7d8]"] { border-color: #333 !important; }
@@ -100,6 +101,23 @@ html.dark [data-admin] .bg-red-50 { background-color: #2a1a1a !important; }
 html.dark [data-admin] p, html.dark [data-admin] span, html.dark [data-admin] label {
   color: inherit;
 }
+
+/* Dark mode — donor portal */
+html.dark [data-donor] { background-color: #111 !important; color: #e5e5e5 !important; }
+html.dark [data-donor] header { background-color: #1a1a1a !important; border-color: #333 !important; }
+html.dark [data-donor] .bg-white,
+html.dark [data-donor] [class*="bg-white"] { background-color: #1a1a1a !important; }
+html.dark [data-donor] .bg-off-white { background-color: #111 !important; }
+html.dark [data-donor] .border-border { border-color: #333 !important; }
+html.dark [data-donor] .text-black { color: #e5e5e5 !important; }
+html.dark [data-donor] .text-medium-gray { color: #888 !important; }
+html.dark [data-donor] h1, html.dark [data-donor] h2 { color: #f0f0f0 !important; }
+html.dark [data-donor] input, html.dark [data-donor] select {
+  background-color: #1a1a1a !important; border-color: #333 !important; color: #e5e5e5 !important;
+}
+html.dark [data-donor] .bg-gray-100 { background-color: #333 !important; }
+html.dark [data-donor] .bg-blue-50 { background-color: #1a1a2e !important; }
+html.dark [data-donor] .divide-border > * + * { border-color: #333 !important; }
 
 /* Custom selection */
 ::selection {

@@ -8,6 +8,19 @@ import type { Donation } from '../types/Donation'
 import type { Supporter } from '../types/Supporter'
 import type { PublicImpactSummaryDto } from '../types/apiDtos'
 
+const SUPPORTER_TYPE_LABELS: Record<string, string> = {
+  MonetaryDonor: 'Monetary Donor',
+  InKindDonor: 'In-Kind Donor',
+  Volunteer: 'Volunteer',
+  SkillsContributor: 'Skills Contributor',
+  SocialMediaAdvocate: 'Social Media Advocate',
+  PartnerOrganization: 'Partner Organization',
+}
+
+function friendlyType(type: string | null) {
+  return type ? SUPPORTER_TYPE_LABELS[type] ?? type : '—'
+}
+
 function fmtCurrency(amount: number | null, currency?: string | null) {
   if (amount == null) return '—'
   const sym = (currency ?? 'USD') === 'PHP' ? '₱' : '$'
@@ -189,11 +202,10 @@ export default function DonorDashboard() {
   )
 
   return (
-    <>
-    <div className="min-h-screen bg-off-white">
+    <div data-donor className="min-h-screen bg-off-white dark:bg-[#111] dark:text-[#e5e5e5]">
       {/* ── Header ── */}
-      <header className="border-b border-border bg-white">
-        <div className="flex items-center justify-between px-6 py-4">
+      <header className="border-b border-border bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-10">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2.5">
               <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-7 w-7 object-contain" />
@@ -321,7 +333,7 @@ export default function DonorDashboard() {
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-medium-gray">Your Profile</p>
                 <div className="mt-3 space-y-2.5 text-sm">
                   <SidebarRow label="Name" value={supporter.displayName ?? [supporter.firstName, supporter.lastName].filter(Boolean).join(' ') ?? '—'} />
-                  <SidebarRow label="Type" value={supporter.supporterType ?? '—'} />
+                  <SidebarRow label="Type" value={friendlyType(supporter.supporterType)} />
                   <SidebarRow label="Status" value={supporter.status ?? '—'} />
                   <SidebarRow label="Since" value={fmtDate(supporter.createdAt)} />
                 </div>
@@ -332,32 +344,14 @@ export default function DonorDashboard() {
             {impact?.latestPublishedSnapshots && impact.latestPublishedSnapshots.length > 0 && (
               <div className="rounded-xl border border-border bg-white p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-medium-gray">Impact Updates</p>
-                <div className="mt-3 space-y-3">
-                  {impact.latestPublishedSnapshots.slice(0, 3).map((snap) => (
-                    <div key={snap.snapshotId} className="border-l-2 border-black pl-3">
-                      <p className="text-sm font-medium text-black">{snap.headline ?? 'Update'}</p>
-                      <p className="text-xs text-medium-gray">{fmtDate(snap.snapshotDate)}</p>
-                    </div>
+                <div className="mt-3 space-y-2">
+                  {impact.latestPublishedSnapshots.slice(0, 5).map((snap) => (
+                    <ImpactUpdateCard key={snap.snapshotId} snap={snap} />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* CTA card */}
-            <div className="rounded-xl bg-black p-5 text-white">
-              <p className="text-sm font-semibold">Every gift changes a life</p>
-              <p className="mt-2 text-xs leading-relaxed text-white/60">
-                Your support provides safe homes, counseling, and education for survivors of abuse and trafficking.
-              </p>
-              {!showDonate && (
-                <button
-                  onClick={() => setShowDonate(true)}
-                  className="mt-4 w-full rounded-lg bg-white py-2 text-sm font-semibold text-black transition-colors hover:bg-gray-100"
-                >
-                  Donate Now
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -365,6 +359,23 @@ export default function DonorDashboard() {
 
     <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </>
+  )
+}
+
+function ImpactUpdateCard({ snap }: { snap: { snapshotId: number; snapshotDate: string | null; headline: string | null; summaryText: string | null } }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen(!open)}
+      className="w-full text-left border-l-2 border-black pl-3 transition-colors hover:border-medium-gray"
+    >
+      <p className="text-sm font-medium text-black">{snap.headline ?? 'Update'}</p>
+      <p className="text-xs text-medium-gray">{fmtDate(snap.snapshotDate)}</p>
+      {open && snap.summaryText && (
+        <p className="mt-2 text-xs leading-relaxed text-medium-gray">{snap.summaryText}</p>
+      )}
+    </button>
   )
 }
 
