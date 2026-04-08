@@ -42,7 +42,7 @@ public class HomeVisitationsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<ActionResult<HomeVisitation>> Create(
         [FromBody] HomeVisitation entity,
         CancellationToken cancellationToken)
@@ -54,7 +54,7 @@ public class HomeVisitationsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Update(int id, [FromBody] HomeVisitation entity, CancellationToken cancellationToken)
     {
         if (id != entity.VisitationId)
@@ -70,7 +70,7 @@ public class HomeVisitationsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var existing = await _db.HomeVisitations.FindAsync(new object[] { id }, cancellationToken);
