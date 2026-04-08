@@ -23,6 +23,13 @@ export interface TwoFactorStatus {
   isMachineRemembered: boolean
 }
 
+export class TwoFactorRequiredError extends Error {
+  constructor() {
+    super('Two-factor authentication is required.')
+    this.name = 'TwoFactorRequiredError'
+  }
+}
+
 const anonymousSession: AuthSession = {
   isAuthenticated: false,
   userName: null,
@@ -91,7 +98,17 @@ export async function loginUser(
   })
 
   if (!res.ok) {
-    throw new Error(await readApiError(res, 'Invalid email or password. If MFA is enabled, include an authenticator or recovery code.'))
+    const text = await res.text().catch(() => '')
+    if (text.includes('RequiresTwoFactor') || text.includes('requiresTwoFactor')) {
+      throw new TwoFactorRequiredError()
+    }
+    // Try to parse a friendly error from the response
+    let msg = 'Invalid email or password.'
+    try {
+      const data = JSON.parse(text)
+      msg = data?.detail ?? data?.title ?? data?.message ?? msg
+    } catch { /* not JSON */ }
+    throw new Error(msg)
   }
 }
 
