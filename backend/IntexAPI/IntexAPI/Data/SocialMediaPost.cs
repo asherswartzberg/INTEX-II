@@ -8,7 +8,7 @@ public class SocialMediaPost
 {
     [Key]
     [Column("post_id")]
-    public double PostId { get; set; }
+    public int PostId { get; set; }
 
     [Column("platform")]
     [MaxLength(64)]
@@ -30,7 +30,7 @@ public class SocialMediaPost
     public string? DayOfWeek { get; set; }
 
     [Column("post_hour")]
-    public double? PostHour { get; set; }
+    public int? PostHour { get; set; }
 
     [Column("post_type")]
     [MaxLength(128)]
@@ -47,10 +47,10 @@ public class SocialMediaPost
     public string? Hashtags { get; set; }
 
     [Column("num_hashtags")]
-    public double? NumHashtags { get; set; }
+    public int? NumHashtags { get; set; }
 
     [Column("mentions_count")]
-    public double? MentionsCount { get; set; }
+    public int? MentionsCount { get; set; }
 
     [Column("has_call_to_action")]
     public bool? HasCallToAction { get; set; }
@@ -68,7 +68,7 @@ public class SocialMediaPost
     public string? SentimentTone { get; set; }
 
     [Column("caption_length")]
-    public double? CaptionLength { get; set; }
+    public int? CaptionLength { get; set; }
 
     [Column("features_resident_story")]
     public bool? FeaturesResidentStory { get; set; }
@@ -84,25 +84,25 @@ public class SocialMediaPost
     public double? BoostBudgetPhp { get; set; }
 
     [Column("impressions")]
-    public double? Impressions { get; set; }
+    public int? Impressions { get; set; }
 
     [Column("reach")]
-    public double? Reach { get; set; }
+    public int? Reach { get; set; }
 
     [Column("likes")]
-    public double? Likes { get; set; }
+    public int? Likes { get; set; }
 
     [Column("comments")]
-    public double? Comments { get; set; }
+    public int? Comments { get; set; }
 
     [Column("shares")]
-    public double? Shares { get; set; }
+    public int? Shares { get; set; }
 
     [Column("saves")]
-    public double? Saves { get; set; }
+    public int? Saves { get; set; }
 
     [Column("click_throughs")]
-    public double? ClickThroughs { get; set; }
+    public int? ClickThroughs { get; set; }
 
     [Column("video_views")]
     public double? VideoViews { get; set; }
@@ -111,16 +111,16 @@ public class SocialMediaPost
     public double? EngagementRate { get; set; }
 
     [Column("profile_visits")]
-    public double? ProfileVisits { get; set; }
+    public int? ProfileVisits { get; set; }
 
     [Column("donation_referrals")]
-    public double? DonationReferrals { get; set; }
+    public int? DonationReferrals { get; set; }
 
     [Column("estimated_donation_value_php")]
     public double? EstimatedDonationValuePhp { get; set; }
 
     [Column("follower_count_at_post")]
-    public double? FollowerCountAtPost { get; set; }
+    public int? FollowerCountAtPost { get; set; }
 
     [Column("watch_time_seconds")]
     public double? WatchTimeSeconds { get; set; }
