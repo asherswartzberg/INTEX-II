@@ -58,7 +58,7 @@ function Widget({ title, children }: { title: string; children: React.ReactNode 
 
 const DEFAULT_LAYOUTS = {
   lg: [
-    { i: 'kpi', x: 0, y: 0, w: 3, h: 5, minH: 4 },
+    { i: 'kpi', x: 0, y: 0, w: 3, h: 3, minH: 2 },
     { i: 'donation-trends', x: 0, y: 2, w: 2, h: 4, minH: 3 },
     { i: 'funds-area', x: 2, y: 2, w: 1, h: 4, minH: 3 },
     { i: 'recent-donations', x: 0, y: 6, w: 2, h: 5, minH: 3 },
@@ -118,7 +118,23 @@ export default function Admin() {
   const toggleWidget = (id: string) => {
     setHiddenWidgets(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+        // Restore layout item from defaults when showing
+        setLayouts((prevLayouts: Record<string, any[]>) => {
+          const restored = { ...prevLayouts }
+          for (const [bp, items] of Object.entries(DEFAULT_LAYOUTS)) {
+            const defaultItem = (items as any[]).find((item: any) => item.i === id)
+            if (defaultItem && !(restored[bp] ?? []).some((item: any) => item.i === id)) {
+              restored[bp] = [...(restored[bp] ?? []), defaultItem]
+            }
+          }
+          setCookie(cookieKey, JSON.stringify(restored), 365)
+          return restored
+        })
+      } else {
+        next.add(id)
+      }
       setCookie(hiddenCookieKey, JSON.stringify([...next]), 365)
       return next
     })
@@ -213,57 +229,18 @@ export default function Admin() {
 
   if (!data) return null
 
-  return (
-    <div className="min-h-screen bg-off-white dark:bg-[#111] px-4 py-6 md:px-6 md:py-8">
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-          <p className="mt-0.5 text-sm text-gray-400">Drag widgets to customize your view</p>
-        </div>
-        <div className="relative">
-          <button
-            onClick={() => setShowWidgetMenu(!showWidgetMenu)}
-            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3h7a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7m-4 8h8"/></svg>
-            Widgets
-          </button>
-          {showWidgetMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowWidgetMenu(false)} />
-              <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-xl border border-gray-200 bg-white py-2 shadow-lg dark:bg-[#1a1a1a] dark:border-[#333]">
-                {Object.entries(WIDGET_LABELS).map(([id, label]) => (
-                  <label key={id} className="flex cursor-pointer items-center gap-2.5 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-[#222]">
-                    <input
-                      type="checkbox"
-                      checked={!hiddenWidgets.has(id)}
-                      onChange={() => toggleWidget(id)}
-                      className="h-3.5 w-3.5 rounded border-gray-300"
-                    />
-                    <span className="text-gray-700 dark:text-gray-300">{label}</span>
-                  </label>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+  const visibleLayouts = Object.fromEntries(
+    Object.entries(layouts).map(([bp, items]: [string, any]) => [
+      bp,
+      (items ?? []).filter((item: any) => !hiddenWidgets.has(item.i)),
+    ])
+  )
 
-      {/* Grid */}
-      <ResponsiveGrid
-        className="layout"
-        layouts={layouts}
-        breakpoints={{ lg: 1024, md: 768, sm: 0 }}
-        cols={{ lg: 3, md: 2, sm: 1 }}
-        rowHeight={60}
-        onLayoutChange={onLayoutChange}
-        draggableHandle=".cursor-grab"
-        compactType="vertical"
-        margin={[16, 16]}
-      >
-        {/* KPI */}
-        <div key="kpi" style={{ display: hiddenWidgets.has('kpi') ? 'none' : undefined }}>
+  const widgetItems = [
+    {
+      id: 'kpi',
+      element: (
+        <div key="kpi">
           <Widget title="Key Metrics">
             <div className="grid grid-cols-3 gap-4">
               <div>
@@ -281,9 +258,12 @@ export default function Admin() {
             </div>
           </Widget>
         </div>
-
-        {/* Donation Trends */}
-        <div key="donation-trends" style={{ display: hiddenWidgets.has('donation-trends') ? 'none' : undefined }}>
+      ),
+    },
+    {
+      id: 'donation-trends',
+      element: (
+        <div key="donation-trends">
           <Widget title="Donation Trends">
             {trends.length === 0 ? (
               <p className="text-sm text-gray-400">No trend data available.</p>
@@ -301,7 +281,7 @@ export default function Admin() {
                     }))
                     return (
                       <>
-                        <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+                        <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 1000 1000" preserveAspectRatio="none">
                           <polyline
                             fill="none"
                             stroke="#3b82f6"
@@ -313,7 +293,7 @@ export default function Admin() {
                         {points.map((p, i) => (
                           <div
                             key={i}
-                            className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500 hover:bg-blue-600 hover:scale-150 transition-transform"
+                            className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500 transition-transform hover:scale-150 hover:bg-blue-600"
                             style={{ left: `${p.xPct}%`, top: `${p.yPct}%` }}
                             title={`${fmtCurrency(p.amount)} — ${p.label}`}
                           />
@@ -333,9 +313,12 @@ export default function Admin() {
             )}
           </Widget>
         </div>
-
-        {/* Funds by Area */}
-        <div key="funds-area" style={{ display: hiddenWidgets.has('funds-area') ? 'none' : undefined }}>
+      ),
+    },
+    {
+      id: 'funds-area',
+      element: (
+        <div key="funds-area">
           <Widget title="Funds by Area">
             {fundsByArea.length === 0 ? (
               <p className="text-sm text-gray-400">No allocation data.</p>
@@ -359,9 +342,12 @@ export default function Admin() {
             )}
           </Widget>
         </div>
-
-        {/* Recent Donations */}
-        <div key="recent-donations" style={{ display: hiddenWidgets.has('recent-donations') ? 'none' : undefined }}>
+      ),
+    },
+    {
+      id: 'recent-donations',
+      element: (
+        <div key="recent-donations">
           <Widget title="Recent Donations">
             {data.recentDonations.length === 0 ? (
               <p className="text-sm text-gray-400">No recent donations.</p>
@@ -380,9 +366,12 @@ export default function Admin() {
             )}
           </Widget>
         </div>
-
-        {/* Safehouse Stats */}
-        <div key="safehouse-stats" style={{ display: hiddenWidgets.has('safehouse-stats') ? 'none' : undefined }}>
+      ),
+    },
+    {
+      id: 'safehouse-stats',
+      element: (
+        <div key="safehouse-stats">
           <Widget title="Safehouse Overview">
             <div className="divide-y divide-gray-50 dark:divide-[#333]">
               {data.activeResidentsBySafehouse.map(sh => {
@@ -407,9 +396,12 @@ export default function Admin() {
             </div>
           </Widget>
         </div>
-
-        {/* Incident History */}
-        <div key="incidents" style={{ display: hiddenWidgets.has('incidents') ? 'none' : undefined }}>
+      ),
+    },
+    {
+      id: 'incidents',
+      element: (
+        <div key="incidents">
           <Widget title="Incident History">
             {incidentsByMonth.length === 0 ? (
               <p className="text-sm text-gray-400">No incidents recorded.</p>
@@ -422,7 +414,7 @@ export default function Admin() {
                       <span className="w-10 shrink-0 text-[10px] text-gray-400">
                         {new Date(month + '-01').toLocaleDateString('en', { month: 'short', year: '2-digit' })}
                       </span>
-                      <div className="flex-1 h-3 rounded-full bg-gray-100 dark:bg-[#333]">
+                      <div className="h-3 flex-1 rounded-full bg-gray-100 dark:bg-[#333]">
                         <div
                           className={`h-full rounded-full transition-all ${count === 0 ? 'bg-green-300' : count <= 2 ? 'bg-yellow-400' : 'bg-red-400'}`}
                           style={{ width: `${Math.max((count / max) * 100, 4)}%` }}
@@ -439,9 +431,12 @@ export default function Admin() {
             )}
           </Widget>
         </div>
-
-        {/* Reintegration Summary */}
-        <div key="reintegration" style={{ display: hiddenWidgets.has('reintegration') ? 'none' : undefined }}>
+      ),
+    },
+    {
+      id: 'reintegration',
+      element: (
+        <div key="reintegration">
           <Widget title="Reintegration Summary">
             {reintegration.length === 0 ? (
               <p className="text-sm text-gray-400">No data.</p>
@@ -466,9 +461,12 @@ export default function Admin() {
             )}
           </Widget>
         </div>
-
-        {/* Upcoming Conferences */}
-        <div key="conferences" style={{ display: hiddenWidgets.has('conferences') ? 'none' : undefined }}>
+      ),
+    },
+    {
+      id: 'conferences',
+      element: (
+        <div key="conferences">
           <Widget title="Recent Conferences">
             {data.upcomingCaseConferences.length === 0 ? (
               <p className="text-sm text-gray-400">No upcoming conferences.</p>
@@ -487,6 +485,73 @@ export default function Admin() {
             )}
           </Widget>
         </div>
+      ),
+    },
+  ]
+
+  return (
+    <div className="min-h-screen bg-off-white dark:bg-[#111] px-4 py-6 md:px-6 md:py-8">
+      {/* Header */}
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="mt-0.5 text-sm text-gray-400">Drag widgets to customize your view</p>
+        </div>
+        <div className="flex items-start gap-2">
+          <div className="relative">
+            <button
+              onClick={() => setShowWidgetMenu(!showWidgetMenu)}
+              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3h7a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7m-4 8h8"/></svg>
+              Widgets
+            </button>
+            {showWidgetMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowWidgetMenu(false)} />
+                <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-xl border border-gray-200 bg-white py-2 shadow-lg dark:bg-[#1a1a1a] dark:border-[#333]">
+                  {Object.entries(WIDGET_LABELS).map(([id, label]) => (
+                    <label key={id} className="flex cursor-pointer items-center gap-2.5 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-[#222]">
+                      <input
+                        type="checkbox"
+                        checked={!hiddenWidgets.has(id)}
+                        onChange={() => toggleWidget(id)}
+                        className="h-3.5 w-3.5 rounded border-gray-300"
+                      />
+                      <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setLayouts(DEFAULT_LAYOUTS)
+              setCookie(cookieKey, JSON.stringify(DEFAULT_LAYOUTS), 365)
+              setHiddenWidgets(new Set())
+              setCookie(hiddenCookieKey, JSON.stringify([]), 365)
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400"
+          >
+            Reset layout
+          </button>
+        </div>
+      </div>
+
+      {/* Grid */}
+      <ResponsiveGrid
+        className="layout"
+        layouts={visibleLayouts}
+        breakpoints={{ lg: 800, md: 500, sm: 0 }}
+        cols={{ lg: 3, md: 2, sm: 1 }}
+        rowHeight={60}
+        onLayoutChange={onLayoutChange}
+        draggableHandle=".cursor-grab"
+        compactType="vertical"
+        margin={[16, 16]}
+      >
+        {widgetItems.filter(widget => !hiddenWidgets.has(widget.id)).map(widget => widget.element)}
       </ResponsiveGrid>
     </div>
   )
