@@ -205,7 +205,7 @@ export default function DonorDashboard() {
     <>
     <div data-donor className="min-h-screen bg-off-white dark:bg-[#111] dark:text-[#e5e5e5]">
       {/* ── Header ── */}
-      <header className="border-b border-border bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
+      <header role="banner" className="border-b border-border bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-10">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2.5">
@@ -243,7 +243,7 @@ export default function DonorDashboard() {
         </div>
       </header>
 
-      <div className="px-6 py-8">
+      <main className="px-6 py-8">
 
         {/* ── Welcome + Donate CTA ── */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -355,7 +355,7 @@ export default function DonorDashboard() {
 
           </div>
         </div>
-      </div>
+      </main>
     </div>
 
     <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
