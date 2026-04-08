@@ -265,7 +265,7 @@ export default function DonorDashboard() {
                             <span className="text-medium-gray">{fmtCurrency(amount)}</span>
                           </div>
                           <div className="mt-1 h-2 w-full rounded-full bg-off-white">
-                            <div className="h-full rounded-full bg-black" style={{ width: `${(amount / max) * 100}%` }} />
+                            <div className="h-full rounded-full bg-blue-500" style={{ width: `${(amount / max) * 100}%` }} />
                           </div>
                         </div>
                       ))

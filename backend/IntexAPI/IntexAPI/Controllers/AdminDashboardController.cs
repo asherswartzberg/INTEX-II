@@ -59,10 +59,10 @@ public class AdminDashboardController : ControllerBase
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var upcomingConferences = await (
             from plan in _db.InterventionPlans.AsNoTracking()
-            where plan.CaseConferenceDate != null && plan.CaseConferenceDate >= today
+            where plan.CaseConferenceDate != null
             join r in _db.Residents.AsNoTracking() on plan.ResidentId equals r.ResidentId into rj
             from r in rj.DefaultIfEmpty()
-            orderby plan.CaseConferenceDate
+            orderby plan.CaseConferenceDate descending
             select new UpcomingCaseConferenceDto(
                 plan.PlanId,
                 plan.ResidentId,
@@ -73,8 +73,12 @@ public class AdminDashboardController : ControllerBase
             .Take(25)
             .ToListAsync(cancellationToken);
 
+        // Find the latest month that has actual health/education data (not null)
         var latestMonthStart = await _db.SafehouseMonthlyMetrics.AsNoTracking()
-            .MaxAsync(m => (DateOnly?)m.MonthStart, cancellationToken);
+            .Where(m => m.AvgHealthScore != null || m.AvgEducationProgress != null)
+            .MaxAsync(m => (DateOnly?)m.MonthStart, cancellationToken)
+            ?? await _db.SafehouseMonthlyMetrics.AsNoTracking()
+                .MaxAsync(m => (DateOnly?)m.MonthStart, cancellationToken);
 
         List<LatestSafehouseProgressDto> progress = [];
         if (latestMonthStart.HasValue)

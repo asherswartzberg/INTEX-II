@@ -1,446 +1,493 @@
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { ApiError, fetchAdminDashboard, fetchDonationAllocations } from '../apis'
-import type { AdminDashboardDto } from '../types/apiDtos'
+import { useEffect, useState, useMemo } from 'react'
+import { Responsive, WidthProvider } from 'react-grid-layout'
+import 'react-grid-layout/css/styles.css'
+import {
+  ApiError,
+  fetchAdminDashboard,
+  fetchDonationAllocations,
+  fetchIncidentReports,
+  fetchDonationTrends,
+  fetchReintegrationSummary,
+} from '../apis'
+import { useAuth } from '../context/AuthContext'
+import type { AdminDashboardDto, DonationTrendPointDto, ReintegrationStatusCountDto } from '../types/apiDtos'
 import type { DonationAllocation } from '../types/DonationAllocation'
+import type { IncidentReport } from '../types/IncidentReport'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function formatCurrency(amount: number | null, _currency?: string | null) {
-  if (amount == null) return '—'
-  return '$' + amount.toLocaleString('en', { maximumFractionDigits: 0 })
+const ResponsiveGrid = WidthProvider(Responsive)
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function fmtCurrency(n: number | null) {
+  if (n == null) return '—'
+  if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M'
+  if (n >= 1_000) return '$' + (n / 1_000).toFixed(0) + 'K'
+  return '$' + n.toLocaleString('en', { maximumFractionDigits: 0 })
 }
 
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '—'
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function fmtDateFull(s: string | null) {
+  if (!s) return '—'
+  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-const SAFEHOUSE_COLORS = [
-  'bg-blue-600',
-  'bg-yellow-700',
-  'bg-green-600',
-  'bg-purple-600',
-  'bg-rose-600',
-]
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
 
-// ── Component ────────────────────────────────────────────────────────────────
+function setCookie(name: string, value: string, days: number) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString()
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
+}
+
+// ── Widget wrapper ─────────────────────────────────────────────────────────
+
+function Widget({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex h-full flex-col rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+      <div className="flex shrink-0 items-center justify-between border-b border-gray-50 px-5 py-3 dark:border-[#333]">
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-white">{title}</h2>
+        <span className="cursor-grab text-gray-300 dark:text-gray-600" title="Drag to reorder">⋮⋮</span>
+      </div>
+      <div className="flex-1 overflow-auto p-5">{children}</div>
+    </div>
+  )
+}
+
+// ── Default layouts ────────────────────────────────────────────────────────
+
+const DEFAULT_LAYOUTS = {
+  lg: [
+    { i: 'kpi', x: 0, y: 0, w: 3, h: 5, minH: 4 },
+    { i: 'donation-trends', x: 0, y: 2, w: 2, h: 4, minH: 3 },
+    { i: 'funds-area', x: 2, y: 2, w: 1, h: 4, minH: 3 },
+    { i: 'recent-donations', x: 0, y: 6, w: 2, h: 5, minH: 3 },
+    { i: 'safehouse-stats', x: 2, y: 6, w: 1, h: 5, minH: 3 },
+    { i: 'incidents', x: 0, y: 11, w: 1, h: 4, minH: 3 },
+    { i: 'reintegration', x: 1, y: 11, w: 1, h: 4, minH: 3 },
+    { i: 'conferences', x: 2, y: 11, w: 1, h: 4, minH: 3 },
+  ],
+  md: [
+    { i: 'kpi', x: 0, y: 0, w: 2, h: 3 },
+    { i: 'donation-trends', x: 0, y: 2, w: 2, h: 4 },
+    { i: 'funds-area', x: 0, y: 6, w: 1, h: 4 },
+    { i: 'safehouse-stats', x: 1, y: 6, w: 1, h: 4 },
+    { i: 'recent-donations', x: 0, y: 10, w: 2, h: 5 },
+    { i: 'incidents', x: 0, y: 15, w: 1, h: 4 },
+    { i: 'reintegration', x: 1, y: 15, w: 1, h: 4 },
+    { i: 'conferences', x: 0, y: 19, w: 2, h: 4 },
+  ],
+  sm: [
+    { i: 'kpi', x: 0, y: 0, w: 1, h: 3 },
+    { i: 'donation-trends', x: 0, y: 3, w: 1, h: 4 },
+    { i: 'funds-area', x: 0, y: 7, w: 1, h: 4 },
+    { i: 'recent-donations', x: 0, y: 11, w: 1, h: 5 },
+    { i: 'safehouse-stats', x: 0, y: 16, w: 1, h: 4 },
+    { i: 'incidents', x: 0, y: 20, w: 1, h: 4 },
+    { i: 'reintegration', x: 0, y: 24, w: 1, h: 4 },
+    { i: 'conferences', x: 0, y: 28, w: 1, h: 4 },
+  ],
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────
+
 export default function Admin() {
+  const { authSession } = useAuth()
   const [data, setData] = useState<AdminDashboardDto | null>(null)
   const [allocations, setAllocations] = useState<DonationAllocation[]>([])
+  const [incidents, setIncidents] = useState<IncidentReport[]>([])
+  const [trends, setTrends] = useState<DonationTrendPointDto[]>([])
+  const [reintegration, setReintegration] = useState<ReintegrationStatusCountDto[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Widget visibility
+  const WIDGET_LABELS: Record<string, string> = {
+    kpi: 'Key Metrics', 'donation-trends': 'Donation Trends', 'funds-area': 'Funds by Area',
+    'recent-donations': 'Recent Donations', 'safehouse-stats': 'Safehouse Overview',
+    incidents: 'Incident History', reintegration: 'Reintegration', conferences: 'Conferences',
+  }
+  const hiddenCookieKey = `dashboard_hidden_${authSession.email ?? 'default'}`
+  const [hiddenWidgets, setHiddenWidgets] = useState<Set<string>>(() => {
+    const saved = getCookie(hiddenCookieKey)
+    if (saved) try { return new Set(JSON.parse(saved)) } catch { /* default */ }
+    return new Set()
+  })
+  const [showWidgetMenu, setShowWidgetMenu] = useState(false)
+
+  const toggleWidget = (id: string) => {
+    setHiddenWidgets(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      setCookie(hiddenCookieKey, JSON.stringify([...next]), 365)
+      return next
+    })
+  }
+
+  // Layout persistence
+  const cookieKey = `dashboard_layout_${authSession.email ?? 'default'}`
+  const [layouts, setLayouts] = useState(() => {
+    const saved = getCookie(cookieKey)
+    if (saved) try { return JSON.parse(saved) } catch { /* use default */ }
+    return DEFAULT_LAYOUTS
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onLayoutChange = (_: any, allLayouts: any) => {
+    setLayouts(allLayouts)
+    setCookie(cookieKey, JSON.stringify(allLayouts), 365)
+  }
 
   useEffect(() => {
     let cancelled = false
     Promise.all([
       fetchAdminDashboard(),
       fetchDonationAllocations().catch(() => [] as DonationAllocation[]),
+      fetchIncidentReports({ pageSize: 500 }).catch(() => [] as IncidentReport[]),
+      fetchDonationTrends().catch(() => [] as DonationTrendPointDto[]),
+      fetchReintegrationSummary().catch(() => [] as ReintegrationStatusCountDto[]),
     ])
-      .then(([d, allocs]) => {
-        if (!cancelled) { setData(d); setAllocations(allocs) }
+      .then(([d, allocs, inc, tr, reint]) => {
+        if (cancelled) return
+        setData(d); setAllocations(allocs); setIncidents(inc); setTrends(tr); setReintegration(reint)
       })
       .catch((err: unknown) => {
         if (cancelled) return
-        const msg =
-          err instanceof ApiError
-            ? `Server error: ${err.status}${err.body ? ` — ${err.body.slice(0, 200)}` : ''}`
-            : err instanceof Error
-              ? err.message
-              : 'Request failed'
-        setError(msg)
+        setError(err instanceof ApiError ? `Error ${err.status}` : err instanceof Error ? err.message : 'Failed')
       })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
-  const today = new Date().toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })
-
-  // ── Derived metrics ──
-  const avgHealthScore = (() => {
+  // Derived data
+  const avgHealthScore = useMemo(() => {
     if (!data) return null
-    const scores = data.latestMonthlyProgressBySafehouse
-      .map((s) => s.avgHealthScore)
-      .filter((s): s is number => s != null)
+    const scores = data.latestMonthlyProgressBySafehouse.map(s => s.avgHealthScore).filter((s): s is number => s != null)
     if (!scores.length) return null
     return (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1)
-  })()
+  }, [data])
 
-  const thisMonthDonationsTotal = (() => {
-    if (!data) return null
-    const now = new Date()
-    const total = data.recentDonations
-      .filter((d) => {
-        if (!d.donationDate) return false
-        const dd = new Date(d.donationDate)
-        return dd.getFullYear() === now.getFullYear() && dd.getMonth() === now.getMonth()
-      })
-      .reduce((sum, d) => sum + (d.amount ?? 0), 0)
-    if (total === 0) return null
-    return total >= 1000
-      ? '$' + (total / 1000).toFixed(0) + 'K'
-      : '$' + total.toLocaleString('en-PH')
-  })()
+  const totalDonations = useMemo(() => {
+    if (!data) return 0
+    return data.recentDonations.reduce((sum, d) => sum + (d.amount ?? 0), 0)
+  }, [data])
 
-  const totalIncidents = data?.latestMonthlyProgressBySafehouse.reduce(
-    (sum, s) => sum + (s.incidentCount ?? 0),
-    0
-  ) ?? 0
+  const fundsByArea = useMemo(() => {
+    const totals: Record<string, number> = {}
+    allocations.forEach(a => {
+      totals[a.programArea ?? 'Other'] = (totals[a.programArea ?? 'Other'] ?? 0) + (a.amountAllocated ?? 0)
+    })
+    return Object.entries(totals).sort((a, b) => b[1] - a[1])
+  }, [allocations])
 
-  const maxOccupancy = data
-    ? Math.max(...data.activeResidentsBySafehouse.map((s) => s.activeResidentCount), 1)
-    : 1
+  const incidentsByMonth = useMemo(() => {
+    const byMonth: Record<string, number> = {}
+    incidents.forEach(inc => {
+      if (!inc.incidentDate) return
+      const d = new Date(inc.incidentDate)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      byMonth[key] = (byMonth[key] ?? 0) + 1
+    })
+    return Object.entries(byMonth).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12)
+  }, [incidents])
 
-  // ── Loading skeleton ──
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-off-white dark:bg-[#111] px-6 py-8 font-sans">
-        <div className="mb-6 h-8 w-48 animate-pulse rounded-lg bg-gray-200" />
-        <div className="mb-6 space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-200" />
-          ))}
-        </div>
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl bg-gray-200" />
-          ))}
-        </div>
+  // Loading
+  if (loading) return (
+    <div className="min-h-screen bg-off-white dark:bg-[#111] p-8">
+      <div className="mb-6 h-8 w-48 animate-pulse rounded-lg bg-gray-200" />
+      <div className="grid grid-cols-3 gap-4">
+        {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-40 animate-pulse rounded-xl bg-gray-200" />)}
       </div>
-    )
-  }
+    </div>
+  )
 
-  // ── Error state ──
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-off-white dark:bg-[#111] px-6 font-sans">
-        <div className="rounded-xl border border-red-200 bg-red-50 px-8 py-6 text-center">
-          <p className="text-sm font-semibold text-red-700">Failed to load dashboard</p>
-          <p className="mt-1 text-xs text-red-500">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700"
-          >
-            Retry
-          </button>
-        </div>
+  if (error) return (
+    <div className="flex min-h-screen items-center justify-center bg-off-white dark:bg-[#111] p-8">
+      <div className="rounded-xl border border-red-200 bg-red-50 px-8 py-6 text-center">
+        <p className="text-sm font-semibold text-red-700">Failed to load dashboard</p>
+        <p className="mt-1 text-xs text-red-500">{error}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white hover:bg-red-700">Retry</button>
       </div>
-    )
-  }
+    </div>
+  )
 
   if (!data) return null
 
   return (
-    <div className="min-h-screen bg-off-white dark:bg-[#111] px-6 py-8 font-sans">
-      {/* ── Header ── */}
+    <div className="min-h-screen bg-off-white dark:bg-[#111] px-4 py-6 md:px-6 md:py-8">
+      {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-0.5 text-sm text-gray-400">{today}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="mt-0.5 text-sm text-gray-400">Drag widgets to customize your view</p>
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setShowWidgetMenu(!showWidgetMenu)}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3h7a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7m-4 8h8"/></svg>
+            Widgets
+          </button>
+          {showWidgetMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowWidgetMenu(false)} />
+              <div className="absolute right-0 top-full z-50 mt-1 w-52 rounded-xl border border-gray-200 bg-white py-2 shadow-lg dark:bg-[#1a1a1a] dark:border-[#333]">
+                {Object.entries(WIDGET_LABELS).map(([id, label]) => (
+                  <label key={id} className="flex cursor-pointer items-center gap-2.5 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-[#222]">
+                    <input
+                      type="checkbox"
+                      checked={!hiddenWidgets.has(id)}
+                      onChange={() => toggleWidget(id)}
+                      className="h-3.5 w-3.5 rounded border-gray-300"
+                    />
+                    <span className="text-gray-700 dark:text-gray-300">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      {/* ── Alerts (data-driven) ── */}
-      {totalIncidents > 0 && (
-        <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mb-4 flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3"
-          role="alert"
-        >
-          <div className="flex items-center gap-3">
-            <span className="h-4 w-1 rounded-full bg-red-500" aria-hidden="true" />
-            <span className="text-sm font-medium text-red-800">
-              {totalIncidents} incident{totalIncidents !== 1 ? 's' : ''} recorded across safehouses this period
-            </span>
-          </div>
-          <button className="text-sm font-medium text-red-600 transition hover:text-red-800">
-            View
-          </button>
-        </motion.div>
-      )}
-
-      {data.upcomingCaseConferences.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: 0.06 }}
-          className="mb-4 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-4 py-3"
-          role="alert"
-        >
-          <div className="flex items-center gap-3">
-            <span className="h-4 w-1 rounded-full bg-blue-500" aria-hidden="true" />
-            <span className="text-sm font-medium text-blue-800">
-              {data.upcomingCaseConferences.length} upcoming case conference
-              {data.upcomingCaseConferences.length !== 1 ? 's' : ''} in the next 30 days
-            </span>
-          </div>
-          <button className="text-sm font-medium text-blue-600 transition hover:text-blue-800">
-            View cases
-          </button>
-        </motion.div>
-      )}
-
-      {/* ── Metric Cards ── */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.1 }}
-          className="rounded-xl border border-gray-100 bg-white px-6 py-5 shadow-sm"
-        >
-          <p className="mb-2 text-xs font-semibold tracking-widest text-gray-400">ACTIVE RESIDENTS</p>
-          <p className="text-3xl font-bold text-gray-900">{data.totalActiveResidents}</p>
-          <p className="mt-1 text-xs font-medium text-green-600">
-            across {data.activeResidentsBySafehouse.length} safehouse
-            {data.activeResidentsBySafehouse.length !== 1 ? 's' : ''}
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.18 }}
-          className="rounded-xl border border-gray-100 bg-white px-6 py-5 shadow-sm"
-        >
-          <p className="mb-2 text-xs font-semibold tracking-widest text-gray-400">MONTHLY DONATIONS</p>
-          <p className="text-3xl font-bold text-gray-900">
-            {thisMonthDonationsTotal ?? '—'}
-          </p>
-          <p className="mt-1 text-xs font-medium text-gray-400">
-            {thisMonthDonationsTotal ? 'from recent records this month' : 'no donations this month yet'}
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.26 }}
-          className="rounded-xl border border-gray-100 bg-white px-6 py-5 shadow-sm"
-        >
-          <p className="mb-2 text-xs font-semibold tracking-widest text-gray-400">AVG HEALTH SCORE</p>
-          <p className="text-3xl font-bold text-gray-900">
-            {avgHealthScore != null ? `${avgHealthScore} / 5` : '—'}
-          </p>
-          <p className="mt-1 text-xs font-medium text-green-600">
-            {avgHealthScore != null ? 'latest monthly average' : 'no data available'}
-          </p>
-        </motion.div>
-      </div>
-
-      {/* ── Mid Row: Conferences + Donations ── */}
-      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Upcoming case conferences */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.3 }}
-          className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm"
-        >
-          <h2 className="mb-4 text-base font-semibold text-gray-800">
-            Upcoming case conferences
-          </h2>
-          {data.upcomingCaseConferences.length === 0 ? (
-            <p className="text-sm text-gray-400">No upcoming conferences.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-gray-50">
-                {data.upcomingCaseConferences.map((c) => (
-                  <tr key={c.planId}>
-                    <td className="py-2.5 font-medium text-gray-800">
-                      {c.residentCaseNo ?? `Resident #${c.residentId}`}
-                    </td>
-                    <td className="py-2.5 text-center text-gray-400">
-                      {c.planCategory ?? '—'}
-                    </td>
-                    <td className="py-2.5 text-right text-gray-400">
-                      {formatDate(c.caseConferenceDate)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </motion.div>
-
-        {/* Recent donations */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.38 }}
-          className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm"
-        >
-          <h2 className="mb-4 text-base font-semibold text-gray-800">Recent donations</h2>
-          {data.recentDonations.length === 0 ? (
-            <p className="text-sm text-gray-400">No recent donations.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-gray-50">
-                {data.recentDonations.map((d) => (
-                  <tr key={d.donationId}>
-                    <td className="py-2.5 font-medium text-gray-800">
-                      {d.supporterDisplayName ?? `Supporter #${d.supporterId}`}
-                    </td>
-                    <td className="py-2.5 text-center text-gray-400">
-                      {d.donationType ?? '—'}
-                    </td>
-                    <td className="py-2.5 text-right font-semibold text-green-700">
-                      {formatCurrency(d.amount, d.currencyCode)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </motion.div>
-      </div>
-
-      {/* ── Safehouse Occupancy ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.46 }}
-        className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm"
+      {/* Grid */}
+      <ResponsiveGrid
+        className="layout"
+        layouts={layouts}
+        breakpoints={{ lg: 1024, md: 768, sm: 0 }}
+        cols={{ lg: 3, md: 2, sm: 1 }}
+        rowHeight={60}
+        onLayoutChange={onLayoutChange}
+        draggableHandle=".cursor-grab"
+        compactType="vertical"
+        margin={[16, 16]}
       >
-        <h2 className="mb-5 text-base font-semibold text-gray-800">Safehouse occupancy</h2>
-        {data.activeResidentsBySafehouse.length === 0 ? (
-          <p className="text-sm text-gray-400">No safehouse data available.</p>
-        ) : (
-          <div className="space-y-4">
-            {data.activeResidentsBySafehouse.map((sh, i) => {
-              const pct = Math.round((sh.activeResidentCount / maxOccupancy) * 100)
-              const color = SAFEHOUSE_COLORS[i % SAFEHOUSE_COLORS.length]
-              return (
-                <div key={sh.safehouseId} className="flex items-center gap-4">
-                  <span className="w-40 shrink-0 text-sm text-gray-400">
-                    {sh.safehouseCode ?? `SH-${sh.safehouseId}`} {sh.safehouseName}
-                  </span>
-                  <div className="relative flex-1 h-2.5 rounded-full bg-gray-100">
-                    <div
-                      className={`h-full rounded-full ${color} transition-all duration-500`}
-                      style={{ width: `${pct}%` }}
-                      role="progressbar"
-                      aria-valuenow={sh.activeResidentCount}
-                      aria-valuemin={0}
-                      aria-valuemax={maxOccupancy}
-                      aria-label={`${sh.safehouseCode ?? sh.safehouseName} occupancy`}
-                    />
-                  </div>
-                  <span className="w-8 shrink-0 text-right text-sm font-medium text-gray-600">
-                    {sh.activeResidentCount}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </motion.div>
+        {/* KPI */}
+        <div key="kpi" style={{ display: hiddenWidgets.has('kpi') ? 'none' : undefined }}>
+          <Widget title="Key Metrics">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{data.totalActiveResidents}</p>
+                <p className="mt-0.5 text-xs text-gray-400">Active residents</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{fmtCurrency(totalDonations)}</p>
+                <p className="mt-0.5 text-xs text-gray-400">Recent donations</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{avgHealthScore ?? '—'}</p>
+                <p className="mt-0.5 text-xs text-gray-400">Avg health (1-5)</p>
+              </div>
+            </div>
+          </Widget>
+        </div>
 
-      {/* ── Allocation by Program Area ── */}
-      {allocations.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.5 }}
-          className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm"
-        >
-          <h2 className="mb-5 text-base font-semibold text-gray-800">Funds by program area</h2>
-          <div className="space-y-3">
-            {(() => {
-              const totals: Record<string, number> = {}
-              allocations.forEach(a => {
-                const area = a.programArea ?? 'Other'
-                totals[area] = (totals[area] ?? 0) + (a.amountAllocated ?? 0)
-              })
-              const max = Math.max(...Object.values(totals), 1)
-              return Object.entries(totals).sort((a, b) => b[1] - a[1]).map(([area, amount]) => (
-                <div key={area}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-gray-800">{area}</span>
-                    <span className="text-gray-500">${Math.round(amount).toLocaleString()}</span>
-                  </div>
-                  <div className="mt-1 h-2 w-full rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${(amount / max) * 100}%` }} />
-                  </div>
+        {/* Donation Trends */}
+        <div key="donation-trends" style={{ display: hiddenWidgets.has('donation-trends') ? 'none' : undefined }}>
+          <Widget title="Donation Trends">
+            {trends.length === 0 ? (
+              <p className="text-sm text-gray-400">No trend data available.</p>
+            ) : (
+              <div className="flex h-full flex-col">
+                <div className="relative flex-1">
+                  {(() => {
+                    const max = Math.max(...trends.map(t => t.totalAmount), 1)
+                    const n = trends.length
+                    const points = trends.map((t, i) => ({
+                      xPct: n > 1 ? (i / (n - 1)) * 100 : 50,
+                      yPct: 100 - (t.totalAmount / max) * 85 - 5,
+                      amount: t.totalAmount,
+                      label: `${t.month}/${t.year}`,
+                    }))
+                    return (
+                      <>
+                        <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+                          <polyline
+                            fill="none"
+                            stroke="#3b82f6"
+                            strokeWidth="2"
+                            vectorEffect="non-scaling-stroke"
+                            points={points.map(p => `${p.xPct * 10},${p.yPct * 10}`).join(' ')}
+                          />
+                        </svg>
+                        {points.map((p, i) => (
+                          <div
+                            key={i}
+                            className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500 hover:bg-blue-600 hover:scale-150 transition-transform"
+                            style={{ left: `${p.xPct}%`, top: `${p.yPct}%` }}
+                            title={`${fmtCurrency(p.amount)} — ${p.label}`}
+                          />
+                        ))}
+                      </>
+                    )
+                  })()}
                 </div>
-              ))
-            })()}
-          </div>
-        </motion.div>
-      )}
+                <div className="flex shrink-0 text-[9px] text-gray-400">
+                  {trends.map((t, i) => (
+                    <span key={i} className="flex-1 text-center" style={{ visibility: i % 3 === 0 || i === trends.length - 1 ? 'visible' : 'hidden' }}>
+                      {new Date(t.year, t.month - 1).toLocaleDateString('en', { month: 'short', year: '2-digit' })}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Widget>
+        </div>
 
-      {/* ── Safehouse Health & Progress ── */}
-      {data.latestMonthlyProgressBySafehouse.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.54 }}
-          className="mt-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm"
-        >
-          <h2 className="mb-4 text-base font-semibold text-gray-800">
-            Latest monthly progress by safehouse
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="pb-3 text-left text-xs font-semibold tracking-wide text-gray-400">
-                    SAFEHOUSE
-                  </th>
-                  <th className="pb-3 text-center text-xs font-semibold tracking-wide text-gray-400">
-                    RESIDENTS
-                  </th>
-                  <th className="pb-3 text-center text-xs font-semibold tracking-wide text-gray-400">
-                    AVG EDUCATION
-                  </th>
-                  <th className="pb-3 text-center text-xs font-semibold tracking-wide text-gray-400">
-                    AVG HEALTH
-                  </th>
-                  <th className="pb-3 text-right text-xs font-semibold tracking-wide text-gray-400">
-                    INCIDENTS
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {data.latestMonthlyProgressBySafehouse.map((sh) => (
-                  <tr key={sh.safehouseId}>
-                    <td className="py-3 font-medium text-gray-800">{sh.safehouseName ?? '—'}</td>
-                    <td className="py-3 text-center text-gray-600">{sh.activeResidents ?? '—'}</td>
-                    <td className="py-3 text-center text-gray-600">
-                      {sh.avgEducationProgress != null
-                        ? `${(sh.avgEducationProgress * 100).toFixed(0)}%`
-                        : '—'}
-                    </td>
-                    <td className="py-3 text-center text-gray-600">
-                      {sh.avgHealthScore != null ? sh.avgHealthScore.toFixed(1) : '—'}
-                    </td>
-                    <td className="py-3 text-right">
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          (sh.incidentCount ?? 0) > 0
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {sh.incidentCount ?? 0}
-                      </span>
-                    </td>
-                  </tr>
+        {/* Funds by Area */}
+        <div key="funds-area" style={{ display: hiddenWidgets.has('funds-area') ? 'none' : undefined }}>
+          <Widget title="Funds by Area">
+            {fundsByArea.length === 0 ? (
+              <p className="text-sm text-gray-400">No allocation data.</p>
+            ) : (
+              <div className="space-y-3">
+                {(() => {
+                  const max = Math.max(...fundsByArea.map(([, v]) => v), 1)
+                  return fundsByArea.map(([area, amount]) => (
+                    <div key={area}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{area}</span>
+                        <span className="text-gray-400">{fmtCurrency(amount)}</span>
+                      </div>
+                      <div className="mt-1 h-2 w-full rounded-full bg-gray-100 dark:bg-[#333]">
+                        <div className="h-full rounded-full bg-blue-500" style={{ width: `${(amount / max) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))
+                })()}
+              </div>
+            )}
+          </Widget>
+        </div>
+
+        {/* Recent Donations */}
+        <div key="recent-donations" style={{ display: hiddenWidgets.has('recent-donations') ? 'none' : undefined }}>
+          <Widget title="Recent Donations">
+            {data.recentDonations.length === 0 ? (
+              <p className="text-sm text-gray-400">No recent donations.</p>
+            ) : (
+              <div className="divide-y divide-gray-50 dark:divide-[#333]">
+                {data.recentDonations.slice(0, 10).map(d => (
+                  <div key={d.donationId} className="flex items-center justify-between py-2.5">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{d.supporterDisplayName ?? 'Anonymous'}</p>
+                      <p className="text-xs text-gray-400">{fmtDateFull(d.donationDate)} · {d.donationType ?? '—'}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{fmtCurrency(d.amount)}</span>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </motion.div>
-      )}
+              </div>
+            )}
+          </Widget>
+        </div>
+
+        {/* Safehouse Stats */}
+        <div key="safehouse-stats" style={{ display: hiddenWidgets.has('safehouse-stats') ? 'none' : undefined }}>
+          <Widget title="Safehouse Overview">
+            <div className="divide-y divide-gray-50 dark:divide-[#333]">
+              {data.activeResidentsBySafehouse.map(sh => {
+                const progress = data.latestMonthlyProgressBySafehouse.find(p => p.safehouseId === sh.safehouseId)
+                return (
+                  <div key={sh.safehouseId} className="py-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {(sh.safehouseName ?? `SH-${sh.safehouseId}`).replace(/Lighthouse/gi, 'Faro')}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{sh.activeResidentCount}</span>
+                    </div>
+                    {progress && (
+                      <div className="mt-1 flex gap-3 text-[10px] text-gray-400">
+                        {progress.avgHealthScore != null && <span>Health: {progress.avgHealthScore.toFixed(1)}</span>}
+                        {progress.avgEducationProgress != null && <span>Edu: {progress.avgEducationProgress.toFixed(0)}%</span>}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </Widget>
+        </div>
+
+        {/* Incident History */}
+        <div key="incidents" style={{ display: hiddenWidgets.has('incidents') ? 'none' : undefined }}>
+          <Widget title="Incident History">
+            {incidentsByMonth.length === 0 ? (
+              <p className="text-sm text-gray-400">No incidents recorded.</p>
+            ) : (
+              <div className="space-y-2">
+                {(() => {
+                  const max = Math.max(...incidentsByMonth.map(([, v]) => v), 1)
+                  return incidentsByMonth.map(([month, count]) => (
+                    <div key={month} className="flex items-center gap-3">
+                      <span className="w-10 shrink-0 text-[10px] text-gray-400">
+                        {new Date(month + '-01').toLocaleDateString('en', { month: 'short', year: '2-digit' })}
+                      </span>
+                      <div className="flex-1 h-3 rounded-full bg-gray-100 dark:bg-[#333]">
+                        <div
+                          className={`h-full rounded-full transition-all ${count === 0 ? 'bg-green-300' : count <= 2 ? 'bg-yellow-400' : 'bg-red-400'}`}
+                          style={{ width: `${Math.max((count / max) * 100, 4)}%` }}
+                        />
+                      </div>
+                      <span className={`w-5 shrink-0 text-right text-xs font-semibold ${count === 0 ? 'text-green-500' : count <= 2 ? 'text-yellow-600' : 'text-red-500'}`}>
+                        {count}
+                      </span>
+                    </div>
+                  ))
+                })()}
+                <p className="mt-1 text-[10px] text-gray-400">{incidents.length} total across all months</p>
+              </div>
+            )}
+          </Widget>
+        </div>
+
+        {/* Reintegration Summary */}
+        <div key="reintegration" style={{ display: hiddenWidgets.has('reintegration') ? 'none' : undefined }}>
+          <Widget title="Reintegration Summary">
+            {reintegration.length === 0 ? (
+              <p className="text-sm text-gray-400">No data.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {(() => {
+                  const total = reintegration.reduce((s, r) => s + r.count, 0)
+                  const colors: Record<string, string> = { Active: 'bg-blue-500', Reintegrated: 'bg-green-500', Transferred: 'bg-purple-500', Closed: 'bg-gray-400' }
+                  return reintegration.map(r => (
+                    <div key={r.status}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{r.status ?? 'Unknown'}</span>
+                        <span className="text-gray-400">{r.count} <span className="text-[10px]">({total ? Math.round((r.count / total) * 100) : 0}%)</span></span>
+                      </div>
+                      <div className="mt-1 h-2 w-full rounded-full bg-gray-100 dark:bg-[#333]">
+                        <div className={`h-full rounded-full ${colors[r.status ?? ''] ?? 'bg-gray-400'}`} style={{ width: `${total ? (r.count / total) * 100 : 0}%` }} />
+                      </div>
+                    </div>
+                  ))
+                })()}
+              </div>
+            )}
+          </Widget>
+        </div>
+
+        {/* Upcoming Conferences */}
+        <div key="conferences" style={{ display: hiddenWidgets.has('conferences') ? 'none' : undefined }}>
+          <Widget title="Recent Conferences">
+            {data.upcomingCaseConferences.length === 0 ? (
+              <p className="text-sm text-gray-400">No upcoming conferences.</p>
+            ) : (
+              <div className="divide-y divide-gray-50 dark:divide-[#333]">
+                {data.upcomingCaseConferences.slice(0, 8).map(c => (
+                  <div key={c.planId} className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{c.residentCaseNo ?? `#${c.residentId}`}</p>
+                      <p className="text-[10px] text-gray-400">{c.planCategory}</p>
+                    </div>
+                    <span className="text-xs text-gray-500">{fmtDateFull(c.caseConferenceDate)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Widget>
+        </div>
+      </ResponsiveGrid>
     </div>
   )
 }
