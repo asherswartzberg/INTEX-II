@@ -1,8 +1,8 @@
 {
   "model_name": "social_media_performance_predictor",
   "model_version": "1.0.0",
-  "trained_at_utc": "2026-04-08T00:23:13.335419+00:00",
-  "best_algorithm": "Decision Tree",
+  "trained_at_utc": "2026-04-08T16:46:06.211150+00:00",
+  "best_algorithm": "Random Forest",
   "features": [
     "platform",
     "post_type",

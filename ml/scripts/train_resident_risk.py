@@ -396,31 +396,44 @@ def save_artifacts(best_model, best_model_name, feature_cols,
 # 6. Top factors helper
 # ------------------------------------------------------------------ #
 
-def get_top_factors(best_model, top_n: int = 3) -> str:
-    """Return comma-separated string of the model's global top feature names."""
+def _clean_feature_name(name: str) -> str:
+    """Strip sklearn ColumnTransformer prefixes from a feature name."""
+    for prefix in ("num__", "cat__"):
+        if name.startswith(prefix):
+            return name[len(prefix):]
+    return name
+
+
+def get_top_factors_per_row(best_model, X_all: pd.DataFrame, top_n: int = 3) -> list[str]:
+    """Return a list of comma-separated top-factor strings, one per row in X_all.
+
+    For each resident, multiply the model coefficients (or feature importances)
+    by that resident's transformed feature values to get per-resident contributions,
+    then pick the top-N contributing features.
+    """
     clf = best_model.named_steps["clf"]
     prep = best_model.named_steps["prep"]
     try:
-        transformed_names = prep.get_feature_names_out()
+        transformed_names = list(prep.get_feature_names_out())
     except Exception:
-        return ""
+        return [""] * len(X_all)
 
-    if hasattr(clf, "feature_importances_"):
-        importances = clf.feature_importances_
-    elif hasattr(clf, "coef_"):
-        importances = np.abs(clf.coef_[0])
+    X_transformed = prep.transform(X_all)
+
+    if hasattr(clf, "coef_"):
+        weights = np.abs(clf.coef_[0])
+    elif hasattr(clf, "feature_importances_"):
+        weights = clf.feature_importances_
     else:
-        return ""
+        return [""] * len(X_all)
 
-    top_idx = np.argsort(importances)[::-1][:top_n]
-    names = []
-    for i in top_idx:
-        name = str(transformed_names[i])
-        for prefix in ("num__", "cat__"):
-            if name.startswith(prefix):
-                name = name[len(prefix):]
-        names.append(name)
-    return ", ".join(names)
+    results = []
+    for row in X_transformed:
+        contributions = np.abs(row) * weights
+        top_idx = np.argsort(contributions)[::-1][:top_n]
+        names = [_clean_feature_name(transformed_names[i]) for i in top_idx]
+        results.append(", ".join(names))
+    return results
 
 
 # ------------------------------------------------------------------ #
@@ -433,7 +446,7 @@ def run_batch_inference(df_model: pd.DataFrame, best_model, feature_cols: list) 
     risk_probs = best_model.predict_proba(X_all)[:, 1]
     risk_preds = best_model.predict(X_all)
 
-    top_factors = get_top_factors(best_model)
+    top_factors_list = get_top_factors_per_row(best_model, X_all)
 
     scores_df = pd.DataFrame({
         "resident_id":          df_model["resident_id"],
@@ -445,13 +458,12 @@ def run_batch_inference(df_model: pd.DataFrame, best_model, feature_cols: list) 
             include_lowest=True,
         ).astype(str),
         "predicted_high_risk":  risk_preds,
-        "top_factors":          top_factors,
+        "top_factors":          top_factors_list,
         "prediction_timestamp": datetime.now(timezone.utc).isoformat(),
     })
     scores_df = scores_df.sort_values("incident_risk_score", ascending=False)
 
     print(f"\nScored {len(scores_df)} residents.")
-    print(f"Top factors: {top_factors}")
     print("Risk distribution:")
     print(scores_df["risk_label"].value_counts().to_string())
     return scores_df

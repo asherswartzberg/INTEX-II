@@ -27,7 +27,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.tree import DecisionTreeRegressor
+from sklearn.tree import DecisionTreeRegressor  # noqa: F401 — kept for notebook parity
 
 import config
 import utils_db
@@ -138,10 +138,6 @@ def train(df: pd.DataFrame):
         "Linear Regression": Pipeline(steps=[
             ("prep", preprocessor),
             ("reg", LinearRegression()),
-        ]),
-        "Decision Tree": Pipeline(steps=[
-            ("prep", preprocessor),
-            ("reg", DecisionTreeRegressor(max_depth=4, min_samples_leaf=20, random_state=config.SEED)),
         ]),
         "Random Forest": Pipeline(steps=[
             ("prep", preprocessor),
