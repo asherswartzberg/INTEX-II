@@ -63,9 +63,10 @@ DROP_COLS = [
     "created_at", "first_donation_date", "last_donation_date",
     "first_donation_date_x", "first_donation_date_y",
     "is_at_risk",
+    "recency_days",
 ]
 
-LEAKAGE_COLS = ["is_at_risk"]
+LEAKAGE_COLS = ["is_at_risk", "recency_days"]
 
 
 def avg_gap_days(dates) -> float:

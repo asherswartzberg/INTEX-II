@@ -1,7 +1,7 @@
 {
   "model_name": "donor_churn_classifier",
   "model_version": "1.0.0",
-  "trained_at_utc": "2026-04-08T00:23:51.788658+00:00",
+  "trained_at_utc": "2026-04-08T16:45:49.421302+00:00",
   "best_algorithm": "Gradient Boosting",
   "features": [
     "supporter_type",
@@ -9,7 +9,6 @@
     "region",
     "country",
     "acquisition_channel",
-    "recency_days",
     "frequency",
     "total_value",
     "avg_donation_value",

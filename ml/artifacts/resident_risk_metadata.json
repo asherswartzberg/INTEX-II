@@ -1,7 +1,7 @@
 {
   "model_name": "resident_incident_risk_predictor",
   "model_version": "2.0.0",
-  "trained_at_utc": "2026-04-08T00:24:04.098868+00:00",
+  "trained_at_utc": "2026-04-08T16:46:11.122886+00:00",
   "best_algorithm": "Logistic Regression",
   "features": [
     "birth_status",
