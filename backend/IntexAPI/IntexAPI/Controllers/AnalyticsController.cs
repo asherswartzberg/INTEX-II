@@ -84,30 +84,58 @@ public class AnalyticsController : ControllerBase
     {
         if (!month.HasValue)
         {
-            month = await _db.SafehouseMonthlyMetrics.AsNoTracking()
-                .MaxAsync(m => (DateOnly?)m.MonthStart, cancellationToken);
+            var safehouses = CsvSeedData.LoadSafehouses();
+            var metrics = CsvSeedData.LoadSafehouseMonthlyMetrics();
+            var safehouseCount = safehouses.Count;
+
+            month = metrics
+                .Where(m =>
+                    m.MonthStart.HasValue &&
+                    m.ActiveResidents.HasValue &&
+                    m.AvgEducationProgress.HasValue &&
+                    m.AvgHealthScore.HasValue &&
+                    m.ProcessRecordingCount.HasValue &&
+                    m.HomeVisitationCount.HasValue &&
+                    m.IncidentCount.HasValue)
+                .GroupBy(m => m.MonthStart!.Value)
+                .Where(m =>
+                    m.Count() == safehouseCount)
+                .Select(g => g.Key)
+                .OrderByDescending(x => x)
+                .FirstOrDefault();
+
+            if (!month.HasValue)
+            {
+                month = metrics
+                    .Where(m => m.MonthStart.HasValue)
+                    .Select(m => m.MonthStart!.Value)
+                    .OrderByDescending(x => x)
+                    .Cast<DateOnly?>()
+                    .FirstOrDefault();
+            }
         }
 
         if (!month.HasValue)
             return Ok(Array.Empty<SafehousePerformanceDto>());
 
-        var rows = await (
-            from m in _db.SafehouseMonthlyMetrics.AsNoTracking()
-            where m.MonthStart == month
-            join s in _db.Safehouses.AsNoTracking() on m.SafehouseId equals s.SafehouseId into sj
-            from s in sj.DefaultIfEmpty()
-            orderby s.Name
+        var safehousesCsv = CsvSeedData.LoadSafehouses();
+        var metricsCsv = CsvSeedData.LoadSafehouseMonthlyMetrics();
+        var rows = (
+            from s in safehousesCsv
+            join m in metricsCsv.Where(x => x.MonthStart == month) on s.SafehouseId equals m.SafehouseId into mj
+            from m in mj.DefaultIfEmpty()
+            orderby s.SafehouseId
             select new SafehousePerformanceDto(
-                m.SafehouseId ?? 0,
+                s.SafehouseId,
                 s.Name,
-                m.MonthStart,
-                m.ActiveResidents,
-                m.AvgEducationProgress,
-                m.AvgHealthScore,
-                m.ProcessRecordingCount,
-                m.HomeVisitationCount,
-                m.IncidentCount))
-            .ToListAsync(cancellationToken);
+                m != null ? m.MonthStart : month,
+                m != null ? m.ActiveResidents : null,
+                m != null ? m.AvgEducationProgress : null,
+                m != null ? m.AvgHealthScore : null,
+                m != null ? m.ProcessRecordingCount : null,
+                m != null ? m.HomeVisitationCount : null,
+                m != null ? m.IncidentCount : null))
+            .ToList();
 
         return Ok(rows);
     }

@@ -19,4 +19,17 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\..\context\lighthouse_csv_v7\lighthouse_csv_v7\safehouses.csv">
+      <Link>CsvData\safehouses.csv</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\context\lighthouse_csv_v7\lighthouse_csv_v7\safehouse_monthly_metrics.csv">
+      <Link>CsvData\safehouse_monthly_metrics.csv</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

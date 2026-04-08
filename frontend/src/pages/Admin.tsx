@@ -7,10 +7,18 @@ import {
   fetchDonationAllocations,
   fetchIncidentReports,
   fetchDonationTrends,
+  fetchSafehousePerformance,
+  fetchResidentOutcomes,
   fetchReintegrationSummary,
 } from '../apis'
 import { useAuth } from '../context/AuthContext'
-import type { AdminDashboardDto, DonationTrendPointDto, ReintegrationStatusCountDto } from '../types/apiDtos'
+import type {
+  AdminDashboardDto,
+  DonationTrendPointDto,
+  OutcomeTrendPointDto,
+  ReintegrationStatusCountDto,
+  SafehousePerformanceDto,
+} from '../types/apiDtos'
 import type { DonationAllocation } from '../types/DonationAllocation'
 import type { IncidentReport } from '../types/IncidentReport'
 
@@ -30,6 +38,10 @@ function fmtDateFull(s: string | null) {
   return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function monthLabel(year: number, month: number) {
+  return new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+}
+
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
   return match ? decodeURIComponent(match[1]) : null
@@ -38,6 +50,18 @@ function getCookie(name: string): string | null {
 function setCookie(name: string, value: string, days: number) {
   const expires = new Date(Date.now() + days * 864e5).toUTCString()
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
+}
+
+function mergeLayoutsWithDefaults(layouts: Record<string, any[]>) {
+  const merged: Record<string, any[]> = { ...layouts }
+  for (const [bp, defaults] of Object.entries(DEFAULT_LAYOUTS)) {
+    const existing = (merged[bp] ?? []).filter((item: any) => item.i !== 'safehouse-stats')
+    const missing = (defaults as any[]).filter(
+      (item: any) => item.i !== 'safehouse-stats' && !existing.some((current: any) => current.i === item.i),
+    )
+    merged[bp] = [...existing, ...missing]
+  }
+  return merged
 }
 
 // ── Widget wrapper ─────────────────────────────────────────────────────────
@@ -59,34 +83,218 @@ function Widget({ title, children }: { title: string; children: React.ReactNode 
 const DEFAULT_LAYOUTS = {
   lg: [
     { i: 'kpi', x: 0, y: 0, w: 3, h: 3, minH: 2 },
-    { i: 'donation-trends', x: 0, y: 2, w: 2, h: 4, minH: 3 },
-    { i: 'funds-area', x: 2, y: 2, w: 1, h: 4, minH: 3 },
-    { i: 'recent-donations', x: 0, y: 6, w: 2, h: 5, minH: 3 },
-    { i: 'safehouse-stats', x: 2, y: 6, w: 1, h: 5, minH: 3 },
-    { i: 'incidents', x: 0, y: 11, w: 1, h: 4, minH: 3 },
-    { i: 'reintegration', x: 1, y: 11, w: 1, h: 4, minH: 3 },
-    { i: 'conferences', x: 2, y: 11, w: 1, h: 4, minH: 3 },
+    { i: 'donation-trends', x: 0, y: 3, w: 2, h: 4, minH: 3 },
+    { i: 'funds-area', x: 2, y: 3, w: 1, h: 4, minH: 3 },
+    { i: 'resident-health-trends', x: 0, y: 7, w: 3, h: 4, minH: 3 },
+    { i: 'recent-donations', x: 0, y: 11, w: 2, h: 5, minH: 3 },
+    { i: 'safehouse-performance', x: 0, y: 16, w: 3, h: 4, minH: 4 },
+    { i: 'incidents', x: 0, y: 20, w: 1, h: 4, minH: 3 },
+    { i: 'reintegration', x: 1, y: 20, w: 1, h: 4, minH: 3 },
+    { i: 'conferences', x: 2, y: 20, w: 1, h: 4, minH: 3 },
   ],
   md: [
     { i: 'kpi', x: 0, y: 0, w: 2, h: 3 },
-    { i: 'donation-trends', x: 0, y: 2, w: 2, h: 4 },
-    { i: 'funds-area', x: 0, y: 6, w: 1, h: 4 },
-    { i: 'safehouse-stats', x: 1, y: 6, w: 1, h: 4 },
-    { i: 'recent-donations', x: 0, y: 10, w: 2, h: 5 },
-    { i: 'incidents', x: 0, y: 15, w: 1, h: 4 },
-    { i: 'reintegration', x: 1, y: 15, w: 1, h: 4 },
-    { i: 'conferences', x: 0, y: 19, w: 2, h: 4 },
+    { i: 'donation-trends', x: 0, y: 3, w: 2, h: 4 },
+    { i: 'funds-area', x: 0, y: 7, w: 1, h: 4 },
+    { i: 'resident-health-trends', x: 0, y: 11, w: 2, h: 4 },
+    { i: 'recent-donations', x: 0, y: 15, w: 2, h: 5 },
+    { i: 'safehouse-performance', x: 0, y: 20, w: 2, h: 5, minH: 4 },
+    { i: 'incidents', x: 0, y: 25, w: 1, h: 4 },
+    { i: 'reintegration', x: 1, y: 25, w: 1, h: 4 },
+    { i: 'conferences', x: 0, y: 29, w: 2, h: 4 },
   ],
   sm: [
     { i: 'kpi', x: 0, y: 0, w: 1, h: 3 },
     { i: 'donation-trends', x: 0, y: 3, w: 1, h: 4 },
     { i: 'funds-area', x: 0, y: 7, w: 1, h: 4 },
-    { i: 'recent-donations', x: 0, y: 11, w: 1, h: 5 },
-    { i: 'safehouse-stats', x: 0, y: 16, w: 1, h: 4 },
-    { i: 'incidents', x: 0, y: 20, w: 1, h: 4 },
-    { i: 'reintegration', x: 0, y: 24, w: 1, h: 4 },
-    { i: 'conferences', x: 0, y: 28, w: 1, h: 4 },
+    { i: 'resident-health-trends', x: 0, y: 11, w: 1, h: 4 },
+    { i: 'recent-donations', x: 0, y: 15, w: 1, h: 5 },
+    { i: 'safehouse-performance', x: 0, y: 20, w: 1, h: 6, minH: 4 },
+    { i: 'incidents', x: 0, y: 26, w: 1, h: 4 },
+    { i: 'reintegration', x: 0, y: 30, w: 1, h: 4 },
+    { i: 'conferences', x: 0, y: 34, w: 1, h: 4 },
   ],
+}
+
+function HealthTrendLineChart({
+  trends,
+  maxScore,
+}: {
+  trends: OutcomeTrendPointDto[]
+  maxScore: number
+}) {
+  const CHART_W = 960
+  const CHART_H = 320
+  const PAD_L = 52
+  const PAD_R = 20
+  const PAD_T = 28
+  const PAD_B = 44
+  const plotW = CHART_W - PAD_L - PAD_R
+  const plotH = CHART_H - PAD_T - PAD_B
+  const EDGE_INSET = 28
+  const maxY = Math.max(maxScore, 1)
+  const validTrends = [...trends]
+    .filter((t) => t.avgHealthScore != null)
+    .sort((a, b) => new Date(a.monthStart).getTime() - new Date(b.monthStart).getTime())
+  const n = validTrends.length
+
+  const points = validTrends.map((t, i) => {
+    const score = t.avgHealthScore as number
+    const normalized = n <= 1 ? 0.5 : i / (n - 1)
+    const x = PAD_L + EDGE_INSET + (n <= 1 ? (plotW - EDGE_INSET * 2) / 2 : normalized * (plotW - EDGE_INSET * 2))
+    const y = PAD_T + plotH - (score / maxY) * plotH
+    return { x, y, t, score }
+  })
+  const labelEvery = Math.max(1, Math.ceil(n / 8))
+
+  const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+  const areaD =
+    points.length > 0
+      ? `${lineD} L ${points[points.length - 1].x.toFixed(1)} ${PAD_T + plotH} L ${points[0].x.toFixed(1)} ${PAD_T + plotH} Z`
+      : ''
+  return (
+    <div className="w-full min-w-0">
+      <svg
+        className="h-[min(22rem,50vw)] w-full max-w-full"
+        viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Resident health score over time"
+      >
+        <defs>
+          <linearGradient id="healthTrendFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgb(34 197 94)" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="rgb(34 197 94)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
+          const gy = PAD_T + plotH * (1 - frac)
+          return (
+            <g key={frac}>
+              <line x1={PAD_L} y1={gy} x2={PAD_L + plotW} y2={gy} stroke="#f3f4f6" strokeWidth="1" />
+              <text x={PAD_L - 8} y={gy + 4} textAnchor="end" className="fill-gray-400 text-[10px]">
+                {(maxY * frac).toFixed(1)}
+              </text>
+            </g>
+          )
+        })}
+        {areaD ? <path d={areaD} fill="url(#healthTrendFill)" /> : null}
+        <path d={lineD} fill="none" stroke="rgb(34 197 94)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p) => (
+          <circle
+            key={p.t.monthStart}
+            cx={p.x}
+            cy={p.y}
+            r="4"
+            className="fill-white stroke-green-600"
+            strokeWidth="2"
+          >
+            <title>{`${monthLabel(new Date(p.t.monthStart).getFullYear(), new Date(p.t.monthStart).getMonth() + 1)}: ${p.score.toFixed(1)}`}</title>
+          </circle>
+        ))}
+        {points.map((p, i) => {
+          const isVisible = i % labelEvery === 0 || i === points.length - 1
+          if (!isVisible) return null
+          const isFirst = i === 0
+          const isLast = i === points.length - 1
+          return (
+            <text
+              key={`lbl-${p.t.monthStart}`}
+              x={p.x}
+              y={CHART_H - 12}
+              textAnchor={isFirst ? 'start' : isLast ? 'end' : 'middle'}
+              className="fill-gray-500 text-[10px]"
+            >
+              {monthLabel(new Date(p.t.monthStart).getFullYear(), new Date(p.t.monthStart).getMonth() + 1)}
+            </text>
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
+function SafehousePerformanceWidget({
+  rows,
+}: {
+  rows: SafehousePerformanceDto[]
+}) {
+  const rowsByMonth = new Map<string, SafehousePerformanceDto[]>()
+  for (const row of rows) {
+    if (!row.monthStart) continue
+    const bucket = rowsByMonth.get(row.monthStart) ?? []
+    bucket.push(row)
+    rowsByMonth.set(row.monthStart, bucket)
+  }
+
+  const completeMonths = [...rowsByMonth.entries()]
+    .filter(([, monthRows]) => monthRows.length > 0 && monthRows.every((row) =>
+      row.activeResidents != null &&
+      row.avgEducationProgress != null &&
+      row.avgHealthScore != null &&
+      row.processRecordingCount != null &&
+      row.homeVisitationCount != null &&
+      row.incidentCount != null
+    ))
+    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+
+  const selectedMonth = completeMonths.at(-1)?.[0] ?? [...rowsByMonth.keys()].sort().at(-1) ?? null
+  const selectedRows = selectedMonth ? (rowsByMonth.get(selectedMonth) ?? []) : []
+  const sortedRows = [...selectedRows].sort((a, b) => (a.safehouseId ?? 0) - (b.safehouseId ?? 0))
+
+  return (
+    <div className="w-full min-w-0">
+      <p className="mb-3 text-[10px] uppercase tracking-[0.14em] text-gray-400 dark:text-gray-500">
+        Month-to-date · {sortedRows.length} safehouses
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead>
+            <tr className="border-b border-gray-50 dark:border-[#333]">
+              <th className="px-0 py-2 text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Safehouse</th>
+              <th className="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Residents</th>
+              <th className="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Education</th>
+              <th className="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Health</th>
+              <th className="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Process</th>
+              <th className="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Visits</th>
+              <th className="px-2 py-2 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-400">Incidents</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50 dark:divide-[#333]">
+            {sortedRows.map((p) => {
+              const incidentCount = p.incidentCount ?? 0
+              return (
+                <tr key={p.safehouseId}>
+                  <td className="py-3 pr-3 font-medium text-gray-800 dark:text-gray-100">
+                    {(p.safehouseName ?? `SH-${p.safehouseId}`).replace(/Lighthouse/gi, 'Faro')}
+                  </td>
+                  <td className="px-2 py-3 text-right text-gray-600 dark:text-gray-300">{p.activeResidents ?? '—'}</td>
+                  <td className="px-2 py-3 text-right text-gray-600 dark:text-gray-300">
+                    {p.avgEducationProgress != null ? `${p.avgEducationProgress.toFixed(1)}%` : 'No data'}
+                  </td>
+                  <td className="px-2 py-3 text-right text-gray-600 dark:text-gray-300">
+                    {p.avgHealthScore != null ? p.avgHealthScore.toFixed(1) : 'No data'}
+                  </td>
+                  <td className="px-2 py-3 text-right text-gray-600 dark:text-gray-300">{p.processRecordingCount ?? '—'}</td>
+                  <td className="px-2 py-3 text-right text-gray-600 dark:text-gray-300">{p.homeVisitationCount ?? '—'}</td>
+                  <td className="px-2 py-3 text-right">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      incidentCount > 0 ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200' : 'bg-gray-100 text-gray-500 dark:bg-[#2a2a2a] dark:text-gray-400'
+                    }`}>
+                      {incidentCount}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      {sortedRows.length === 0 && (
+        <p className="mt-3 text-sm text-gray-400">No complete month found with both education and health values.</p>
+      )}
+    </div>
+  )
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────
@@ -97,6 +305,8 @@ export default function Admin() {
   const [allocations, setAllocations] = useState<DonationAllocation[]>([])
   const [incidents, setIncidents] = useState<IncidentReport[]>([])
   const [trends, setTrends] = useState<DonationTrendPointDto[]>([])
+  const [outcomes, setOutcomes] = useState<OutcomeTrendPointDto[]>([])
+  const [performance, setPerformance] = useState<SafehousePerformanceDto[]>([])
   const [reintegration, setReintegration] = useState<ReintegrationStatusCountDto[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -104,8 +314,9 @@ export default function Admin() {
   // Widget visibility
   const WIDGET_LABELS: Record<string, string> = {
     kpi: 'Key Metrics', 'donation-trends': 'Donation Trends', 'funds-area': 'Funds by Area',
-    'recent-donations': 'Recent Donations', 'safehouse-stats': 'Safehouse Overview',
-    incidents: 'Incident History', reintegration: 'Reintegration', conferences: 'Conferences',
+    'resident-health-trends': 'Resident Health Over Time',
+    'recent-donations': 'Recent Donations',
+    'safehouse-performance': 'Safehouse Performance', incidents: 'Incident History', reintegration: 'Reintegration', conferences: 'Conferences',
   }
   const hiddenCookieKey = `dashboard_hidden_${authSession.email ?? 'default'}`
   const [hiddenWidgets, setHiddenWidgets] = useState<Set<string>>(() => {
@@ -144,8 +355,8 @@ export default function Admin() {
   const cookieKey = `dashboard_layout_${authSession.email ?? 'default'}`
   const [layouts, setLayouts] = useState(() => {
     const saved = getCookie(cookieKey)
-    if (saved) try { return JSON.parse(saved) } catch { /* use default */ }
-    return DEFAULT_LAYOUTS
+    if (saved) try { return mergeLayoutsWithDefaults(JSON.parse(saved)) } catch { /* use default */ }
+    return mergeLayoutsWithDefaults(DEFAULT_LAYOUTS)
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -161,11 +372,13 @@ export default function Admin() {
       fetchDonationAllocations().catch(() => [] as DonationAllocation[]),
       fetchIncidentReports({ pageSize: 500 }).catch(() => [] as IncidentReport[]),
       fetchDonationTrends().catch(() => [] as DonationTrendPointDto[]),
+      fetchResidentOutcomes().catch(() => [] as OutcomeTrendPointDto[]),
+      fetchSafehousePerformance().catch(() => [] as SafehousePerformanceDto[]),
       fetchReintegrationSummary().catch(() => [] as ReintegrationStatusCountDto[]),
     ])
-      .then(([d, allocs, inc, tr, reint]) => {
+      .then(([d, allocs, inc, tr, out, perf, reint]) => {
         if (cancelled) return
-        setData(d); setAllocations(allocs); setIncidents(inc); setTrends(tr); setReintegration(reint)
+        setData(d); setAllocations(allocs); setIncidents(inc); setTrends(tr); setOutcomes(out); setPerformance(perf); setReintegration(reint)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -187,6 +400,11 @@ export default function Admin() {
     if (!data) return 0
     return data.recentDonations.reduce((sum, d) => sum + (d.amount ?? 0), 0)
   }, [data])
+
+  const maxHealthScore = useMemo(() => {
+    const scores = outcomes.map((o) => o.avgHealthScore ?? 0)
+    return Math.max(...scores, 5)
+  }, [outcomes])
 
   const fundsByArea = useMemo(() => {
     const totals: Record<string, number> = {}
@@ -316,6 +534,20 @@ export default function Admin() {
       ),
     },
     {
+      id: 'resident-health-trends',
+      element: (
+        <div key="resident-health-trends">
+          <Widget title="Resident Health Score Over Time">
+            {outcomes.length === 0 ? (
+              <p className="text-sm text-gray-400">No health trend data available.</p>
+            ) : (
+              <HealthTrendLineChart trends={outcomes} maxScore={maxHealthScore} />
+            )}
+          </Widget>
+        </div>
+      ),
+    },
+    {
       id: 'funds-area',
       element: (
         <div key="funds-area">
@@ -369,31 +601,15 @@ export default function Admin() {
       ),
     },
     {
-      id: 'safehouse-stats',
+      id: 'safehouse-performance',
       element: (
-        <div key="safehouse-stats">
-          <Widget title="Safehouse Overview">
-            <div className="divide-y divide-gray-50 dark:divide-[#333]">
-              {data.activeResidentsBySafehouse.map(sh => {
-                const progress = data.latestMonthlyProgressBySafehouse.find(p => p.safehouseId === sh.safehouseId)
-                return (
-                  <div key={sh.safehouseId} className="py-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        {(sh.safehouseName ?? `SH-${sh.safehouseId}`).replace(/Lighthouse/gi, 'Faro')}
-                      </span>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{sh.activeResidentCount}</span>
-                    </div>
-                    {progress && (
-                      <div className="mt-1 flex gap-3 text-[10px] text-gray-400">
-                        {progress.avgHealthScore != null && <span>Health: {progress.avgHealthScore.toFixed(1)}</span>}
-                        {progress.avgEducationProgress != null && <span>Edu: {progress.avgEducationProgress.toFixed(0)}%</span>}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+        <div key="safehouse-performance">
+          <Widget title="Safehouse Performance">
+            {performance.length === 0 ? (
+              <p className="text-sm text-gray-400">No latest-month performance data available.</p>
+            ) : (
+              <SafehousePerformanceWidget rows={performance} />
+            )}
           </Widget>
         </div>
       ),
@@ -501,7 +717,7 @@ export default function Admin() {
           <div className="relative">
             <button
               onClick={() => setShowWidgetMenu(!showWidgetMenu)}
-              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400"
+              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-all duration-150 hover:-translate-y-px hover:border-gray-300 hover:bg-gray-100 hover:text-black hover:shadow-md dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400 dark:hover:-translate-y-px dark:hover:border-[#555] dark:hover:bg-[#2a2a2a] dark:hover:text-white dark:hover:shadow-[0_10px_20px_rgba(0,0,0,0.35)] dark:hover:ring-1 dark:hover:ring-white/10"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3h7a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7m-4 8h8"/></svg>
               Widgets
@@ -532,7 +748,7 @@ export default function Admin() {
               setHiddenWidgets(new Set())
               setCookie(hiddenCookieKey, JSON.stringify([]), 365)
             }}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 transition-all duration-150 hover:-translate-y-px hover:border-gray-300 hover:bg-gray-100 hover:text-black hover:shadow-md dark:bg-[#1a1a1a] dark:border-[#333] dark:text-gray-400 dark:hover:-translate-y-px dark:hover:border-[#555] dark:hover:bg-[#2a2a2a] dark:hover:text-white dark:hover:shadow-[0_10px_20px_rgba(0,0,0,0.35)] dark:hover:ring-1 dark:hover:ring-white/10"
           >
             Reset layout
           </button>
