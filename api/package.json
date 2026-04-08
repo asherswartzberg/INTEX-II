@@ -1,0 +1,11 @@
+{
+  "name": "intex-swa-api",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0"
+  }
+}

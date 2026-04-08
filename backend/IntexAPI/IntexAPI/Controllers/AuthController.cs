@@ -147,10 +147,8 @@ public class AuthController(
             return BadRequest(new { message = "The requested external login provider is not available." });
         }
 
-        var callbackUrl = Url.Action(nameof(ExternalLoginCallback), new
-        {
-            returnPath = NormalizeReturnPath(returnPath)
-        });
+        var normalizedReturn = NormalizeReturnPath(returnPath);
+        var callbackUrl = $"{GetFrontendUrl().TrimEnd('/')}/api/auth/external-callback?returnPath={Uri.EscapeDataString(normalizedReturn)}";
 
         if (string.IsNullOrWhiteSpace(callbackUrl))
         {
