@@ -205,40 +205,48 @@ export default function DonorDashboard() {
     <>
     <div data-donor className="min-h-screen bg-off-white dark:bg-[#111] dark:text-[#e5e5e5]">
       {/* ── Header ── */}
-      <header role="banner" className="flex items-center justify-between border-b border-border bg-white px-6 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center gap-2.5">
-              <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-7 w-7 object-contain" />
-              <span className="text-xl font-normal text-black" style={{ fontFamily: "'EB Garamond', serif" }}>Faro Safehouse</span>
-            </Link>
-            <span className="hidden text-sm italic text-medium-gray md:inline">Donor Portal</span>
-            <span className="hidden text-medium-gray md:inline">|</span>
-            <span className="hidden text-sm font-semibold text-black md:inline">{authSession.firstName || 'User'}</span>
-          </div>
-          <div className="flex items-center gap-3 md:gap-5">
-            <Link to="/" className="flex items-center gap-1.5 text-sm font-medium text-medium-gray hover:text-black transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              <span className="hidden sm:inline">Home</span>
-            </Link>
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              className="flex items-center gap-1.5 text-sm font-medium text-medium-gray hover:text-black transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
-              </svg>
-              <span className="hidden sm:inline">Settings</span>
-            </button>
-            <Link to="/logout" className="flex items-center gap-1.5 text-sm font-medium text-medium-gray hover:text-black transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-              </svg>
-              <span className="hidden sm:inline">Log out</span>
-            </Link>
-          </div>
+      <header role="banner" className="grid grid-cols-3 items-center border-b border-border bg-white px-6 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
+
+        {/* Left: portal name + user */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm italic text-medium-gray">Donor Portal</span>
+          <span className="hidden text-medium-gray md:inline">|</span>
+          <span className="hidden text-sm font-semibold text-black md:inline">{authSession.firstName || authSession.email}</span>
+        </div>
+
+        {/* Center: logo + wordmark */}
+        <div className="flex justify-center">
+          <Link to="/" className="flex items-center gap-2.5">
+            <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-7 w-7 object-contain" />
+            <span className="hidden text-xl font-normal text-black sm:inline" style={{ fontFamily: "'EB Garamond', serif" }}>Faro Safehouse</span>
+          </Link>
+        </div>
+
+        {/* Right: nav actions */}
+        <div className="flex items-center justify-end gap-5 md:gap-6">
+          <Link to="/" className="flex items-center gap-1.5 text-sm font-medium text-medium-gray hover:text-black transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            <span className="hidden sm:inline">Home</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="flex items-center gap-1.5 text-sm font-medium text-medium-gray hover:text-black transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+            <span className="hidden sm:inline">Settings</span>
+          </button>
+          <Link to="/logout" className="flex items-center gap-1.5 text-sm font-medium text-medium-gray hover:text-black transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span className="hidden sm:inline">Log out</span>
+          </Link>
+        </div>
       </header>
 
       <main className="px-6 py-8">

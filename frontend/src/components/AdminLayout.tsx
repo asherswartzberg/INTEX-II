@@ -87,30 +87,21 @@ export default function AdminLayout() {
     <div data-admin className="flex flex-col h-screen bg-off-white dark:bg-[#111] font-sans overflow-hidden">
 
       {/* ── Top bar ── */}
-      <header className="flex shrink-0 items-center justify-between border-b border-border bg-white px-4 py-3 md:px-6 md:py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
-        {/* Mobile hamburger */}
-        <button
-          type="button"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="mr-3 flex h-8 w-8 items-center justify-center rounded-lg hover:bg-gray-100 md:hidden dark:hover:bg-[#222]"
-          aria-label="Toggle sidebar"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-        {/* Branding + identity */}
-        <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          <Link to="/" className="flex shrink-0 items-center gap-2">
-            <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-6 w-6 md:h-7 md:w-7 object-contain" />
-            <span
-              className="hidden text-xl font-normal text-black sm:inline dark:text-white"
-              style={{ fontFamily: "'EB Garamond', serif" }}
-            >
-              Faro Safehouse
-            </span>
-          </Link>
-          <span className="hidden text-sm italic text-medium-gray md:inline dark:text-gray-500">
+      <header className="grid shrink-0 grid-cols-3 items-center border-b border-border bg-white px-4 py-3 md:px-6 md:py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
+
+        {/* Left: hamburger + portal name + user */}
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-gray-100 md:hidden dark:hover:bg-[#222]"
+            aria-label="Toggle sidebar"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <span className="whitespace-nowrap text-sm italic text-medium-gray dark:text-gray-500">
             {authSession.roles.includes('Admin') ? 'Admin' : 'Staff'} Portal
           </span>
           <span className="hidden text-medium-gray md:inline dark:text-gray-600">|</span>
@@ -119,8 +110,21 @@ export default function AdminLayout() {
           </span>
         </div>
 
-        {/* Right-side nav */}
-        <div className="flex items-center gap-3 md:gap-5">
+        {/* Center: logo + wordmark */}
+        <div className="flex justify-center">
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-6 w-6 md:h-7 md:w-7 object-contain" />
+            <span
+              className="hidden text-xl font-normal text-black sm:inline dark:text-white"
+              style={{ fontFamily: "'EB Garamond', serif" }}
+            >
+              Faro Safehouse
+            </span>
+          </Link>
+        </div>
+
+        {/* Right: nav actions */}
+        <div className="flex items-center justify-end gap-5 md:gap-6">
           <Link
             to="/"
             className="flex items-center gap-1.5 text-sm font-medium text-medium-gray transition-colors hover:text-black dark:text-gray-400 dark:hover:text-white"
