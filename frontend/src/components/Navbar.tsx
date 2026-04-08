@@ -63,7 +63,7 @@ export default function Navbar() {
           >
             Faro Safehouse
           </Link>
-          {navLinks.map((link, i) => (
+          {navLinks.map((link) => (
             <div key={link.href} className="flex items-center gap-4 translate-y-1">
               <span className={`text-[11px] transition-colors duration-300 ${scrolled ? 'text-black/30' : 'text-white/30'}`}>•</span>
               <a
