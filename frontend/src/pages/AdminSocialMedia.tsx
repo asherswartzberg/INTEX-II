@@ -57,25 +57,39 @@ export default function AdminSocialMedia() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Unique values for recommendation filter dropdowns
+  // All available recommendations (fetched once for extracting filter options)
+  const [allRecs, setAllRecs] = useState<SocialMediaRecommendation[]>([])
+
+  useEffect(() => {
+    fetchSocialMediaRecommendations({ top: 200 })
+      .then(setAllRecs)
+      .catch(console.error)
+  }, [])
+
+  // Unique values for recommendation filter pills (derived from all recs)
   const recPlatformOptions = useMemo(() => {
-    const s = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
-    return Array.from(s).sort()
-  }, [posts])
+    const fromRecs = new Set(allRecs.map((r) => r.platform).filter(Boolean) as string[])
+    const fromPosts = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
+    return Array.from(new Set([...fromRecs, ...fromPosts])).sort()
+  }, [allRecs, posts])
 
   const recTopicOptions = useMemo(() => {
-    const s = new Set(posts.map((p) => p.contentTopic).filter(Boolean) as string[])
-    return Array.from(s).sort()
-  }, [posts])
+    const fromRecs = new Set(allRecs.map((r) => r.contentTopic).filter(Boolean) as string[])
+    const fromPosts = new Set(posts.map((p) => p.contentTopic).filter(Boolean) as string[])
+    return Array.from(new Set([...fromRecs, ...fromPosts])).sort()
+  }, [allRecs, posts])
 
-  // Set a default filter value once posts load
+  // Current options for the active filter type
+  const recOptions = recFilterType === 'platform' ? recPlatformOptions : recTopicOptions
+
+  // Set a default filter value when filter type changes or options load
   useEffect(() => {
-    if (recFilterValue) return
-    const options = recFilterType === 'platform' ? recPlatformOptions : recTopicOptions
-    if (options.length > 0) setRecFilterValue(options[0])
-  }, [recPlatformOptions, recTopicOptions, recFilterType, recFilterValue])
+    if (recOptions.length > 0 && !recOptions.includes(recFilterValue)) {
+      setRecFilterValue(recOptions[0])
+    }
+  }, [recOptions, recFilterValue])
 
-  // Fetch recommendations when filter changes
+  // Fetch filtered recommendations when filter changes
   const loadRecommendations = useCallback(() => {
     if (!recFilterValue) return
     setRecLoading(true)
@@ -258,27 +272,35 @@ export default function AdminSocialMedia() {
 
           {/* ML Recommendations */}
           <div className="mt-6 rounded-xl border border-gray-100 bg-white">
-            <div className="flex items-center justify-between border-b border-gray-50 px-5 py-4">
-              <h2 className="text-sm font-semibold text-gray-800">Recommended Posting Strategies</h2>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-400">Filter by</span>
-                <select
-                  value={recFilterType}
-                  onChange={(e) => { setRecFilterType(e.target.value as 'platform' | 'contentTopic'); setRecFilterValue('') }}
-                  className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-600 focus:outline-none"
-                >
-                  <option value="platform">Platform</option>
-                  <option value="contentTopic">Topic</option>
-                </select>
-                <select
-                  value={recFilterValue}
-                  onChange={(e) => setRecFilterValue(e.target.value)}
-                  className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-600 focus:outline-none"
-                >
-                  {(recFilterType === 'platform' ? recPlatformOptions : recTopicOptions).map((v) => (
-                    <option key={v} value={v}>{v}</option>
+            <div className="border-b border-gray-50 px-5 py-4">
+              <h2 className="text-sm font-semibold text-gray-800 mb-3">Recommended Posting Strategies</h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600">Show best combinations for</span>
+                  <select
+                    value={recFilterType}
+                    onChange={(e) => setRecFilterType(e.target.value as 'platform' | 'contentTopic')}
+                    className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  >
+                    <option value="platform">Platform</option>
+                    <option value="contentTopic">Topic</option>
+                  </select>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {recOptions.map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setRecFilterValue(v)}
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                        recFilterValue === v
+                          ? 'bg-black text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {v}
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             </div>
             {recLoading ? (
