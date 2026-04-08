@@ -402,7 +402,7 @@ export default function AdminDonors() {
                     <thead>
                       <tr className="border-b border-gray-50">
                         {['DATE', 'AMOUNT', 'TYPE', 'CAMPAIGN', 'ALLOCATION'].map((h) => (
-                          <th key={h} className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-gray-400">
+                          <th key={h} scope="col" className="px-5 py-3 text-left text-xs font-semibold tracking-wide text-gray-500">
                             {h}
                           </th>
                         ))}
