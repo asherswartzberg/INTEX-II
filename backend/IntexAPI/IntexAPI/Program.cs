@@ -115,6 +115,7 @@ try
     var identityDb = scope.ServiceProvider.GetRequiredService<IdentityContext>();
     await identityDb.Database.EnsureCreatedAsync();
     await SeedData.Initialize(scope.ServiceProvider);
+    await CsvSeedData.InitializeAsync(scope.ServiceProvider);
 }
 catch (Exception ex)
 {

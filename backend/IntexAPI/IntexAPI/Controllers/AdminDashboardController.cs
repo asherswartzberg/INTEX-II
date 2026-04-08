@@ -73,31 +73,48 @@ public class AdminDashboardController : ControllerBase
             .Take(25)
             .ToListAsync(cancellationToken);
 
-        // Find the latest month that has actual health/education data (not null)
-        var latestMonthStart = await _db.SafehouseMonthlyMetrics.AsNoTracking()
-            .Where(m => m.AvgHealthScore != null || m.AvgEducationProgress != null)
-            .MaxAsync(m => (DateOnly?)m.MonthStart, cancellationToken)
-            ?? await _db.SafehouseMonthlyMetrics.AsNoTracking()
-                .MaxAsync(m => (DateOnly?)m.MonthStart, cancellationToken);
+        // Find the latest month that has a complete monthly metrics row
+        var safehousesCsv = CsvSeedData.LoadSafehouses();
+        var metricsCsv = CsvSeedData.LoadSafehouseMonthlyMetrics();
+        var safehouseCount = safehousesCsv.Count;
+        var latestMonthStart = metricsCsv
+            .Where(m =>
+                m.MonthStart.HasValue &&
+                m.ActiveResidents.HasValue &&
+                m.AvgEducationProgress.HasValue &&
+                m.AvgHealthScore.HasValue &&
+                m.ProcessRecordingCount.HasValue &&
+                m.HomeVisitationCount.HasValue &&
+                m.IncidentCount.HasValue)
+            .GroupBy(m => m.MonthStart!.Value)
+            .Where(g => g.Count() == safehouseCount)
+            .Select(g => g.Key)
+            .OrderByDescending(x => x)
+            .Cast<DateOnly?>()
+            .FirstOrDefault()
+            ?? metricsCsv
+                .Where(m => m.MonthStart.HasValue)
+                .Select(m => m.MonthStart)
+                .OrderByDescending(x => x)
+                .FirstOrDefault();
 
         List<LatestSafehouseProgressDto> progress = [];
         if (latestMonthStart.HasValue)
         {
-            progress = await (
-                from m in _db.SafehouseMonthlyMetrics.AsNoTracking()
-                where m.MonthStart == latestMonthStart
-                join s in _db.Safehouses.AsNoTracking() on m.SafehouseId equals s.SafehouseId into sj
-                from s in sj.DefaultIfEmpty()
-                orderby m.SafehouseId
+            progress = (
+                from s in safehousesCsv
+                join m in metricsCsv.Where(x => x.MonthStart == latestMonthStart) on s.SafehouseId equals m.SafehouseId into mj
+                from m in mj.DefaultIfEmpty()
+                orderby s.SafehouseId
                 select new LatestSafehouseProgressDto(
-                    m.SafehouseId,
+                    s.SafehouseId,
                     s.Name,
-                    m.MonthStart,
-                    m.ActiveResidents,
-                    m.AvgEducationProgress,
-                    m.AvgHealthScore,
-                    m.IncidentCount))
-                .ToListAsync(cancellationToken);
+                    m != null ? m.MonthStart : latestMonthStart,
+                    m != null ? m.ActiveResidents : null,
+                    m != null ? m.AvgEducationProgress : null,
+                    m != null ? m.AvgHealthScore : null,
+                    m != null ? m.IncidentCount : null))
+                .ToList();
         }
 
         return Ok(new AdminDashboardDto(
