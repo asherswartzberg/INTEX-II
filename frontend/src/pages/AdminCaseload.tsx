@@ -240,7 +240,7 @@ export default function AdminCaseload() {
   return (
     <div className="flex h-full bg-off-white">
       {/* ── List panel ── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 ${selected ? 'hidden md:flex' : 'flex'}`}>
         {/* Top bar */}
         <div className="border-b border-border bg-white px-6 py-4">
           <div className="mb-3 flex items-center justify-between">
@@ -257,9 +257,9 @@ export default function AdminCaseload() {
               </button>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
             {/* Search */}
-            <div className="relative">
+            <div className="relative w-full sm:w-auto">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
@@ -267,8 +267,8 @@ export default function AdminCaseload() {
                 type="text"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-                placeholder="Search case no, code, referral..."
-                className="w-64 rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-gray-400 focus:outline-none"
+                placeholder="Search..."
+                className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-gray-400 focus:outline-none sm:w-48 md:w-64"
               />
             </div>
 
@@ -276,7 +276,7 @@ export default function AdminCaseload() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-              className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-gray-600 focus:border-gray-400 focus:outline-none"
+              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
             >
               <option value="">All statuses</option>
               {['Active', 'Closed', 'Transferred'].map((s) => <option key={s}>{s}</option>)}
@@ -285,7 +285,7 @@ export default function AdminCaseload() {
             <select
               value={safehouseFilter}
               onChange={(e) => { setSafehouseFilter(e.target.value); setPage(1) }}
-              className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-gray-600 focus:border-gray-400 focus:outline-none"
+              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
             >
               <option value="">All safehouses</option>
               {safehouseOptions.map((s) => <option key={s} value={s}>SH-{s}</option>)}
@@ -294,7 +294,7 @@ export default function AdminCaseload() {
             <select
               value={categoryFilter}
               onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
-              className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-gray-600 focus:border-gray-400 focus:outline-none"
+              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
             >
               <option value="">All categories</option>
               {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -389,7 +389,14 @@ export default function AdminCaseload() {
 
       {/* ── Detail panel ── */}
       {selected && (
-        <div className="w-[360px] shrink-0 overflow-y-auto border-l border-gray-100 bg-white p-6">
+        <div className="w-full overflow-y-auto border-l border-gray-100 bg-white p-4 md:w-[360px] md:shrink-0 md:p-6">
+          <button
+            onClick={() => setSelected(null)}
+            className="mb-3 flex items-center gap-1.5 text-sm text-medium-gray hover:text-black md:hidden"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back to list
+          </button>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-800">{selected.internalCode}</h2>
             <div className="flex items-center gap-2">

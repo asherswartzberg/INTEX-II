@@ -179,8 +179,8 @@ export default function AdminDonors() {
 
   return (
     <div className="flex h-full">
-      {/* ── Supporter list panel ── */}
-      <div className="flex w-[300px] shrink-0 flex-col border-r border-gray-100 bg-white">
+      {/* ── Supporter list panel — hidden on mobile when a donor is selected ── */}
+      <div className={`flex w-full flex-col border-r border-gray-100 bg-white md:w-[300px] md:shrink-0 ${selected ? 'hidden md:flex' : 'flex'}`}>
         {/* Search */}
         <div className="p-4 border-b border-gray-50">
           <div className="relative">
@@ -264,13 +264,21 @@ export default function AdminDonors() {
       </div>
 
       {/* ── Detail panel ── */}
-      <div className="flex-1 overflow-y-auto px-8 py-8">
+      <div className={`flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8 ${!selected ? 'hidden md:block' : ''}`}>
         {!selected ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-gray-400">Select a supporter to view details.</p>
           </div>
         ) : (
           <>
+          {/* Mobile back button */}
+          <button
+            onClick={() => setSelected(null)}
+            className="mb-4 flex items-center gap-1.5 text-sm text-medium-gray hover:text-black md:hidden"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Back to list
+          </button>
             {/* Header */}
             <div className="mb-6 flex items-start justify-between">
               <div className="flex items-center gap-4">
@@ -384,10 +392,11 @@ export default function AdminDonors() {
             )}
 
             {/* Donation history */}
-            <div className="rounded-xl border border-gray-100 bg-white">
+            <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
               <div className="border-b border-gray-50 px-5 py-4">
                 <h2 className="text-sm font-semibold text-gray-800">Donation history</h2>
               </div>
+              <div className="overflow-x-auto">
               {loadingDetail ? (
                 <div className="space-y-2 p-5">
                   {[...Array(4)].map((_, i) => (
@@ -465,6 +474,7 @@ export default function AdminDonors() {
                   </div>
                 </>
               )}
+              </div>
             </div>
           </>
         )}

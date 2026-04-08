@@ -55,7 +55,7 @@ export default function Hero() {
             of abuse and trafficking in Chile.
           </p>
 
-          <div className="mt-10 flex gap-4">
+          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
             <Link
               to={donateLink}
               className="btn-wipe-light-grey rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:-translate-y-0.5"
