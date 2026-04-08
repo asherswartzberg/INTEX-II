@@ -82,37 +82,37 @@ function Widget({ title, children }: { title: string; children: React.ReactNode 
 
 const DEFAULT_LAYOUTS = {
   lg: [
-    { i: 'kpi', x: 0, y: 0, w: 3, h: 3, minH: 2 },
-    { i: 'donation-trends', x: 0, y: 3, w: 2, h: 4, minH: 3 },
-    { i: 'funds-area', x: 2, y: 3, w: 1, h: 4, minH: 3 },
-    { i: 'resident-health-trends', x: 0, y: 7, w: 3, h: 4, minH: 3 },
-    { i: 'recent-donations', x: 0, y: 11, w: 2, h: 5, minH: 3 },
-    { i: 'safehouse-performance', x: 0, y: 16, w: 3, h: 4, minH: 4 },
-    { i: 'incidents', x: 0, y: 20, w: 1, h: 4, minH: 3 },
-    { i: 'reintegration', x: 1, y: 20, w: 1, h: 4, minH: 3 },
-    { i: 'conferences', x: 2, y: 20, w: 1, h: 4, minH: 3 },
+    { i: 'kpi', x: 0, y: 0, w: 3, h: 2, minH: 2 },
+    { i: 'donation-trends', x: 0, y: 2, w: 2, h: 4, minH: 3 },
+    { i: 'funds-area', x: 2, y: 2, w: 1, h: 4, minH: 3 },
+    { i: 'resident-health-trends', x: 0, y: 6, w: 2, h: 4, minH: 3 },
+    { i: 'conferences', x: 2, y: 6, w: 1, h: 4, minH: 3 },
+    { i: 'reintegration', x: 0, y: 10, w: 1, h: 4, minH: 3 },
+    { i: 'incidents', x: 1, y: 10, w: 1, h: 4, minH: 3 },
+    { i: 'recent-donations', x: 2, y: 10, w: 1, h: 4, minH: 3 },
+    { i: 'safehouse-performance', x: 0, y: 14, w: 3, h: 5, minH: 4 },
   ],
   md: [
-    { i: 'kpi', x: 0, y: 0, w: 2, h: 3 },
-    { i: 'donation-trends', x: 0, y: 3, w: 2, h: 4 },
-    { i: 'funds-area', x: 0, y: 7, w: 1, h: 4 },
-    { i: 'resident-health-trends', x: 0, y: 11, w: 2, h: 4 },
-    { i: 'recent-donations', x: 0, y: 15, w: 2, h: 5 },
-    { i: 'safehouse-performance', x: 0, y: 20, w: 2, h: 5, minH: 4 },
-    { i: 'incidents', x: 0, y: 25, w: 1, h: 4 },
-    { i: 'reintegration', x: 1, y: 25, w: 1, h: 4 },
-    { i: 'conferences', x: 0, y: 29, w: 2, h: 4 },
+    { i: 'kpi', x: 0, y: 0, w: 2, h: 2 },
+    { i: 'donation-trends', x: 0, y: 2, w: 2, h: 4 },
+    { i: 'funds-area', x: 0, y: 6, w: 1, h: 4 },
+    { i: 'resident-health-trends', x: 0, y: 10, w: 2, h: 4 },
+    { i: 'conferences', x: 0, y: 14, w: 2, h: 4 },
+    { i: 'reintegration', x: 0, y: 18, w: 1, h: 4 },
+    { i: 'incidents', x: 1, y: 18, w: 1, h: 4 },
+    { i: 'recent-donations', x: 0, y: 22, w: 2, h: 5 },
+    { i: 'safehouse-performance', x: 0, y: 27, w: 2, h: 5, minH: 4 },
   ],
   sm: [
-    { i: 'kpi', x: 0, y: 0, w: 1, h: 3 },
-    { i: 'donation-trends', x: 0, y: 3, w: 1, h: 4 },
-    { i: 'funds-area', x: 0, y: 7, w: 1, h: 4 },
-    { i: 'resident-health-trends', x: 0, y: 11, w: 1, h: 4 },
-    { i: 'recent-donations', x: 0, y: 15, w: 1, h: 5 },
-    { i: 'safehouse-performance', x: 0, y: 20, w: 1, h: 6, minH: 4 },
-    { i: 'incidents', x: 0, y: 26, w: 1, h: 4 },
-    { i: 'reintegration', x: 0, y: 30, w: 1, h: 4 },
-    { i: 'conferences', x: 0, y: 34, w: 1, h: 4 },
+    { i: 'kpi', x: 0, y: 0, w: 1, h: 2 },
+    { i: 'donation-trends', x: 0, y: 2, w: 1, h: 4 },
+    { i: 'funds-area', x: 0, y: 6, w: 1, h: 4 },
+    { i: 'resident-health-trends', x: 0, y: 10, w: 1, h: 4 },
+    { i: 'conferences', x: 0, y: 14, w: 1, h: 4 },
+    { i: 'reintegration', x: 0, y: 18, w: 1, h: 4 },
+    { i: 'incidents', x: 0, y: 22, w: 1, h: 4 },
+    { i: 'recent-donations', x: 0, y: 26, w: 1, h: 5 },
+    { i: 'safehouse-performance', x: 0, y: 31, w: 1, h: 6, minH: 4 },
   ],
 }
 
@@ -765,7 +765,7 @@ export default function Admin() {
         onLayoutChange={onLayoutChange}
         draggableHandle=".cursor-grab"
         compactType="vertical"
-        margin={[16, 16]}
+        margin={[12, 12]}
       >
         {widgetItems.filter(widget => !hiddenWidgets.has(widget.id)).map(widget => widget.element)}
       </ResponsiveGrid>
