@@ -98,6 +98,36 @@ html.dark [data-admin] .divide-gray-100 > * + * { border-color: #333 !important;
 html.dark [data-admin] .bg-blue-50 { background-color: #1a1a2e !important; }
 html.dark [data-admin] .bg-blue-100 { background-color: #1a1a3e !important; }
 html.dark [data-admin] .bg-red-50 { background-color: #2a1a1a !important; }
+html.dark [data-admin] .bg-red-100 { background-color: #3a1a1a !important; }
+html.dark [data-admin] .bg-green-100 { background-color: #1a2a1a !important; }
+html.dark [data-admin] .bg-yellow-100 { background-color: #2a2a1a !important; }
+html.dark [data-admin] .bg-orange-100 { background-color: #2a1f1a !important; }
+html.dark [data-admin] .bg-purple-100 { background-color: #1f1a2a !important; }
+html.dark [data-admin] .bg-amber-100 { background-color: #2a2a1a !important; }
+html.dark [data-admin] .text-red-700 { color: #f87171 !important; }
+html.dark [data-admin] .text-green-700 { color: #4ade80 !important; }
+html.dark [data-admin] .text-yellow-700 { color: #facc15 !important; }
+html.dark [data-admin] .text-blue-700 { color: #60a5fa !important; }
+html.dark [data-admin] .text-orange-700 { color: #fb923c !important; }
+html.dark [data-admin] .text-purple-700 { color: #a78bfa !important; }
+html.dark [data-admin] .text-amber-700 { color: #fbbf24 !important; }
+html.dark [data-admin] .text-gray-500 { color: #9ca3af !important; }
+html.dark [data-admin] .bg-green-50 { background-color: #1a2a1a !important; }
+html.dark [data-admin] .bg-yellow-50 { background-color: #2a2a1a !important; }
+html.dark [data-admin] .bg-blue-50 { background-color: #1a1a2e !important; }
+html.dark [data-admin] .bg-red-50 { background-color: #2a1a1a !important; }
+html.dark [data-admin] .bg-emerald-50 { background-color: #1a2a1f !important; }
+html.dark [data-admin] .bg-purple-50 { background-color: #1f1a2a !important; }
+html.dark [data-admin] .text-green-600 { color: #4ade80 !important; }
+html.dark [data-admin] .text-yellow-600 { color: #facc15 !important; }
+html.dark [data-admin] .text-blue-600 { color: #60a5fa !important; }
+html.dark [data-admin] .text-red-600 { color: #f87171 !important; }
+html.dark [data-admin] .text-emerald-600 { color: #34d399 !important; }
+html.dark [data-admin] .text-purple-600 { color: #a78bfa !important; }
+html.dark [data-admin] .text-gray-600 { color: #9ca3af !important; }
+html.dark [data-admin] .bg-amber-50 { background-color: #2a2a1a !important; }
+html.dark [data-admin] .text-amber-700 { color: #fbbf24 !important; }
+html.dark [data-admin] .text-amber-600 { color: #fcd34d !important; }
 html.dark [data-admin] p, html.dark [data-admin] span, html.dark [data-admin] label {
   color: inherit;
 }

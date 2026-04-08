@@ -88,7 +88,7 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            <div className="mb-5 grid grid-cols-2 gap-3">
+            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <label htmlFor="firstName" className="mb-1.5 block text-sm font-medium text-black">First name</label>
                 <input id="firstName" type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)}

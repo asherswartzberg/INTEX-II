@@ -29,7 +29,7 @@ export default function ImageReveal() {
             src={girlSmiling}
             alt="A girl smiling with hope"
             className="h-full w-full object-cover"
-            loading="lazy"
+            loading="eager"
           />
           <div className="absolute inset-0 bg-black/50" />
 
