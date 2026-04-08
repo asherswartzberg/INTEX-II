@@ -238,20 +238,20 @@ export default function AdminCaseload() {
     ].filter(Boolean)
 
   return (
-    <div className="flex h-full bg-off-white">
+    <div className="flex h-full bg-off-white dark:bg-[#111]">
       {/* ── List panel ── */}
       <div className={`flex-1 flex flex-col min-w-0 ${selected ? 'hidden md:flex' : 'flex'}`}>
         {/* Top bar */}
-        <div className="border-b border-border bg-white px-6 py-4">
+        <div className="border-b border-border bg-white px-6 py-4 dark:border-[#333] dark:bg-[#1a1a1a]">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Caseload Inventory</h1>
-              <p className="text-xs text-gray-500">Core resident case management records</p>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Caseload Inventory</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Core resident case management records</p>
             </div>
             {isAdmin && (
               <button
                 onClick={openCreate}
-                className="rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white transition hover:bg-dark-gray"
+                className="rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white transition hover:bg-dark-gray dark:bg-white dark:text-black dark:hover:bg-gray-200"
               >
                 + New Resident
               </button>
@@ -268,7 +268,7 @@ export default function AdminCaseload() {
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1) }}
                 placeholder="Search..."
-                className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-gray-400 focus:outline-none sm:w-48 md:w-64"
+                className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-gray-400 focus:outline-none dark:border-[#333] dark:bg-[#111] dark:text-gray-100 dark:placeholder-gray-500 sm:w-48 md:w-64"
               />
             </div>
 
@@ -276,7 +276,7 @@ export default function AdminCaseload() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1) }}
-              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
+              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none dark:border-[#333] dark:bg-[#111] dark:text-gray-300 sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
             >
               <option value="">All statuses</option>
               {['Active', 'Closed', 'Transferred'].map((s) => <option key={s}>{s}</option>)}
@@ -285,7 +285,7 @@ export default function AdminCaseload() {
             <select
               value={safehouseFilter}
               onChange={(e) => { setSafehouseFilter(e.target.value); setPage(1) }}
-              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
+              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none dark:border-[#333] dark:bg-[#111] dark:text-gray-300 sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
             >
               <option value="">All safehouses</option>
               {safehouseOptions.map((s) => <option key={s} value={s}>SH-{s}</option>)}
@@ -294,18 +294,18 @@ export default function AdminCaseload() {
             <select
               value={categoryFilter}
               onChange={(e) => { setCategoryFilter(e.target.value); setPage(1) }}
-              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
+              className="flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs text-gray-600 focus:border-gray-400 focus:outline-none dark:border-[#333] dark:bg-[#111] dark:text-gray-300 sm:flex-none sm:px-3 sm:py-2 sm:text-sm"
             >
               <option value="">All categories</option>
               {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
 
-            <span className="ml-auto text-xs text-gray-400">{filtered.length} records</span>
+            <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">{filtered.length} records</span>
           </div>
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto bg-white">
+        <div className="flex-1 overflow-auto bg-white dark:bg-[#1a1a1a]">
           {loading ? (
             <div className="space-y-2 p-6">
               {[...Array(8)].map((_, i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-100" />)}
@@ -314,35 +314,35 @@ export default function AdminCaseload() {
             <div className="p-6 text-sm text-red-600">{error}</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-white">
-                <tr className="border-b border-gray-100">
+              <thead className="sticky top-0 bg-white dark:bg-[#1a1a1a]">
+                <tr className="border-b border-gray-100 dark:border-[#333]">
                   {['CASE NO', 'CODE', 'SAFEHOUSE', 'STATUS', 'RISK LEVEL', 'INCIDENT RISK', 'CATEGORY', 'ADMITTED', 'SOCIAL WORKER'].map((h) => (
-                    <th key={h} scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500">
+                    <th key={h} scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-[#2a2a2a]">
                 {paged.length === 0 ? (
-                  <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-400">No residents found.</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">No residents found.</td></tr>
                 ) : (
                   paged.map((r) => (
                     <tr
                       key={r.residentId}
                       onClick={() => setSelected(r)}
-                      className={`cursor-pointer hover:bg-off-white ${selected?.residentId === r.residentId ? 'bg-off-white' : ''}`}
+                      className={`cursor-pointer transition-colors hover:bg-off-white dark:hover:bg-[#222] ${selected?.residentId === r.residentId ? 'bg-off-white dark:bg-[#262626]' : ''}`}
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-gray-600">{r.caseControlNo ?? '—'}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800">{r.internalCode ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-500">SH-{r.safehouseId ?? '?'}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">{r.caseControlNo ?? '—'}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-100">{r.internalCode ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">SH-{r.safehouseId ?? '?'}</td>
                       <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[r.caseStatus ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[r.caseStatus ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
                           {r.caseStatus ?? '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${RISK_STYLE[r.currentRiskLevel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${RISK_STYLE[r.currentRiskLevel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
                           {r.currentRiskLevel ?? '—'}
                         </span>
                       </td>
@@ -351,15 +351,15 @@ export default function AdminCaseload() {
                           const rs = riskScores.find((s) => s.residentId === r.residentId)
                           const label = rs?.riskLabel
                           return label ? (
-                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${INCIDENT_RISK_STYLE[label] ?? 'bg-gray-100 text-gray-500'}`}>
+                            <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${INCIDENT_RISK_STYLE[label] ?? 'bg-gray-100 text-gray-500'}`}>
                               {label}
                             </span>
                           ) : '—'
                         })()}
                       </td>
-                      <td className="px-4 py-3 text-gray-500">{r.caseCategory ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-500">{fmtDate(r.dateOfAdmission)}</td>
-                      <td className="px-4 py-3 text-gray-500">{r.assignedSocialWorker ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.caseCategory ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{fmtDate(r.dateOfAdmission)}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.assignedSocialWorker ?? '—'}</td>
                     </tr>
                   ))
                 )}
@@ -369,20 +369,20 @@ export default function AdminCaseload() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between border-t border-gray-100 bg-white px-6 py-3">
-          <span className="text-xs text-gray-400">
+        <div className="flex items-center justify-between border-t border-gray-100 bg-white px-6 py-3 dark:border-[#333] dark:bg-[#1a1a1a]">
+          <span className="text-xs text-gray-400 dark:text-gray-500">
             {filtered.length === 0 ? '0' : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, filtered.length)}`} of {filtered.length}
           </span>
           <div className="flex gap-1">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-40">Prev</button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-40 dark:text-gray-400 dark:hover:bg-[#222]">Prev</button>
             {[...Array(Math.min(5, totalPages))].map((_, i) => {
               const pg = i + 1
               return (
-                <button key={pg} onClick={() => setPage(pg)} className={`rounded px-3 py-1 text-xs ${page === pg ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-100'}`}>{pg}</button>
+                <button key={pg} onClick={() => setPage(pg)} className={`rounded px-3 py-1 text-xs ${page === pg ? 'bg-black text-white dark:bg-white dark:text-black' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-[#222]'}`}>{pg}</button>
               )
             })}
-            {totalPages > 5 && <span className="px-1 text-xs text-gray-400">…</span>}
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-40">Next</button>
+            {totalPages > 5 && <span className="px-1 text-xs text-gray-400 dark:text-gray-500">…</span>}
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-40 dark:text-gray-400 dark:hover:bg-[#222]">Next</button>
           </div>
         </div>
       </div>
