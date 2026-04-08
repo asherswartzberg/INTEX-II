@@ -40,6 +40,10 @@ public class AppDbContext : DbContext
             .ValueGeneratedNever();
 
         modelBuilder.Entity<Donation>()
+            .Property(d => d.DonationId)
+            .ValueGeneratedNever();
+
+        modelBuilder.Entity<Donation>()
             .HasOne<SocialMediaPost>()
             .WithMany()
             .HasForeignKey(d => d.ReferralPostId)

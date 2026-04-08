@@ -296,7 +296,7 @@ public class AuthController(
     // ── Donor: submit donation ─────────────────────────────
 
     public record DonorDonationRequest(
-        double Amount,
+        int Amount,
         string? CurrencyCode,
         string? CampaignName,
         bool IsRecurring,
@@ -314,9 +314,11 @@ public class AuthController(
         if (user?.SupporterId == null)
             return BadRequest(new { message = "Your account is not linked to a donor profile." });
 
+        var maxDonationId = await appDb.Donations.AnyAsync() ? await appDb.Donations.MaxAsync(d => d.DonationId) : 0;
         var donation = new Donation
         {
-            SupporterId = user.SupporterId,
+            DonationId = maxDonationId + 1,
+            SupporterId = user.SupporterId ?? 0,
             DonationType = "Monetary",
             DonationDate = DateOnly.FromDateTime(DateTime.UtcNow),
             IsRecurring = request.IsRecurring,
@@ -324,7 +326,9 @@ public class AuthController(
             ChannelSource = "Website",
             CurrencyCode = request.CurrencyCode ?? "USD",
             Amount = request.Amount,
-            Notes = request.Notes,
+            EstimatedValue = request.Amount,
+            ImpactUnit = "pesos",
+            Notes = request.Notes ?? "",
         };
 
         appDb.Donations.Add(donation);
