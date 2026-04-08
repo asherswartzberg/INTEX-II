@@ -58,7 +58,7 @@ export default function ProblemSection() {
                 src={girlSmiling}
                 alt="A young girl sits writing in a notebook"
                 className="w-full object-cover aspect-[3/4]"
-                loading="lazy"
+                loading="eager"
               />
             </div>
           </motion.div>
