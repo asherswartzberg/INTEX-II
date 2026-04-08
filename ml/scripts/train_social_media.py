@@ -141,15 +141,15 @@ def train(df: pd.DataFrame):
         ]),
         "Decision Tree": Pipeline(steps=[
             ("prep", preprocessor),
-            ("reg", DecisionTreeRegressor(max_depth=5, random_state=config.SEED)),
+            ("reg", DecisionTreeRegressor(max_depth=4, min_samples_leaf=20, random_state=config.SEED)),
         ]),
         "Random Forest": Pipeline(steps=[
             ("prep", preprocessor),
-            ("reg", RandomForestRegressor(n_estimators=100, random_state=config.SEED)),
+            ("reg", RandomForestRegressor(n_estimators=200, max_depth=6, min_samples_leaf=10, max_features="sqrt", random_state=config.SEED)),
         ]),
         "Gradient Boosting": Pipeline(steps=[
             ("prep", preprocessor),
-            ("reg", GradientBoostingRegressor(n_estimators=100, random_state=config.SEED)),
+            ("reg", GradientBoostingRegressor(n_estimators=200, max_depth=3, learning_rate=0.05, min_samples_leaf=10, subsample=0.8, random_state=config.SEED)),
         ]),
     }
 
@@ -186,7 +186,13 @@ def train(df: pd.DataFrame):
     final_rmse = np.sqrt(mean_squared_error(y_test, y_pred_final))
     final_r2   = r2_score(y_test, y_pred_final)
 
-    print(f"\nTest set — MAE: {final_mae:.2f} | RMSE: {final_rmse:.2f} | R²: {final_r2:.4f}")
+    # Train metrics (to check overfitting gap)
+    y_pred_train = best_model.predict(X_train)
+    train_r2 = r2_score(y_train, y_pred_train)
+
+    print(f"\nTrain set — R²: {train_r2:.4f}")
+    print(f"Test set  — MAE: {final_mae:.2f} | RMSE: {final_rmse:.2f} | R²: {final_r2:.4f}")
+    print(f"Overfitting gap (R²): {train_r2 - final_r2:.4f}")
     print(f"Baseline MAE: {baseline_mae:.2f}")
 
     return best_model, best_model_name, feature_cols, X_train, X_test, y_train, y_test, \
@@ -256,14 +262,15 @@ def train_engagement_model(df: pd.DataFrame):
 
     model = Pipeline(steps=[
         ("prep", preprocessor),
-        ("reg", GradientBoostingRegressor(n_estimators=100, random_state=config.SEED)),
+        ("reg", GradientBoostingRegressor(n_estimators=200, max_depth=3, learning_rate=0.05, min_samples_leaf=10, subsample=0.8, random_state=config.SEED)),
     ])
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
     eng_mae = mean_absolute_error(y_test, y_pred)
     eng_r2 = r2_score(y_test, y_pred)
-    print(f"\nEngagement model — MAE: {eng_mae:.4f} | R²: {eng_r2:.4f}")
+    train_r2 = r2_score(y_train, model.predict(X_train))
+    print(f"\nEngagement model — MAE: {eng_mae:.4f} | Test R²: {eng_r2:.4f} | Train R²: {train_r2:.4f} | Gap: {train_r2 - eng_r2:.4f}")
 
     joblib.dump(model, config.SOCIAL_MEDIA_ENGAGEMENT_MODEL)
     print(f"Engagement model saved: {config.SOCIAL_MEDIA_ENGAGEMENT_MODEL}")
@@ -276,10 +283,21 @@ def train_engagement_model(df: pd.DataFrame):
 
 def run_batch_inference(df_raw: pd.DataFrame, best_model, feature_cols: list,
                         engagement_model=None) -> pd.DataFrame:
-    """Score all platform × post_type × media_type × content_topic × day_of_week combos."""
-    platforms      = sorted(df_raw["platform"].unique())
+    """Score realistic platform × post_type × media_type × content_topic × day combos.
+
+    Only generates combinations where the platform–media_type pair has
+    actually been observed in the training data (e.g., no YouTube+Photo).
+    """
+    # Discover which media types are valid for each platform
+    valid_platform_media = (
+        df_raw.groupby(["platform", "media_type"])
+        .size()
+        .reset_index(name="count")
+        [["platform", "media_type"]]
+    )
+    valid_pairs = set(zip(valid_platform_media["platform"], valid_platform_media["media_type"]))
+
     post_types     = sorted(df_raw["post_type"].unique())
-    media_types    = sorted(df_raw["media_type"].unique())
     content_topics = sorted(df_raw["content_topic"].unique())
     days = ["Monday", "Tuesday", "Wednesday", "Thursday",
             "Friday", "Saturday", "Sunday"]
@@ -291,25 +309,24 @@ def run_batch_inference(df_raw: pd.DataFrame, best_model, feature_cols: list,
     median_caption  = int(df_raw["caption_length"].median())
 
     combos = []
-    for plat, pt, mt, topic, day in product(
-        platforms, post_types, media_types, content_topics, days
-    ):
-        combos.append({
-            "platform":               plat,
-            "post_type":              pt,
-            "media_type":             mt,
-            "content_topic":          topic,
-            "sentiment_tone":         mode_sentiment,
-            "day_of_week":            day,
-            "post_hour":              median_hour,
-            "has_call_to_action":     True,
-            "is_boosted":             False,
-            "num_hashtags":           median_hashtags,
-            "caption_length":         median_caption,
-            "features_resident_story": False,
-            "mentions_count":         1,
-            "boost_budget_php":       0,
-        })
+    for plat, mt in valid_pairs:
+        for pt, topic, day in product(post_types, content_topics, days):
+            combos.append({
+                "platform":               plat,
+                "post_type":              pt,
+                "media_type":             mt,
+                "content_topic":          topic,
+                "sentiment_tone":         mode_sentiment,
+                "day_of_week":            day,
+                "post_hour":              median_hour,
+                "has_call_to_action":     True,
+                "is_boosted":             False,
+                "num_hashtags":           median_hashtags,
+                "caption_length":         median_caption,
+                "features_resident_story": False,
+                "mentions_count":         1,
+                "boost_budget_php":       0,
+            })
 
     combos_df = pd.DataFrame(combos)
     combos_df["predicted_donation_referrals"] = (
