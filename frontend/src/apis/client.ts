@@ -1,6 +1,6 @@
 const DEFAULT_BASE = import.meta.env.DEV
   ? ""  // local dev uses Vite proxy
-  : ""; // production: SWA managed functions proxy at same origin
+  : "https://intex-backend-fvgedfcwcxf8cnc9.australiaeast-01.azurewebsites.net";
 
 export type QueryParams = Record<
   string,
