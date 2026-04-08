@@ -6,7 +6,7 @@ import type { AdminDashboardDto } from '../types/apiDtos'
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function formatCurrency(amount: number | null, currency: string | null) {
   if (amount == null) return '—'
-  const symbol = (currency ?? 'PHP') === 'PHP' ? '₱' : (currency ?? '') + ' '
+  const symbol = (currency ?? 'PHP') === 'PHP' ? '$' : (currency ?? '') + ' '
   return symbol + amount.toLocaleString('en-PH', { maximumFractionDigits: 0 })
 }
 
@@ -82,8 +82,8 @@ export default function Admin() {
       .reduce((sum, d) => sum + (d.amount ?? 0), 0)
     if (total === 0) return null
     return total >= 1000
-      ? '₱' + (total / 1000).toFixed(0) + 'K'
-      : '₱' + total.toLocaleString('en-PH')
+      ? '$' + (total / 1000).toFixed(0) + 'K'
+      : '$' + total.toLocaleString('en-PH')
   })()
 
   const totalIncidents = data?.latestMonthlyProgressBySafehouse.reduce(

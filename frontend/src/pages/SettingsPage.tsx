@@ -102,6 +102,26 @@ export default function SettingsPage() {
   const filteredUsers = activeTab === 'all' ? nonDonorUsers : nonDonorUsers.filter((u) => u.roles.includes(activeTab))
 
   const isDonor = authSession.roles.includes('Donor')
+  const [supporterType, setSupporterType] = useState<string | null>(null)
+  const [supporterStatus, setSupporterStatus] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isDonor) return
+    fetch(`${getApiBaseUrl()}/api/auth/my-profile`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.supporter) {
+          setSupporterType(d.supporter.supporterType)
+          setSupporterStatus(d.supporter.status)
+        }
+      })
+      .catch(() => {})
+  }, [isDonor])
+
+  const SUPPORTER_TYPE_LABELS: Record<string, string> = {
+    MonetaryDonor: 'Monetary Donor', InKindDonor: 'In-Kind Donor', Volunteer: 'Volunteer',
+    SkillsContributor: 'Skills Contributor', SocialMediaAdvocate: 'Social Media Advocate', PartnerOrganization: 'Partner Organization',
+  }
 
   const backTo = isDonor ? '/donor' : '/admin/dashboard'
 
@@ -131,6 +151,12 @@ export default function SettingsPage() {
           <Row label="Email" value={authSession.email ?? '—'} />
           <Row label="Name" value={[authSession.firstName, authSession.lastName].filter(Boolean).join(' ') || '—'} />
           <Row label="Role" value={authSession.roles.join(', ') || '—'} />
+          {isDonor && supporterType && (
+            <Row label="Donor type" value={SUPPORTER_TYPE_LABELS[supporterType] ?? supporterType} />
+          )}
+          {isDonor && supporterStatus && (
+            <Row label="Status" value={supporterStatus} />
+          )}
         </div>
       </section>
 
