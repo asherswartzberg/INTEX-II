@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -69,8 +70,8 @@ public class AuthController(
             {
                 UserName = request.Email,
                 Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
+                FirstName = InputSanitizer.Sanitize(request.FirstName),
+                LastName = InputSanitizer.Sanitize(request.LastName),
             };
 
             var result = await userManager.CreateAsync(user, request.Password);
@@ -87,10 +88,10 @@ public class AuthController(
             var supporter = new Supporter
             {
                 SupporterId = maxId + 1,
-                SupporterType = request.SupporterType ?? "MonetaryDonor",
-                DisplayName = !string.IsNullOrWhiteSpace(request.FirstName) ? $"{request.FirstName} {request.LastName}".Trim() : request.Email,
-                FirstName = request.FirstName ?? "",
-                LastName = request.LastName ?? "",
+                SupporterType = InputSanitizer.Sanitize(request.SupporterType) ?? "MonetaryDonor",
+                DisplayName = !string.IsNullOrWhiteSpace(request.FirstName) ? $"{InputSanitizer.Sanitize(request.FirstName)} {InputSanitizer.Sanitize(request.LastName)}".Trim() : request.Email,
+                FirstName = InputSanitizer.Sanitize(request.FirstName) ?? "",
+                LastName = InputSanitizer.Sanitize(request.LastName) ?? "",
                 OrganizationName = "",
                 RelationshipType = "Local",
                 Region = "Unknown",
@@ -334,16 +335,16 @@ public class AuthController(
         {
             DonationId = maxDonationId + 1,
             SupporterId = user.SupporterId ?? 0,
-            DonationType = request.DonationType ?? "Monetary",
+            DonationType = InputSanitizer.Sanitize(request.DonationType) ?? "Monetary",
             DonationDate = DateOnly.FromDateTime(DateTime.UtcNow),
             IsRecurring = request.IsRecurring,
-            CampaignName = request.CampaignName,
+            CampaignName = InputSanitizer.Sanitize(request.CampaignName),
             ChannelSource = "Website",
             CurrencyCode = request.CurrencyCode ?? "USD",
             Amount = request.Amount,
             EstimatedValue = request.Amount,
             ImpactUnit = "pesos",
-            Notes = request.Notes ?? "",
+            Notes = InputSanitizer.Sanitize(request.Notes) ?? "",
         };
 
         appDb.Donations.Add(donation);
@@ -372,8 +373,8 @@ public class AuthController(
         {
             UserName = request.Email,
             Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
+            FirstName = InputSanitizer.Sanitize(request.FirstName),
+            LastName = InputSanitizer.Sanitize(request.LastName),
             EmailConfirmed = true
         };
 

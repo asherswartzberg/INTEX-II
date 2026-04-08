@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
+  const [twoFactorCode, setTwoFactorCode] = useState('')
+  const [recoveryCode, setRecoveryCode] = useState('')
   const [error, setError] = useState(searchParams.get('externalError') ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [externalProviders, setExternalProviders] = useState<ExternalAuthProvider[]>([])
@@ -47,7 +49,7 @@ export default function LoginPage() {
 
     setSubmitting(true)
     try {
-      await loginUser(email, password, rememberMe)
+      await loginUser(email, password, rememberMe, twoFactorCode || undefined, recoveryCode || undefined)
       await refreshAuthState()
       // AuthContext will now have isAuthenticated=true → redirect above fires
     } catch (err) {
@@ -148,7 +150,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="mb-6 flex items-center gap-2">
+            <div className="mb-5 flex items-center gap-2">
               <input
                 id="rememberMe"
                 type="checkbox"
@@ -159,6 +161,37 @@ export default function LoginPage() {
               <label htmlFor="rememberMe" className="text-sm text-medium-gray">
                 Keep me signed in
               </label>
+            </div>
+
+            <div className="mb-5">
+              <label htmlFor="twoFactorCode" className="mb-1.5 block text-sm font-medium text-black">
+                Authenticator code
+              </label>
+              <input
+                id="twoFactorCode"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value)}
+                placeholder="6-digit code"
+                className="w-full rounded-lg border border-border bg-off-white px-4 py-3 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+              />
+              <p className="mt-1 text-xs text-medium-gray">Leave blank unless MFA is enabled on your account.</p>
+            </div>
+
+            <div className="mb-6">
+              <label htmlFor="recoveryCode" className="mb-1.5 block text-sm font-medium text-black">
+                Recovery code
+              </label>
+              <input
+                id="recoveryCode"
+                type="text"
+                value={recoveryCode}
+                onChange={(e) => setRecoveryCode(e.target.value)}
+                placeholder="Use instead of authenticator code"
+                className="w-full rounded-lg border border-border bg-off-white px-4 py-3 text-sm text-black placeholder-medium-gray/50 transition-colors focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+              />
             </div>
 
             <button

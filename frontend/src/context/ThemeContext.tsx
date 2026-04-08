@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useCookieConsent } from './CookieConsentContext'
 
 type Theme = 'light' | 'dark'
 
@@ -9,6 +10,8 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
+
+const COOKIE_NAME = 'theme_preference'
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))
@@ -20,16 +23,35 @@ function setCookie(name: string, value: string, days: number) {
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
 }
 
+function deleteCookie(name: string) {
+  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { consent } = useCookieConsent()
+
   const [theme, setTheme] = useState<Theme>(() => {
-    const stored = getCookie('theme_preference')
-    return stored === 'dark' ? 'dark' : 'light'
+    // Read from cookie first (if user previously consented), then localStorage fallback
+    const fromCookie = getCookie(COOKIE_NAME)
+    if (fromCookie === 'dark' || fromCookie === 'light') return fromCookie
+    try {
+      const fromStorage = localStorage.getItem(COOKIE_NAME)
+      if (fromStorage === 'dark') return 'dark'
+    } catch {}
+    return 'light'
   })
 
   useEffect(() => {
-    setCookie('theme_preference', theme, 365)
+    if (consent === 'accepted') {
+      // User consented — persist preference in a browser-accessible cookie
+      setCookie(COOKIE_NAME, theme, 365)
+    } else {
+      // No consent or declined — remove cookie, use localStorage only
+      deleteCookie(COOKIE_NAME)
+      try { localStorage.setItem(COOKIE_NAME, theme) } catch {}
+    }
     document.documentElement.classList.toggle('dark', theme === 'dark')
-  }, [theme])
+  }, [theme, consent])
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))
 
