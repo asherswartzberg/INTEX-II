@@ -47,7 +47,9 @@ public class HomeVisitationsController : ControllerBase
         [FromBody] HomeVisitation entity,
         CancellationToken cancellationToken)
     {
-        entity.VisitationId = 0;
+        var maxId = await _db.HomeVisitations
+            .MaxAsync(v => (int?)v.VisitationId, cancellationToken) ?? 0;
+        entity.VisitationId = maxId + 1;
         _db.HomeVisitations.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.VisitationId }, entity);

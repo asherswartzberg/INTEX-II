@@ -53,7 +53,8 @@ public class PartnersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Partner>> Create([FromBody] Partner entity, CancellationToken cancellationToken)
     {
-        entity.PartnerId = 0;
+        var maxId = await _db.Partners.MaxAsync(e => (int?)e.PartnerId, cancellationToken) ?? 0;
+        entity.PartnerId = maxId + 1;
         _db.Partners.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.PartnerId }, entity);

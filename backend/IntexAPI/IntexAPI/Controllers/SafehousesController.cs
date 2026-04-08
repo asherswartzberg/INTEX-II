@@ -38,7 +38,8 @@ public class SafehousesController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Safehouse>> Create([FromBody] Safehouse entity, CancellationToken cancellationToken)
     {
-        entity.SafehouseId = 0;
+        var maxId = await _db.Safehouses.MaxAsync(e => (int?)e.SafehouseId, cancellationToken) ?? 0;
+        entity.SafehouseId = maxId + 1;
         _db.Safehouses.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.SafehouseId }, entity);

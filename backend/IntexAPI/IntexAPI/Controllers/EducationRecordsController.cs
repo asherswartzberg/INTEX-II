@@ -47,7 +47,8 @@ public class EducationRecordsController : ControllerBase
         [FromBody] EducationRecord entity,
         CancellationToken cancellationToken)
     {
-        entity.EducationRecordId = 0;
+        var maxId = await _db.EducationRecords.MaxAsync(e => (int?)e.EducationRecordId, cancellationToken) ?? 0;
+        entity.EducationRecordId = maxId + 1;
         _db.EducationRecords.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.EducationRecordId }, entity);

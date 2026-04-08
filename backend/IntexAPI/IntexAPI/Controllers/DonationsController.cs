@@ -73,7 +73,8 @@ public class DonationsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Donation>> Create([FromBody] Donation entity, CancellationToken cancellationToken)
     {
-        entity.DonationId = 0;
+        var maxId = await _db.Donations.MaxAsync(e => (int?)e.DonationId, cancellationToken) ?? 0;
+        entity.DonationId = maxId + 1;
         _db.Donations.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.DonationId }, entity);
