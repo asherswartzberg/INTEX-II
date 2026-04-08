@@ -57,16 +57,27 @@ export default function AdminSocialMedia() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Unique values for recommendation filter dropdowns
+  // All available recommendations (fetched once for extracting filter options)
+  const [allRecs, setAllRecs] = useState<SocialMediaRecommendation[]>([])
+
+  useEffect(() => {
+    fetchSocialMediaRecommendations({ top: 200 })
+      .then(setAllRecs)
+      .catch(console.error)
+  }, [])
+
+  // Unique values for recommendation filter pills (derived from all recs)
   const recPlatformOptions = useMemo(() => {
-    const s = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
-    return Array.from(s).sort()
-  }, [posts])
+    const fromRecs = new Set(allRecs.map((r) => r.platform).filter(Boolean) as string[])
+    const fromPosts = new Set(posts.map((p) => p.platform).filter(Boolean) as string[])
+    return Array.from(new Set([...fromRecs, ...fromPosts])).sort()
+  }, [allRecs, posts])
 
   const recTopicOptions = useMemo(() => {
-    const s = new Set(posts.map((p) => p.contentTopic).filter(Boolean) as string[])
-    return Array.from(s).sort()
-  }, [posts])
+    const fromRecs = new Set(allRecs.map((r) => r.contentTopic).filter(Boolean) as string[])
+    const fromPosts = new Set(posts.map((p) => p.contentTopic).filter(Boolean) as string[])
+    return Array.from(new Set([...fromRecs, ...fromPosts])).sort()
+  }, [allRecs, posts])
 
   // Current options for the active filter type
   const recOptions = recFilterType === 'platform' ? recPlatformOptions : recTopicOptions
@@ -78,7 +89,7 @@ export default function AdminSocialMedia() {
     }
   }, [recOptions, recFilterValue])
 
-  // Fetch recommendations when filter changes
+  // Fetch filtered recommendations when filter changes
   const loadRecommendations = useCallback(() => {
     if (!recFilterValue) return
     setRecLoading(true)
