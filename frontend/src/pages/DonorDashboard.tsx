@@ -173,7 +173,7 @@ export default function DonorDashboard() {
     <>
     <div data-donor className="min-h-screen bg-off-white dark:bg-[#111] dark:text-[#e5e5e5]">
       {/* ── Header ── */}
-      <header role="banner" className="grid grid-cols-3 items-center border-b border-border bg-white px-6 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
+      <header role="banner" className="sticky top-0 z-30 grid grid-cols-3 items-center border-b border-border bg-white px-6 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
 
         {/* Left: portal name + user */}
         <div className="flex items-center gap-2 min-w-0">
