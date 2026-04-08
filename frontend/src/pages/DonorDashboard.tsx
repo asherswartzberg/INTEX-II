@@ -205,8 +205,7 @@ export default function DonorDashboard() {
     <>
     <div data-donor className="min-h-screen bg-off-white dark:bg-[#111] dark:text-[#e5e5e5]">
       {/* ── Header ── */}
-      <header role="banner" className="border-b border-border bg-white dark:bg-[#1a1a1a] dark:border-[#333]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-10">
+      <header role="banner" className="flex items-center justify-between border-b border-border bg-white px-6 py-4 dark:bg-[#1a1a1a] dark:border-[#333]">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-2.5">
               <img src="/Lighthouse.svg" alt="Faro Safehouse" className="h-7 w-7 object-contain" />
@@ -240,7 +239,6 @@ export default function DonorDashboard() {
               Log out
             </Link>
           </div>
-        </div>
       </header>
 
       <main className="px-6 py-8">
