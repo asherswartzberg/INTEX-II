@@ -18,6 +18,7 @@ const anonymousSession: AuthSession = {
   lastName: null,
   roles: [],
   supporterId: null,
+  accessibleSafehouseIds: [],
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)

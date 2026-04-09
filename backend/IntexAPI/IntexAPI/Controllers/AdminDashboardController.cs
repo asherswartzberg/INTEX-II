@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using IntexAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,23 +14,31 @@ namespace IntexAPI.Controllers;
 public class AdminDashboardController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly FacilityAccessService _facilityAccess;
 
-    public AdminDashboardController(AppDbContext db)
+    public AdminDashboardController(AppDbContext db, FacilityAccessService facilityAccess)
     {
         _db = db;
+        _facilityAccess = facilityAccess;
     }
 
     [HttpGet]
     public async Task<ActionResult<AdminDashboardDto>> GetDashboard(CancellationToken cancellationToken)
     {
-        var totalActive = await _db.Residents.AsNoTracking()
-            .CountAsync(r => r.CaseStatus == "Active", cancellationToken);
+        var isAdmin = User.IsInRole(AuthRoles.Admin);
+        var visibleSafehouseIds = isAdmin
+            ? await _db.Safehouses.AsNoTracking().Select(s => s.SafehouseId).ToHashSetAsync(cancellationToken)
+            : await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
 
-        var bySafehouse = await (
+        var totalActive = await _db.Residents.AsNoTracking()
+            .CountAsync(r => r.CaseStatus == "Active" && (isAdmin || (r.SafehouseId != null && visibleSafehouseIds.Contains(r.SafehouseId.Value))), cancellationToken);
+
+        var bySafehouseQuery = (
             from r in _db.Residents.AsNoTracking()
             join s in _db.Safehouses.AsNoTracking() on r.SafehouseId equals s.SafehouseId into gj
             from s in gj.DefaultIfEmpty()
             where r.CaseStatus == "Active"
+                  && (isAdmin || (r.SafehouseId != null && visibleSafehouseIds.Contains(r.SafehouseId.Value)))
             group r by new { r.SafehouseId, s.Name, s.SafehouseCode }
             into g
             orderby g.Key.SafehouseId
@@ -37,7 +46,9 @@ public class AdminDashboardController : ControllerBase
                 g.Key.SafehouseId ?? 0,
                 g.Key.Name,
                 g.Key.SafehouseCode,
-                g.Count()))
+                g.Count()));
+
+        var bySafehouse = await bySafehouseQuery
             .ToListAsync(cancellationToken);
 
         var recentDonations = await (
@@ -56,12 +67,13 @@ public class AdminDashboardController : ControllerBase
             .Take(15)
             .ToListAsync(cancellationToken);
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var upcomingConferences = await (
+        var upcomingConferencesQuery = (
             from plan in _db.InterventionPlans.AsNoTracking()
             where plan.CaseConferenceDate != null
             join r in _db.Residents.AsNoTracking() on plan.ResidentId equals r.ResidentId into rj
             from r in rj.DefaultIfEmpty()
+            let residentSafehouseId = r.SafehouseId
+            where isAdmin || residentSafehouseId == null || visibleSafehouseIds.Contains(residentSafehouseId.Value)
             orderby plan.CaseConferenceDate descending
             select new UpcomingCaseConferenceDto(
                 plan.PlanId,
@@ -69,13 +81,19 @@ public class AdminDashboardController : ControllerBase
                 r.CaseControlNo,
                 plan.CaseConferenceDate,
                 plan.PlanCategory,
-                plan.Status))
+                plan.Status));
+
+        var upcomingConferences = await upcomingConferencesQuery
             .Take(25)
             .ToListAsync(cancellationToken);
 
         // Find the latest month that has a complete monthly metrics row
-        var safehousesCsv = CsvSeedData.LoadSafehouses();
-        var metricsCsv = CsvSeedData.LoadSafehouseMonthlyMetrics();
+        var safehousesCsv = CsvSeedData.LoadSafehouses()
+            .Where(s => isAdmin || visibleSafehouseIds.Contains(s.SafehouseId))
+            .ToList();
+        var metricsCsv = CsvSeedData.LoadSafehouseMonthlyMetrics()
+            .Where(m => isAdmin || (m.SafehouseId.HasValue && visibleSafehouseIds.Contains(m.SafehouseId.Value)))
+            .ToList();
         var safehouseCount = safehousesCsv.Count;
         var latestMonthStart = metricsCsv
             .Where(m =>

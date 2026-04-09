@@ -1,5 +1,5 @@
 const DEFAULT_BASE = import.meta.env.DEV
-  ? ""  // local dev uses Vite proxy
+  ? "http://localhost:5180"
   : "https://intex-backend-fvgedfcwcxf8cnc9.australiaeast-01.azurewebsites.net";
 
 export type QueryParams = Record<
@@ -9,8 +9,9 @@ export type QueryParams = Record<
 
 /** Trim trailing slash; uses `VITE_API_BASE_URL` when set in `.env`. */
 export function getApiBaseUrl(): string {
-  const raw = import.meta.env.VITE_API_BASE_URL ?? DEFAULT_BASE;
-  return raw.replace(/\/+$/, "");
+  const raw = import.meta.env.VITE_API_BASE_URL;
+  const base = typeof raw === "string" && raw.trim().length > 0 ? raw : DEFAULT_BASE;
+  return base.replace(/\/+$/, "");
 }
 
 export class ApiError extends Error {

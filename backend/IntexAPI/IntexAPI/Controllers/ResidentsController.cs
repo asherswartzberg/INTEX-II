@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using IntexAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,10 +14,12 @@ namespace IntexAPI.Controllers;
 public class ResidentsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly FacilityAccessService _facilityAccess;
 
-    public ResidentsController(AppDbContext db)
+    public ResidentsController(AppDbContext db, FacilityAccessService facilityAccess)
     {
         _db = db;
+        _facilityAccess = facilityAccess;
     }
 
     [HttpGet]
@@ -31,6 +34,9 @@ public class ResidentsController : ControllerBase
     {
         var (skip, take) = Pagination.ToSkipTake(page, pageSize);
         var q = _db.Residents.AsNoTracking().AsQueryable();
+        var allowedSafehouses = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+        if (!User.IsInRole(AuthRoles.Admin))
+            q = _facilityAccess.ScopeResidents(q, allowedSafehouses);
 
         if (!string.IsNullOrWhiteSpace(caseStatus))
             q = q.Where(r => r.CaseStatus == caseStatus);
@@ -64,6 +70,12 @@ public class ResidentsController : ControllerBase
     {
         var resident = await _db.Residents.AsNoTracking()
             .FirstOrDefaultAsync(r => r.ResidentId == id, cancellationToken);
+        if (resident is not null && !User.IsInRole(AuthRoles.Admin))
+        {
+            var allowedSafehouses = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+            if (!resident.SafehouseId.HasValue || !allowedSafehouses.Contains(resident.SafehouseId.Value))
+                return NotFound();
+        }
         return resident is null ? NotFound() : Ok(resident);
     }
 

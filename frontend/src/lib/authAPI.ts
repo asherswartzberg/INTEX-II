@@ -8,6 +8,7 @@ export interface AuthSession {
   lastName: string | null
   roles: string[]
   supporterId: number | null
+  accessibleSafehouseIds: number[]
 }
 
 export interface ExternalAuthProvider {
@@ -38,6 +39,7 @@ const anonymousSession: AuthSession = {
   lastName: null,
   roles: [],
   supporterId: null,
+  accessibleSafehouseIds: [],
 }
 
 async function readApiError(response: Response, fallback: string): Promise<string> {

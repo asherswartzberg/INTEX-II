@@ -1,0 +1,12 @@
+{
+  "name": "intex-swa-api",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/functions/proxy.js",
+  "engines": {
+    "node": "~20"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0"
+  }
+}

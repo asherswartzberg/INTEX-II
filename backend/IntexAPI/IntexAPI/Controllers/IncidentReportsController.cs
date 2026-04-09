@@ -1,4 +1,5 @@
 using IntexAPI.Data;
+using IntexAPI.Infrastructure;
 using IntexAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,12 @@ namespace IntexAPI.Controllers;
 public class IncidentReportsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly FacilityAccessService _facilityAccess;
 
-    public IncidentReportsController(AppDbContext db)
+    public IncidentReportsController(AppDbContext db, FacilityAccessService facilityAccess)
     {
         _db = db;
+        _facilityAccess = facilityAccess;
     }
 
     [HttpGet]
@@ -27,16 +30,29 @@ public class IncidentReportsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var (skip, take) = Pagination.ToSkipTake(page, pageSize);
-        var q = _db.IncidentReports.AsNoTracking().AsQueryable();
-        if (residentId is int r)
-            q = q.Where(i => i.ResidentId == r);
-        if (safehouseId is int s)
-            q = q.Where(i => i.SafehouseId == s);
+        var q = from i in _db.IncidentReports.AsNoTracking()
+                join r in _db.Residents.AsNoTracking() on i.ResidentId equals r.ResidentId into rj
+                from r in rj.DefaultIfEmpty()
+                select new { Incident = i, ResidentSafehouseId = r.SafehouseId };
+
+        if (!User.IsInRole(AuthRoles.Admin))
+        {
+            var allowed = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+            q = q.Where(x =>
+                (x.Incident.SafehouseId != null && allowed.Contains(x.Incident.SafehouseId.Value)) ||
+                (x.ResidentSafehouseId != null && allowed.Contains(x.ResidentSafehouseId.Value)));
+        }
+
+        if (residentId is int residentFilter)
+            q = q.Where(x => x.Incident.ResidentId == residentFilter);
+        if (safehouseId is int safehouseFilter)
+            q = q.Where(x => x.Incident.SafehouseId == safehouseFilter || x.ResidentSafehouseId == safehouseFilter);
 
         var list = await q
-            .OrderByDescending(i => i.IncidentDate)
+            .OrderByDescending(x => x.Incident.IncidentDate)
             .Skip(skip)
             .Take(take)
+            .Select(x => x.Incident)
             .ToListAsync(cancellationToken);
         return Ok(list);
     }
@@ -46,6 +62,21 @@ public class IncidentReportsController : ControllerBase
     {
         var entity = await _db.IncidentReports.AsNoTracking()
             .FirstOrDefaultAsync(i => i.IncidentId == id, cancellationToken);
+        if (entity is not null && !User.IsInRole(AuthRoles.Admin))
+        {
+            int? resolvedSafehouseId = entity.SafehouseId;
+            if (!resolvedSafehouseId.HasValue && entity.ResidentId.HasValue)
+            {
+                resolvedSafehouseId = await _db.Residents.AsNoTracking()
+                    .Where(r => r.ResidentId == entity.ResidentId)
+                    .Select(r => r.SafehouseId)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var allowed = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
+            if (!resolvedSafehouseId.HasValue || !allowed.Contains(resolvedSafehouseId.Value))
+                return NotFound();
+        }
         return entity is null ? NotFound() : Ok(entity);
     }
 
