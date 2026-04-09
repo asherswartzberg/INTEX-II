@@ -20,6 +20,40 @@ public class EducationRecordsController : ControllerBase
         _facilityAccess = facilityAccess;
     }
 
+    [HttpGet("summary")]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+    {
+        var records = await _db.EducationRecords.AsNoTracking().ToListAsync(cancellationToken);
+
+        var enrollmentBreakdown = records
+            .GroupBy(e => e.EnrollmentStatus ?? "Unknown")
+            .Select(g => new { status = g.Key, count = g.Count() })
+            .OrderByDescending(x => x.count)
+            .ToList();
+
+        var completionBreakdown = records
+            .GroupBy(e => e.CompletionStatus ?? "Unknown")
+            .Select(g => new { status = g.Key, count = g.Count() })
+            .OrderByDescending(x => x.count)
+            .ToList();
+
+        var withAttendance = records.Where(e => e.AttendanceRate.HasValue).ToList();
+        var withProgress = records.Where(e => e.ProgressPercent.HasValue).ToList();
+
+        return Ok(new
+        {
+            totalRecords = records.Count,
+            averageAttendanceRate = withAttendance.Count > 0
+                ? Math.Round(withAttendance.Average(e => e.AttendanceRate!.Value), 1)
+                : (double?)null,
+            averageProgressPercent = withProgress.Count > 0
+                ? Math.Round(withProgress.Average(e => e.ProgressPercent!.Value), 1)
+                : (double?)null,
+            enrollmentBreakdown,
+            completionBreakdown,
+        });
+    }
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<EducationRecord>>> GetList(
         [FromQuery] int residentId,

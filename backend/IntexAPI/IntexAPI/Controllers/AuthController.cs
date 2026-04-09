@@ -59,6 +59,16 @@ public class AuthController(
         });
     }
 
+    // ── Email existence check (for login UX) ──────────────
+    [HttpPost("check-email")]
+    public async Task<IActionResult> CheckEmail([FromBody] CheckEmailRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest();
+        var user = await userManager.FindByEmailAsync(request.Email);
+        return Ok(new { exists = user is not null });
+    }
+
     // ── Registration (assigns Donor role) ─────────────────
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
@@ -548,3 +558,4 @@ public class AuthController(
 }
 
 public record RegisterRequest(string Email, string Password, string? FirstName = null, string? LastName = null, string? SupporterType = null);
+public record CheckEmailRequest(string Email);
