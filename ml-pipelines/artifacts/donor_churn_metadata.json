@@ -1,7 +1,7 @@
 {
   "model_name": "donor_churn_classifier",
   "model_version": "1.0.0",
-  "trained_at_utc": "2026-04-09T18:59:24.707468+00:00",
+  "trained_at_utc": "2026-04-09T19:37:31.159935+00:00",
   "best_algorithm": "Gradient Boosting",
   "features": [
     "supporter_type",
