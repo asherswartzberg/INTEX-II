@@ -18,18 +18,12 @@ export default function Hero() {
   return (
     <div ref={ref} className="relative h-[200vh]">
       <div className="sticky top-0 h-screen overflow-hidden">
-        {/* Fallback poster — always visible until video is ready */}
-        <div className="absolute inset-0">
-          <img src={heroPoster} alt="" className="h-full w-full object-cover" aria-hidden="true" />
-        </div>
-
-        {/* Video — fades in once it can play */}
+        {/* Video */}
         <motion.div style={{ scale: videoScale }} className="absolute inset-0">
           <video
             autoPlay muted loop playsInline preload="auto"
             onCanPlay={() => setVideoReady(true)}
-            className="h-full w-full object-cover transition-opacity duration-700"
-            style={{ opacity: videoReady ? 1 : 0 }}
+            className="h-full w-full object-cover"
             aria-hidden="true"
           >
             <source src={heroVideo} type="video/mp4" />
@@ -42,7 +36,7 @@ export default function Hero() {
           aria-hidden="true"
         />
 
-        {/* Content — bottom left, bold */}
+        {/* Content */}
         <motion.div
           style={{ opacity: textOpacity, y: textY }}
           className="absolute bottom-0 left-0 z-10 max-w-2xl px-8 pb-28 md:px-16 md:pb-32"
@@ -73,7 +67,7 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        {/* Scroll line */}
+        {/* Scroll indicator */}
         <motion.div
           style={{ opacity: textOpacity }}
           className="absolute bottom-10 right-10 z-10"
@@ -86,7 +80,7 @@ export default function Hero() {
           />
         </motion.div>
 
-        {/* Loading screen — covers hero until video is ready */}
+        {/* Loading screen — shows until video is ready */}
         <AnimatePresence>
           {!videoReady && (
             <motion.div
