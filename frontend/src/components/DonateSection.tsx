@@ -5,9 +5,10 @@ import { useAnimateInView } from '../hooks/useAnimateInView'
 import { useAuth } from '../context/AuthContext'
 
 export default function DonateSection() {
-  const { isAuthenticated, authSession } = useAuth()
+  const { authSession } = useAuth()
+  const isAdminOrStaff = authSession.roles.some(r => r === 'Admin' || r === 'Staff')
   const isDonor = authSession.roles.includes('Donor')
-  const donateLink = isDonor ? '/donor' : isAuthenticated ? '/' : '/login'
+  const donateLink = isAdminOrStaff ? '/admin/donors' : isDonor ? '/donor' : '/login'
   const sectionRef = useRef(null)
   const { ref: viewRef, isInView } = useAnimateInView({ amount: 0.3 })
   const { scrollYProgress } = useScroll({

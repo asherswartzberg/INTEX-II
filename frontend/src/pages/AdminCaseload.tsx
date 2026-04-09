@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useSearchParams } from 'react-router'
 import { createResident, deleteResident, fetchResidents, updateResident } from '../apis/residentsApi'
 import { fetchResidentRiskScores } from '../apis/residentRiskScoresApi'
@@ -118,8 +119,6 @@ export default function AdminCaseload() {
   const [riskScores, setRiskScores] = useState<ResidentRiskScore[]>([])
   const [eduRecords, setEduRecords] = useState<EducationRecord[]>([])
   const [healthRecords, setHealthRecords] = useState<HealthWellbeingRecord[]>([])
-  const [eduOpen, setEduOpen] = useState(false)
-  const [healthOpen, setHealthOpen] = useState(false)
   const [sortByRisk, setSortByRisk] = useState(() => searchParams.get('sort') === 'predictedRisk')
 
   useEffect(() => {
@@ -144,8 +143,6 @@ export default function AdminCaseload() {
     if (!selected) {
       setEduRecords([])
       setHealthRecords([])
-      setEduOpen(false)
-      setHealthOpen(false)
       return
     }
     fetchEducationRecordsForResident(selected.residentId).then(setEduRecords).catch(() => setEduRecords([]))
@@ -287,10 +284,14 @@ export default function AdminCaseload() {
       r.subCatStreetChild && 'Street Child',
     ].filter(Boolean)
 
+  // Condense columns when detail panel is open to avoid horizontal scroll
+  const desktopCol = selected ? 'hidden' : 'hidden md:table-cell'
+  const listWidth = selected ? 'w-full md:w-[480px] md:shrink-0' : 'w-full md:flex-1'
+
   return (
-    <div className="flex h-full bg-off-white dark:bg-[#111]">
+    <div className="flex h-full gap-3 overflow-hidden p-3 bg-off-white dark:bg-[#111]">
       {/* ── List panel ── */}
-      <div className={`flex-1 flex flex-col min-w-0 ${selected ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`flex flex-col rounded-xl overflow-hidden bg-white shadow-sm ring-1 ring-black/5 dark:bg-[#1a1a1a] dark:ring-white/5 ${listWidth} ${selected ? 'hidden md:flex' : 'flex'}`}>
         {/* Top bar */}
         <div className="border-b border-border bg-white px-6 py-4 dark:border-[#333] dark:bg-[#1a1a1a]">
           <div className="mb-3 flex items-center justify-between">
@@ -366,7 +367,7 @@ export default function AdminCaseload() {
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto bg-white dark:bg-[#1a1a1a]">
+        <div className="flex-1 overflow-auto">
           {loading ? (
             <div className="space-y-2 p-6">
               {[...Array(8)].map((_, i) => <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-100" />)}
@@ -377,26 +378,30 @@ export default function AdminCaseload() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white dark:bg-[#1a1a1a]">
                 <tr className="border-b border-gray-100 dark:border-[#333]">
-                  {['CASE NO', 'CODE', 'SAFEHOUSE', 'STATUS', 'CURRENT RISK', 'PREDICTED RISK', 'CATEGORY', 'ADMITTED', 'SOCIAL WORKER'].map((h) => (
-                    <th key={h} scope="col" className={`px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400 ${h === 'PREDICTED RISK' ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200' : ''}`}
-                      onClick={h === 'PREDICTED RISK' ? () => { setSortByRisk(prev => !prev); setPage(1) } : undefined}
-                    >
-                      {h}{h === 'PREDICTED RISK' ? (sortByRisk ? ' ↓' : '') : ''}
-                    </th>
-                  ))}
+                  <th scope="col" className="w-[3px] p-0" />
+                  <th scope="col" className={`${desktopCol} px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400`}>CASE NO</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">CODE</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">SAFEHOUSE</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">STATUS</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">CURRENT RISK</th>
+                  <th scope="col" className={`${desktopCol} cursor-pointer select-none px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200`} onClick={() => { setSortByRisk(prev => !prev); setPage(1) }}>PREDICTED RISK{sortByRisk ? ' ↓' : ''}</th>
+                  <th scope="col" className={`${desktopCol} px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400`}>CATEGORY</th>
+                  <th scope="col" className={`${desktopCol} px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400`}>ADMITTED</th>
+                  <th scope="col" className={`${desktopCol} px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400`}>SOCIAL WORKER</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-[#2a2a2a]">
                 {paged.length === 0 ? (
-                  <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">No residents found.</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">No residents found.</td></tr>
                 ) : (
                   paged.map((r) => (
                     <tr
                       key={r.residentId}
                       onClick={() => setSelected(r)}
-                      className={`cursor-pointer transition-colors hover:bg-off-white dark:hover:bg-[#222] ${selected?.residentId === r.residentId ? 'bg-off-white dark:bg-[#262626]' : ''}`}
+                      className={`cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/40 ${selected?.residentId === r.residentId ? 'bg-blue-50 dark:bg-blue-950' : ''}`}
                     >
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.caseControlNo ?? '—'}</td>
+                      <td className={`w-[3px] p-0 transition-colors ${selected?.residentId === r.residentId ? 'bg-blue-600' : 'bg-transparent'}`} />
+                      <td className={`${desktopCol} px-4 py-3 text-gray-500 dark:text-gray-400`}>{r.caseControlNo ?? '—'}</td>
                       <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-100">{r.internalCode ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400">SH-{r.safehouseId ?? '?'}</td>
                       <td className="px-4 py-3">
@@ -409,7 +414,7 @@ export default function AdminCaseload() {
                           {r.currentRiskLevel ?? '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className={`${desktopCol} px-4 py-3`}>
                         {(() => {
                           const rs = riskScores.find((s) => s.residentId === r.residentId)
                           const label = rs?.riskLabel
@@ -420,9 +425,9 @@ export default function AdminCaseload() {
                           ) : '—'
                         })()}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.caseCategory ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{fmtDate(r.dateOfAdmission)}</td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.assignedSocialWorker ?? '—'}</td>
+                      <td className={`${desktopCol} px-4 py-3 text-gray-500 dark:text-gray-400`}>{r.caseCategory ?? '—'}</td>
+                      <td className={`${desktopCol} px-4 py-3 text-gray-500 dark:text-gray-400`}>{fmtDate(r.dateOfAdmission)}</td>
+                      <td className={`${desktopCol} px-4 py-3 text-gray-500 dark:text-gray-400`}>{r.assignedSocialWorker ?? '—'}</td>
                     </tr>
                   ))
                 )}
@@ -450,204 +455,171 @@ export default function AdminCaseload() {
         </div>
       </div>
 
-      {/* ── Detail panel ── */}
-      {selected && (
-        <div className="w-full overflow-y-auto border-l border-gray-100 bg-white p-4 md:w-[360px] md:shrink-0 md:p-6">
-          <button
-            onClick={() => setSelected(null)}
-            className="mb-3 flex items-center gap-1.5 text-sm text-medium-gray hover:text-black md:hidden"
+      {/* ── Detail panel (AnimatePresence for slide in/out) ── */}
+      <AnimatePresence>
+        {selected && (
+          <motion.div
+            key="detail-panel"
+            initial={{ x: 60, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 60, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="w-full min-w-0 flex-1 overflow-y-auto rounded-xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-[#1a1a1a] dark:ring-white/5"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            Back to list
-          </button>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-800">{selected.internalCode}</h2>
-            <div className="flex items-center gap-2">
+            <div className="p-5">
+              {/* Mobile back */}
               <button
-                onClick={() => setConfirmDelete(selected)}
-                disabled={!isAdmin}
-                className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                onClick={() => setSelected(null)}
+                className="mb-3 flex items-center gap-1.5 text-sm text-medium-gray hover:text-black md:hidden"
               >
-                Delete
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                Back to list
               </button>
-              <button
-                onClick={() => openEdit(selected)}
-                disabled={!isAdmin}
-                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Edit
-              </button>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-          </div>
 
-          {/* Badges */}
-          <div className="mb-4 flex flex-wrap gap-2">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLE[selected.caseStatus ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>{selected.caseStatus ?? '—'}</span>
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISK_STYLE[selected.currentRiskLevel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>{selected.currentRiskLevel ?? '—'} Risk</span>
-          </div>
-
-          <dl className="space-y-3 text-sm">
-            {[
-              ['Case Control No', selected.caseControlNo],
-              ['Age', calcAge(selected.dateOfBirth)],
-              ['Safehouse', `SH-${selected.safehouseId ?? '?'}`],
-              ['Case Category', selected.caseCategory],
-              ['Reintegration Status', selected.reintegrationStatus],
-              ['Date of Admission', fmtDate(selected.dateOfAdmission)],
-              ['Social Worker', selected.assignedSocialWorker],
-              ['Referral Source', selected.referralSource],
-              ['Reintegration Type', selected.reintegrationType],
-            ].map(([label, value]) => value && (
-              <div key={label} className="flex justify-between gap-4">
-                <dt className="text-gray-400 shrink-0">{label}</dt>
-                <dd className="text-right font-medium text-gray-700">{value}</dd>
-              </div>
-            ))}
-          </dl>
-
-          {/* Sub-categories */}
-          {subCategories(selected).length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold text-gray-400">CASE FLAGS</p>
-              <div className="flex flex-wrap gap-1.5">
-                {subCategories(selected).map((c) => (
-                  <span key={c as string} className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">{c}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Predicted Readiness */}
-          {(() => {
-            const selectedReadiness = riskScores.find((r) => r.residentId === selected?.residentId)
-            return selectedReadiness ? (
-              <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3">
-                <p className="mb-2 text-xs font-semibold text-gray-400">PREDICTED INCIDENT RISK</p>
+              {/* Header */}
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-base font-semibold text-gray-800 dark:text-white">{selected.internalCode}</h2>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_STYLE[selected.caseStatus ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>{selected.caseStatus ?? '—'}</span>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${RISK_STYLE[selected.currentRiskLevel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>{selected.currentRiskLevel ?? '—'} Risk</span>
+                </div>
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${PREDICTED_RISK_STYLE[selectedReadiness.riskLabel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
-                    {selectedReadiness.riskLabel ?? '—'}
-                  </span>
-                  {selectedReadiness.incidentRiskScore != null && (
-                    <span className="text-sm font-medium text-gray-700">
-                      {Math.round(selectedReadiness.incidentRiskScore * 100)}% risk
-                    </span>
+                  <button onClick={() => setConfirmDelete(selected)} disabled={!isAdmin} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40 dark:border-red-900 dark:bg-transparent dark:text-red-400">Delete</button>
+                  <button onClick={() => openEdit(selected)} disabled={!isAdmin} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 dark:border-[#444] dark:bg-transparent dark:text-gray-300">Edit</button>
+                  <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3-column grid */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+                {/* Col 1: Core details */}
+                <div className="rounded-lg bg-gray-50 p-4 dark:bg-[#222]">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Details</p>
+                  <dl className="space-y-2.5 text-sm">
+                    {([
+                      ['Case No', selected.caseControlNo],
+                      ['Age', calcAge(selected.dateOfBirth)],
+                      ['Safehouse', `SH-${selected.safehouseId ?? '?'}`],
+                      ['Category', selected.caseCategory],
+                      ['Reintegration', selected.reintegrationStatus],
+                      ['Admitted', fmtDate(selected.dateOfAdmission)],
+                      ['Social Worker', selected.assignedSocialWorker],
+                      ['Referral Source', selected.referralSource],
+                      ['Reint. Type', selected.reintegrationType],
+                    ] as [string, string | null | undefined][]).map(([label, value]) => value && (
+                      <div key={label} className="flex justify-between gap-2">
+                        <dt className="shrink-0 text-gray-400">{label}</dt>
+                        <dd className="text-right font-medium text-gray-700 dark:text-gray-200">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  {subCategories(selected).length > 0 && (
+                    <div className="mt-4">
+                      <p className="mb-2 text-xs font-semibold text-gray-400">CASE FLAGS</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {subCategories(selected).map((c) => (
+                          <span key={c as string} className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">{c}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {(() => {
+                    const rs = riskScores.find((r) => r.residentId === selected?.residentId)
+                    return rs ? (
+                      <div className="mt-4 rounded-lg bg-white px-3 py-2.5 dark:bg-[#1a1a1a]">
+                        <p className="mb-1.5 text-xs font-semibold text-gray-400">PREDICTED RISK</p>
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${PREDICTED_RISK_STYLE[rs.riskLabel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>{rs.riskLabel ?? '—'}</span>
+                          {rs.incidentRiskScore != null && <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{Math.round(rs.incidentRiskScore * 100)}%</span>}
+                        </div>
+                        {rs.topFactors && <p className="mt-1.5 text-xs text-gray-500"><span className="font-medium text-gray-600 dark:text-gray-400">Factors:</span> {rs.topFactors}</p>}
+                      </div>
+                    ) : null
+                  })()}
+
+                  {(selected.isPwd || selected.hasSpecialNeeds) && (
+                    <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2.5">
+                      <p className="text-xs font-semibold text-amber-700">Special Needs</p>
+                      {selected.isPwd && <p className="mt-1 text-xs text-amber-600">PWD: {selected.pwdType ?? 'Yes'}</p>}
+                      {selected.hasSpecialNeeds && <p className="text-xs text-amber-600">Diagnosis: {selected.specialNeedsDiagnosis ?? 'Noted'}</p>}
+                    </div>
                   )}
                 </div>
-                {selectedReadiness.topFactors && (
-                  <p className="mt-2 text-xs text-gray-500">
-                    <span className="font-medium text-gray-600">Top factors:</span> {selectedReadiness.topFactors}
-                  </p>
-                )}
-                <p className="mt-2 text-xs text-gray-400">Predictions generated by ML models &middot; Updated nightly</p>
-              </div>
-            ) : null
-          })()}
 
-          {/* PWD / Special needs */}
-          {(selected.isPwd || selected.hasSpecialNeeds) && (
-            <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3">
-              <p className="text-xs font-semibold text-amber-700">Special Needs</p>
-              {selected.isPwd && <p className="mt-1 text-xs text-amber-600">PWD: {selected.pwdType ?? 'Yes'}</p>}
-              {selected.hasSpecialNeeds && <p className="text-xs text-amber-600">Diagnosis: {selected.specialNeedsDiagnosis ?? 'Noted'}</p>}
-            </div>
-          )}
-
-          {/* Education Records */}
-          <div className="mt-4">
-            <button
-              onClick={() => setEduOpen(!eduOpen)}
-              className="flex w-full items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-left transition-colors hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]"
-            >
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">EDUCATION RECORDS ({eduRecords.length})</p>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-400 transition-transform ${eduOpen ? 'rotate-180' : ''}`}>
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-            {eduOpen && (
-              <div className="mt-2 space-y-3">
-                {eduRecords.length === 0 ? (
-                  <p className="px-1 text-xs text-gray-400">No education records found.</p>
-                ) : (
-                  eduRecords
-                    .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
-                    .map(rec => (
-                      <div key={rec.educationRecordId} className="rounded-lg border border-gray-100 bg-white px-4 py-3 dark:border-[#333] dark:bg-[#1a1a1a]">
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            rec.completionStatus === 'Completed' ? 'bg-green-100 text-green-700' :
-                            rec.completionStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                            'bg-gray-100 text-gray-500'
-                          }`}>{rec.completionStatus ?? '—'}</span>
-                        </div>
-                        <dl className="space-y-1.5 text-xs">
-                          {rec.educationLevel && <div className="flex justify-between"><dt className="text-gray-400">Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.educationLevel}</dd></div>}
-                          {rec.schoolName && <div className="flex justify-between"><dt className="text-gray-400">School</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.schoolName}</dd></div>}
-                          {rec.enrollmentStatus && <div className="flex justify-between"><dt className="text-gray-400">Enrollment</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.enrollmentStatus}</dd></div>}
-                          {rec.attendanceRate != null && <div className="flex justify-between"><dt className="text-gray-400">Attendance</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.attendanceRate.toFixed(1)}%</dd></div>}
-                          {rec.progressPercent != null && <div className="flex justify-between"><dt className="text-gray-400">Progress</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.progressPercent.toFixed(1)}%</dd></div>}
-                        </dl>
-                      </div>
-                    ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Health Records */}
-          <div className="mt-4">
-            <button
-              onClick={() => setHealthOpen(!healthOpen)}
-              className="flex w-full items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-left transition-colors hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]"
-            >
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">HEALTH RECORDS ({healthRecords.length})</p>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-400 transition-transform ${healthOpen ? 'rotate-180' : ''}`}>
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-            {healthOpen && (
-              <div className="mt-2 space-y-3">
-                {healthRecords.length === 0 ? (
-                  <p className="px-1 text-xs text-gray-400">No health records found.</p>
-                ) : (
-                  healthRecords
-                    .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
-                    .map(rec => (
-                      <div key={rec.healthRecordId} className="rounded-lg border border-gray-100 bg-white px-4 py-3 dark:border-[#333] dark:bg-[#1a1a1a]">
-                        <p className="mb-2 text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</p>
-                        <dl className="space-y-1.5 text-xs">
-                          {rec.generalHealthScore != null && <div className="flex justify-between"><dt className="text-gray-400">Health Score</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.generalHealthScore.toFixed(1)}</dd></div>}
-                          {rec.nutritionScore != null && <div className="flex justify-between"><dt className="text-gray-400">Nutrition</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.nutritionScore.toFixed(1)}</dd></div>}
-                          {rec.sleepQualityScore != null && <div className="flex justify-between"><dt className="text-gray-400">Sleep Quality</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.sleepQualityScore.toFixed(1)}</dd></div>}
-                          {rec.energyLevelScore != null && <div className="flex justify-between"><dt className="text-gray-400">Energy Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.energyLevelScore.toFixed(1)}</dd></div>}
-                          {(rec.heightCm != null || rec.weightKg != null) && (
-                            <div className="flex justify-between">
-                              <dt className="text-gray-400">Height / Weight</dt>
-                              <dd className="font-medium text-gray-600 dark:text-gray-300">
-                                {rec.heightCm != null ? `${rec.heightCm.toFixed(1)} cm` : '—'} / {rec.weightKg != null ? `${rec.weightKg.toFixed(1)} kg` : '—'}
-                              </dd>
+                {/* Col 2: Education Records */}
+                <div className="rounded-lg bg-gray-50 p-4 dark:bg-[#222]">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Education Records <span className="normal-case font-normal text-gray-300">({eduRecords.length})</span></p>
+                  {eduRecords.length === 0 ? (
+                    <p className="text-xs text-gray-400">No education records found.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {[...eduRecords]
+                        .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
+                        .map(rec => (
+                          <div key={rec.educationRecordId} className="rounded-lg border border-gray-100 bg-white px-3 py-2.5 dark:border-[#333] dark:bg-[#111]">
+                            <div className="mb-2 flex items-center justify-between">
+                              <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</span>
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${rec.completionStatus === 'Completed' ? 'bg-green-100 text-green-700' : rec.completionStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{rec.completionStatus ?? '—'}</span>
                             </div>
-                          )}
-                          {rec.bmi != null && <div className="flex justify-between"><dt className="text-gray-400">BMI</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.bmi.toFixed(1)}</dd></div>}
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            {rec.medicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Medical ✓</span>}
-                            {rec.dentalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Dental ✓</span>}
-                            {rec.psychologicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Psych ✓</span>}
+                            <dl className="space-y-1.5 text-xs">
+                              {rec.educationLevel && <div className="flex justify-between"><dt className="text-gray-400">Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.educationLevel}</dd></div>}
+                              {rec.schoolName && <div className="flex justify-between"><dt className="text-gray-400">School</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.schoolName}</dd></div>}
+                              {rec.enrollmentStatus && <div className="flex justify-between"><dt className="text-gray-400">Enrollment</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.enrollmentStatus}</dd></div>}
+                              {rec.attendanceRate != null && <div className="flex justify-between"><dt className="text-gray-400">Attendance</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.attendanceRate.toFixed(1)}%</dd></div>}
+                              {rec.progressPercent != null && <div className="flex justify-between"><dt className="text-gray-400">Progress</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.progressPercent.toFixed(1)}%</dd></div>}
+                            </dl>
                           </div>
-                        </dl>
-                      </div>
-                    ))
-                )}
+                        ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Col 3: Health Records */}
+                <div className="rounded-lg bg-gray-50 p-4 dark:bg-[#222]">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-400">Health Records <span className="normal-case font-normal text-gray-300">({healthRecords.length})</span></p>
+                  {healthRecords.length === 0 ? (
+                    <p className="text-xs text-gray-400">No health records found.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {[...healthRecords]
+                        .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
+                        .map(rec => (
+                          <div key={rec.healthRecordId} className="rounded-lg border border-gray-100 bg-white px-3 py-2.5 dark:border-[#333] dark:bg-[#111]">
+                            <p className="mb-2 text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</p>
+                            <dl className="space-y-1.5 text-xs">
+                              {rec.generalHealthScore != null && <div className="flex justify-between"><dt className="text-gray-400">Health Score</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.generalHealthScore.toFixed(1)}</dd></div>}
+                              {rec.nutritionScore != null && <div className="flex justify-between"><dt className="text-gray-400">Nutrition</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.nutritionScore.toFixed(1)}</dd></div>}
+                              {rec.sleepQualityScore != null && <div className="flex justify-between"><dt className="text-gray-400">Sleep Quality</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.sleepQualityScore.toFixed(1)}</dd></div>}
+                              {rec.energyLevelScore != null && <div className="flex justify-between"><dt className="text-gray-400">Energy Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.energyLevelScore.toFixed(1)}</dd></div>}
+                              {(rec.heightCm != null || rec.weightKg != null) && (
+                                <div className="flex justify-between">
+                                  <dt className="text-gray-400">Ht / Wt</dt>
+                                  <dd className="font-medium text-gray-600 dark:text-gray-300">{rec.heightCm != null ? `${rec.heightCm.toFixed(1)} cm` : '—'} / {rec.weightKg != null ? `${rec.weightKg.toFixed(1)} kg` : '—'}</dd>
+                                </div>
+                              )}
+                              {rec.bmi != null && <div className="flex justify-between"><dt className="text-gray-400">BMI</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.bmi.toFixed(1)}</dd></div>}
+                              <div className="flex flex-wrap gap-1.5 pt-1">
+                                {rec.medicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Medical ✓</span>}
+                                {rec.dentalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Dental ✓</span>}
+                                {rec.psychologicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Psych ✓</span>}
+                              </div>
+                            </dl>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ConfirmDialog
         open={confirmDelete !== null}

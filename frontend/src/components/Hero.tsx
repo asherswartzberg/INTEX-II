@@ -1,14 +1,10 @@
 import { useRef } from 'react'
-import { Link } from 'react-router'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import heroPoster from '../assets/3GirlsSmilingInHouse.png'
 import heroVideo from '../assets/1775513061936710.mp4'
 
 export default function Hero() {
-  const { isAuthenticated, authSession } = useAuth()
-  const isDonor = authSession.roles.includes('Donor')
-  const donateLink = isDonor ? '/donor' : isAuthenticated ? '/' : '/login'
   const ref = useRef(null)
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -57,12 +53,12 @@ export default function Hero() {
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-            <Link
-              to={donateLink}
+            <a
+              href="#donate"
               className="btn-wipe-light-grey rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:-translate-y-0.5"
             >
               Support our mission
-            </Link>
+            </a>
             <a
               href="#about"
               className="rounded-full border border-white/20 px-7 py-3 text-sm font-medium text-white transition-all hover:border-white/50"

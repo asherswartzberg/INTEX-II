@@ -20,7 +20,9 @@ public record AdminDashboardDto(
     IReadOnlyList<ResidentsBySafehouseDto> ActiveResidentsBySafehouse,
     IReadOnlyList<RecentDonationDto> RecentDonations,
     IReadOnlyList<UpcomingCaseConferenceDto> UpcomingCaseConferences,
-    IReadOnlyList<LatestSafehouseProgressDto> LatestMonthlyProgressBySafehouse);
+    IReadOnlyList<LatestSafehouseProgressDto> LatestMonthlyProgressBySafehouse,
+    int TotalSupporters,
+    int SupportersDonatedThisMonth);
 
 public record ResidentsBySafehouseDto(int SafehouseId, string? SafehouseName, string? SafehouseCode, int ActiveResidentCount);
 

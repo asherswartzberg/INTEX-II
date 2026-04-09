@@ -1,0 +1,29 @@
+{
+  "model_name": "donor_churn_classifier",
+  "model_version": "1.0.0",
+  "trained_at_utc": "2026-04-09T19:37:31.159935+00:00",
+  "best_algorithm": "Gradient Boosting",
+  "features": [
+    "supporter_type",
+    "relationship_type",
+    "region",
+    "country",
+    "acquisition_channel",
+    "frequency",
+    "total_value",
+    "avg_donation_value",
+    "max_donation_value",
+    "has_recurring",
+    "pct_recurring",
+    "donation_type_variety",
+    "channel_variety",
+    "campaigns_donated_to",
+    "avg_gap_days",
+    "tenure_days"
+  ],
+  "target": "is_at_risk",
+  "target_definition": "recency_days > 75th percentile of donor recency",
+  "num_training_rows": 48,
+  "num_test_rows": 12,
+  "cv_strategy": "RepeatedStratifiedKFold(n_splits=5, n_repeats=3)"
+}

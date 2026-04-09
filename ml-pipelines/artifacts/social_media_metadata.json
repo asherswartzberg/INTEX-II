@@ -1,0 +1,25 @@
+{
+  "model_name": "social_media_performance_predictor",
+  "model_version": "1.0.0",
+  "trained_at_utc": "2026-04-09T19:37:23.956328+00:00",
+  "best_algorithm": "Gradient Boosting",
+  "features": [
+    "platform",
+    "post_type",
+    "media_type",
+    "content_topic",
+    "sentiment_tone",
+    "day_of_week",
+    "post_hour",
+    "has_call_to_action",
+    "is_boosted",
+    "num_hashtags",
+    "caption_length",
+    "features_resident_story",
+    "mentions_count",
+    "boost_budget_php"
+  ],
+  "target": "donation_referrals",
+  "num_training_rows": 649,
+  "num_test_rows": 163
+}
