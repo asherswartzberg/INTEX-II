@@ -56,6 +56,8 @@ export interface AdminDashboardDto {
   recentDonations: RecentDonationDto[];
   upcomingCaseConferences: UpcomingCaseConferenceDto[];
   latestMonthlyProgressBySafehouse: LatestSafehouseProgressDto[];
+  totalSupporters: number;
+  supportersDonatedThisMonth: number;
 }
 
 export interface DonationTrendPointDto {

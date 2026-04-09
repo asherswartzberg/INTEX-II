@@ -136,11 +136,21 @@ public class AdminDashboardController : ControllerBase
                 .ToList();
         }
 
+        var totalSupporters = await _db.Supporters.AsNoTracking().CountAsync(cancellationToken);
+        var firstOfMonth = DateOnly.FromDateTime(new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1));
+        var supportersDonatedThisMonth = await _db.Donations.AsNoTracking()
+            .Where(d => d.DonationDate >= firstOfMonth && d.SupporterId != null)
+            .Select(d => d.SupporterId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
         return Ok(new AdminDashboardDto(
             totalActive,
             bySafehouse,
             recentDonations,
             upcomingConferences,
-            progress));
+            progress,
+            totalSupporters,
+            supportersDonatedThisMonth));
     }
 }

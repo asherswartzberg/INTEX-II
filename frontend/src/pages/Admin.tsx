@@ -8,6 +8,7 @@ import {
   fetchIncidentReports,
   fetchResidents,
   fetchSafehouses,
+  fetchSupporters,
   createIncidentReport,
   updateIncidentReport,
 } from '../apis'
@@ -16,9 +17,9 @@ import type { DonorRiskScore } from '../types/DonorRiskScore'
 import type { ResidentRiskScore } from '../types/ResidentRiskScore'
 import type { IncidentReport } from '../types/IncidentReport'
 import type { Resident } from '../types/Resident'
+import type { Supporter } from '../types/Supporter'
 import type { Safehouse } from '../types/Safehouse'
 import { useAuth } from '../context/AuthContext'
-import ConfirmDialog from '../components/ConfirmDialog'
 
 const SEVERITY_ORDER: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 }
 const INCIDENT_TYPES = ['Medical', 'Security', 'RunawayAttempt', 'Behavioral', 'SelfHarm', 'ConflictWithPeer', 'PropertyDamage']
@@ -72,12 +73,14 @@ export default function Admin() {
   const [residentRisks, setResidentRisks] = useState<ResidentRiskScore[]>([])
   const [incidents, setIncidents] = useState<IncidentReport[]>([])
   const [residents, setResidents] = useState<Resident[]>([])
+  const [supporters, setSupporters] = useState<Supporter[]>([])
   const [safehouses, setSafehouses] = useState<Safehouse[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null)
   const [confirmResolve, setConfirmResolve] = useState(false)
+  const [resolveResponseText, setResolveResponseText] = useState('')
   const [creatingIncident, setCreatingIncident] = useState(false)
   const [incidentForm, setIncidentForm] = useState<IncidentReport>(blankIncident())
   const [savingIncident, setSavingIncident] = useState(false)
@@ -91,8 +94,9 @@ export default function Admin() {
       fetchIncidentReports({ pageSize: 500 }).catch(() => [] as IncidentReport[]),
       fetchResidents({ pageSize: 500 }).catch(() => [] as Resident[]),
       fetchSafehouses().catch(() => [] as Safehouse[]),
+      fetchSupporters({ pageSize: 500 }).catch(() => [] as Supporter[]),
     ])
-      .then(([dash, dr, rr, inc, res, sh]) => {
+      .then(([dash, dr, rr, inc, res, sh, sup]) => {
         if (cancelled) return
         setDashboard(dash)
         setDonorRisks(dr)
@@ -100,6 +104,7 @@ export default function Admin() {
         setIncidents(inc)
         setResidents(res)
         setSafehouses(sh)
+        setSupporters(sup)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -115,11 +120,17 @@ export default function Admin() {
     return map
   }, [residents])
 
+  const validSupporterIds = useMemo(() => {
+    const ids = new Set<number>()
+    supporters.forEach(s => ids.add(s.supporterId))
+    return ids
+  }, [supporters])
+
   const highRiskDonors = useMemo(
     () => donorRisks
-      .filter(d => d.riskLabel === 'High Risk')
+      .filter(d => d.riskLabel === 'High Risk' && validSupporterIds.has(d.supporterId))
       .sort((a, b) => (b.churnRiskScore ?? 0) - (a.churnRiskScore ?? 0)),
-    [donorRisks],
+    [donorRisks, validSupporterIds],
   )
 
   const highRiskResidents = useMemo(
@@ -154,7 +165,7 @@ export default function Admin() {
         resolved: true,
         resolutionDate: todayISO(),
         description: selectedIncident.description ?? '',
-        responseTaken: selectedIncident.responseTaken ?? '',
+        responseTaken: resolveResponseText || selectedIncident.responseTaken || '',
         reportedBy: selectedIncident.reportedBy ?? '',
         followUpRequired: selectedIncident.followUpRequired ?? false,
       }
@@ -162,12 +173,13 @@ export default function Admin() {
       setIncidents(prev => prev.map(i => i.incidentId === selectedIncident.incidentId ? updated : i))
       setSelectedIncident(null)
       setConfirmResolve(false)
+      setResolveResponseText('')
     } catch (err) {
       console.error('Resolve failed', err)
     } finally {
       setSavingIncident(false)
     }
-  }, [selectedIncident])
+  }, [selectedIncident, resolveResponseText])
 
   const handleCreateIncident = useCallback(async () => {
     setSavingIncident(true)
@@ -222,6 +234,22 @@ export default function Admin() {
         <p className="mt-0.5 text-sm text-gray-400">Action items and risk alerts</p>
       </div>
 
+      {/* OKR banner */}
+      {(() => {
+        const pct = dashboard.totalSupporters > 0
+          ? Math.round((dashboard.supportersDonatedThisMonth / dashboard.totalSupporters) * 100)
+          : 0
+        return (
+          <div className="mb-4 flex items-center gap-4 rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+            <span className="text-3xl font-bold text-blue-600 dark:text-blue-400">{pct}%</span>
+            <div>
+              <p className="text-sm font-semibold text-gray-800 dark:text-white">Monthly Donor Engagement</p>
+              <p className="text-xs text-gray-400">{pct}% of donors contributed this month ({dashboard.supportersDonatedThisMonth} of {dashboard.totalSupporters})</p>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* KPI strip */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Link to="/admin/caseload" className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
@@ -233,7 +261,7 @@ export default function Admin() {
           <p className="mt-0.5 text-xs text-gray-400">Donors at Churn Risk</p>
         </button>
         <button onClick={() => document.getElementById('card-residents')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm text-left transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
-          <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{highRiskResidents.length}</p>
+          <p className="text-2xl font-bold text-red-600 dark:text-red-400">{highRiskResidents.length}</p>
           <p className="mt-0.5 text-xs text-gray-400">High-Risk Residents</p>
         </button>
         <button onClick={() => document.getElementById('card-incidents')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm text-left transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
@@ -309,7 +337,7 @@ export default function Admin() {
                       </p>
                       {r.topFactors && <p className="mt-1 text-xs text-gray-400 truncate">Factors: {r.topFactors}</p>}
                     </div>
-                    <span className="shrink-0 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-950 dark:text-orange-300">
+                    <span className="shrink-0 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">
                       {r.incidentRiskScore != null ? `${Math.round(r.incidentRiskScore * 100)}%` : 'High'}
                     </span>
                   </Link>
@@ -472,13 +500,33 @@ export default function Admin() {
       )}
 
       {/* Resolve Confirmation */}
-      <ConfirmDialog
-        open={confirmResolve}
-        title="Resolve incident"
-        message={`Are you sure you want to mark this ${selectedIncident?.incidentType ?? 'incident'} as resolved?`}
-        onConfirm={handleResolve}
-        onCancel={() => setConfirmResolve(false)}
-      />
+      {confirmResolve && selectedIncident && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => { setConfirmResolve(false); setResolveResponseText('') }}>
+          <div className="mx-4 w-full max-w-sm rounded-xl border border-gray-100 bg-white p-6 shadow-xl dark:bg-[#1a1a1a] dark:border-[#333]" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Resolve incident</h2>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Are you sure you want to mark this {selectedIncident.incidentType ?? 'incident'} as resolved?
+            </p>
+            <div className="mt-4">
+              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Response Taken</label>
+              <textarea
+                value={resolveResponseText}
+                onChange={e => setResolveResponseText(e.target.value)}
+                placeholder="Describe the response or actions taken..."
+                className="min-h-20 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"
+              />
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => { setConfirmResolve(false); setResolveResponseText('') }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-[#444] dark:text-gray-300 dark:hover:bg-[#222]">
+                Cancel
+              </button>
+              <button onClick={handleResolve} disabled={savingIncident} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60">
+                {savingIncident ? 'Resolving...' : 'Resolve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Incident Modal */}
       {creatingIncident && (
