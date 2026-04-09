@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(ffprobe \"/Users/gavinharris/Documents/IS 413/INTEX-II/frontend/src/assets/1775513061936710.mp4\")",
+      "Bash(ffmpeg -i '/Users/gavinharris/Documents/IS 413/INTEX-II/frontend/src/assets/1775513061936710.mp4' -vf scale=1920:1080 -c:v libx264 -crf 23 -preset fast -an -movflags faststart '/Users/gavinharris/Documents/IS 413/INTEX-II/frontend/src/assets/hero-video.mp4' -y)"
     ]
   }
 }
