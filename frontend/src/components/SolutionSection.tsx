@@ -3,7 +3,7 @@ import { motion, useScroll, useTransform, type MotionValue } from 'framer-motion
 import { useAnimateInView } from '../hooks/useAnimateInView'
 import girlsCircle from '../assets/lighthouseGirlsInCircle.jpg'
 import girlsLearning from '../assets/lighthouseGirlsOutsideLearning.jpg'
-import girlWriting from '../assets/490528890_720752160301656_5838193252817757157_n.jpg'
+import girlWriting from '../assets/girlWriting.jpg'
 import girlsPraying from '../assets/girlsPraying.jpg'
 
 const pillars = [
@@ -43,14 +43,28 @@ function PillarCard({ pillar, progress, index }: {
   progress: MotionValue<number>
   index: number
 }) {
-  const opacity = useTransform(progress, [0, 0.15, 0.85, 1], [0, 1, 1, 0])
-  const textY = useTransform(progress, [0, 0.15, 0.85, 1], [80, 0, 0, -80])
+  const opacity = useTransform(
+    progress,
+    index === 0 ? [0, 0.85, 1] : [0, 0.15, 0.85, 1],
+    index === 0 ? [1, 1, 0]   : [0, 1,    1,    0]
+  )
+  const textY = useTransform(
+    progress,
+    index === 0 ? [0, 0.85, 1]    : [0, 0.15, 0.85, 1],
+    index === 0 ? [0, 0, -80]     : [80, 0, 0, -80]
+  )
   const imageX = useTransform(
     progress,
-    [0, 0.2, 0.8, 1],
-    [index % 2 === 0 ? 40 : -40, 0, 0, index % 2 === 0 ? -20 : 20]
+    index === 0 ? [0, 0.8, 1] : [0, 0.2, 0.8, 1],
+    index === 0
+      ? [0, 0, index % 2 === 0 ? -20 : 20]
+      : [index % 2 === 0 ? 40 : -40, 0, 0, index % 2 === 0 ? -20 : 20]
   )
-  const imageScale = useTransform(progress, [0, 0.2, 0.8, 1], [0.8, 1, 1, 0.9])
+  const imageScale = useTransform(
+    progress,
+    index === 0 ? [0, 0.8, 1] : [0, 0.2, 0.8, 1],
+    index === 0 ? [1, 1, 0.9] : [0.8, 1, 1, 0.9]
+  )
 
   return (
     <motion.div style={{ opacity }} className="absolute inset-0 flex items-center px-16">

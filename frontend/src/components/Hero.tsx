@@ -1,6 +1,8 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import heroPoster from '../assets/490528890_720752160301656_5838193252817757157_n.jpg'
+import { useAuth } from '../context/AuthContext'
+import heroPoster from '../assets/3GirlsSmilingInHouse.png'
+import heroVideo from '../assets/1775513061936710.mp4'
 
 export default function Hero() {
   const ref = useRef(null)
@@ -25,7 +27,7 @@ export default function Hero() {
             className="h-full w-full object-cover"
             aria-hidden="true"
           >
-            <source src="/hero-video.mp4" type="video/mp4" />
+            <source src={heroVideo} type="video/mp4" />
           </video>
         </motion.div>
 

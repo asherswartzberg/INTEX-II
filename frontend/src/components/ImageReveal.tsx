@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import girlSmiling from '../assets/ok.webp'
+import girlSmiling from '../assets/girlSmilingInPark.png'
 
 export default function ImageReveal() {
   const ref = useRef(null)
@@ -35,11 +35,11 @@ export default function ImageReveal() {
 
           <motion.div
             style={{ opacity: textOpacity, y: textY }}
-            className="absolute inset-0 flex items-center justify-center px-8"
+            className="absolute inset-0 flex items-center justify-start px-12 md:px-20"
           >
-            <p className="max-w-2xl text-center font-display text-[clamp(1.5rem,4vw,3.5rem)] leading-[1.15] tracking-[-0.02em] text-white">
-              We create fun memories, we fight for justice,
-              and we acknowledge God in all we do.
+            <p className="max-w-2xl text-left font-display text-[clamp(1.5rem,4vw,3.5rem)] leading-[1.15] tracking-[-0.02em] text-white">
+              Every child deserves safety, healing,
+              and the chance to thrive.
             </p>
           </motion.div>
         </motion.div>
