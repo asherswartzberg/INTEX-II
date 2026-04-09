@@ -153,6 +153,10 @@ export default function Admin() {
         ...selectedIncident,
         resolved: true,
         resolutionDate: todayISO(),
+        description: selectedIncident.description ?? '',
+        responseTaken: selectedIncident.responseTaken ?? '',
+        reportedBy: selectedIncident.reportedBy ?? '',
+        followUpRequired: selectedIncident.followUpRequired ?? false,
       }
       await updateIncidentReport(selectedIncident.incidentId, updated)
       setIncidents(prev => prev.map(i => i.incidentId === selectedIncident.incidentId ? updated : i))
@@ -168,7 +172,15 @@ export default function Admin() {
   const handleCreateIncident = useCallback(async () => {
     setSavingIncident(true)
     try {
-      const created = await createIncidentReport(incidentForm)
+      const payload: IncidentReport = {
+        ...incidentForm,
+        description: incidentForm.description ?? '',
+        responseTaken: incidentForm.responseTaken ?? '',
+        reportedBy: incidentForm.reportedBy ?? '',
+        followUpRequired: incidentForm.followUpRequired ?? false,
+        resolved: incidentForm.resolved ?? false,
+      }
+      const created = await createIncidentReport(payload)
       setIncidents(prev => [...prev, created])
       setCreatingIncident(false)
       setIncidentForm(blankIncident())
@@ -581,7 +593,7 @@ export default function Admin() {
               </button>
               <button
                 onClick={handleCreateIncident}
-                disabled={savingIncident || !incidentForm.incidentType || !incidentForm.severity}
+                disabled={savingIncident || !incidentForm.residentId || !incidentForm.safehouseId || !incidentForm.incidentType || !incidentForm.severity}
                 className="rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
               >
                 {savingIncident ? 'Saving...' : 'Report Incident'}

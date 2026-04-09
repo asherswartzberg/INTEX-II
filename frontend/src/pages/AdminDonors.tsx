@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router'
-import { fetchSupporters } from '../apis/supportersApi'
-import { fetchDonationsForSupporter } from '../apis/supportersApi'
-import { deleteSupporter } from '../apis/supportersApi'
+import { fetchSupporters, createSupporter, updateSupporter, deleteSupporter, fetchDonationsForSupporter } from '../apis/supportersApi'
 import { fetchDonationAllocations, createDonationAllocation, updateDonationAllocation } from '../apis/donationAllocationsApi'
 import { fetchDonorRiskScores } from '../apis/donorRiskScoresApi'
 import type { Supporter } from '../types/Supporter'
@@ -10,6 +8,7 @@ import type { Donation } from '../types/Donation'
 import type { DonationAllocation } from '../types/DonationAllocation'
 import type { DonorRiskScore } from '../types/DonorRiskScore'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { useAuth } from '../context/AuthContext'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function initials(name: string | null) {
@@ -63,10 +62,32 @@ function allocColor(area: string | null) {
   return ALLOC_COLORS[area] ?? '#6b7280'
 }
 
+function blankSupporter(): Supporter {
+  return {
+    supporterId: 0,
+    supporterType: 'MonetaryDonor',
+    displayName: null,
+    organizationName: null,
+    firstName: null,
+    lastName: null,
+    relationshipType: 'Local',
+    region: null,
+    country: 'Chile',
+    email: null,
+    phone: null,
+    status: 'Active',
+    createdAt: null,
+    firstDonationDate: null,
+    acquisitionChannel: 'Website',
+  }
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 8
 
 export default function AdminDonors() {
+  const { authSession } = useAuth()
+  const isAdmin = authSession.roles.includes('Admin')
   const [searchParams, setSearchParams] = useSearchParams()
   const [supporters, setSupporters] = useState<Supporter[]>([])
   const [loadingList, setLoadingList] = useState(true)
@@ -82,6 +103,10 @@ export default function AdminDonors() {
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [donationPage, setDonationPage] = useState(1)
   const [confirmDelete, setConfirmDelete] = useState<Supporter | null>(null)
+  const [editing, setEditing] = useState<Supporter | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [formData, setFormData] = useState<Supporter>(blankSupporter())
+  const [saving, setSaving] = useState(false)
 
   const handleDelete = useCallback(async () => {
     if (!confirmDelete) return
@@ -95,6 +120,38 @@ export default function AdminDonors() {
       setConfirmDelete(null)
     }
   }, [confirmDelete, selected])
+
+  const openCreate = useCallback(() => {
+    setFormData(blankSupporter())
+    setCreating(true)
+    setEditing(null)
+  }, [])
+
+  const openEdit = useCallback((s: Supporter) => {
+    setFormData({ ...s })
+    setEditing(s)
+    setCreating(false)
+  }, [])
+
+  const handleSave = useCallback(async () => {
+    setSaving(true)
+    try {
+      if (editing) {
+        await updateSupporter(formData.supporterId, formData)
+        setSupporters(prev => prev.map(s => s.supporterId === formData.supporterId ? formData : s))
+        if (selected?.supporterId === formData.supporterId) setSelected(formData)
+        setEditing(null)
+      } else {
+        const created = await createSupporter(formData)
+        setSupporters(prev => [...prev, created])
+        setCreating(false)
+      }
+    } catch (err) {
+      console.error('Save failed', err)
+    } finally {
+      setSaving(false)
+    }
+  }, [editing, formData, selected])
 
   // Load supporter list
   useEffect(() => {
@@ -216,17 +273,27 @@ export default function AdminDonors() {
       <div className={`flex w-full flex-col border-r border-gray-100 bg-white md:w-[300px] md:shrink-0 ${selected ? 'hidden md:flex' : 'flex'}`}>
         {/* Search */}
         <div className="p-4 border-b border-gray-50">
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search supporters..."
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search supporters..."
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-800 placeholder-gray-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+            {isAdmin && (
+              <button
+                onClick={openCreate}
+                className="shrink-0 rounded-lg bg-[#111827] px-3 py-2 text-xs font-semibold text-white hover:bg-gray-800"
+              >
+                + New
+              </button>
+            )}
           </div>
           <div className="mt-3">
             <label htmlFor="donor-type-filter" className="mb-1 block text-xs font-medium text-gray-500">
@@ -349,17 +416,19 @@ export default function AdminDonors() {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  Edit
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(selected)}
-                  className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-                >
-                  Delete
-                </button>
-              </div>
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <button onClick={() => openEdit(selected)} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(selected)}
+                    className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Churn Risk Assessment */}
@@ -568,10 +637,85 @@ export default function AdminDonors() {
       <ConfirmDialog
         open={confirmDelete !== null}
         title="Delete supporter"
-        message={`Are you sure you want to delete ${confirmDelete?.organizationName ?? 'this supporter'}? This action cannot be undone.`}
+        message={`Are you sure you want to delete ${confirmDelete?.displayName ?? confirmDelete?.organizationName ?? 'this supporter'}? This will also remove any linked user account. This action cannot be undone.`}
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(null)}
       />
+
+      {/* Create / Edit Supporter Modal */}
+      {(creating || editing) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-[#1a1a1a]">
+            <h2 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">
+              {editing ? 'Edit Supporter' : 'New Supporter'}
+            </h2>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">First Name</label>
+                <input type="text" value={formData.firstName ?? ''} onChange={e => setFormData(prev => ({ ...prev, firstName: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Last Name</label>
+                <input type="text" value={formData.lastName ?? ''} onChange={e => setFormData(prev => ({ ...prev, lastName: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Display Name *</label>
+                <input type="text" value={formData.displayName ?? ''} onChange={e => setFormData(prev => ({ ...prev, displayName: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div className="col-span-2">
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Organization Name</label>
+                <input type="text" value={formData.organizationName ?? ''} onChange={e => setFormData(prev => ({ ...prev, organizationName: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Supporter Type</label>
+                <select value={formData.supporterType ?? ''} onChange={e => setFormData(prev => ({ ...prev, supporterType: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100">
+                  <option value="">Select...</option>
+                  {['MonetaryDonor', 'InKindDonor', 'Partner', 'Volunteer', 'Corporate', 'Foundation'].map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Status</label>
+                <select value={formData.status ?? ''} onChange={e => setFormData(prev => ({ ...prev, status: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100">
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Email</label>
+                <input type="email" value={formData.email ?? ''} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Phone</label>
+                <input type="text" value={formData.phone ?? ''} onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Region</label>
+                <input type="text" value={formData.region ?? ''} onChange={e => setFormData(prev => ({ ...prev, region: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Country</label>
+                <input type="text" value={formData.country ?? ''} onChange={e => setFormData(prev => ({ ...prev, country: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => { setCreating(false); setEditing(null) }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-[#444] dark:text-gray-300 dark:hover:bg-[#222]">
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !formData.displayName}
+                className="rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              >
+                {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Supporter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
