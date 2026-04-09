@@ -16,6 +16,7 @@ import AdminCaseload from './pages/AdminCaseload'
 import AdminCounseling from './pages/AdminCounseling'
 import AdminVisitations from './pages/AdminVisitations'
 import AdminSocialMedia from './pages/AdminSocialMedia'
+import AdminAnalytics from './pages/AdminAnalytics'
 import DonorDashboard from './pages/DonorDashboard'
 import { ThemeProvider } from './context/ThemeContext'
 
@@ -52,7 +53,8 @@ function App() {
               <Route path="counseling" element={<AdminCounseling />} />
               <Route path="visitations" element={<AdminVisitations />} />
               <Route path="social-media" element={<AdminSocialMedia />} />
-              <Route path="reports" element={<Navigate to="dashboard" replace />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="reports" element={<Navigate to="analytics" replace />} />
             </Route>
 
             {/* Donor portal */}
