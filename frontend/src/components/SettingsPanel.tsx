@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { QRCodeSVG } from 'qrcode.react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
-import { getApiBaseUrl } from '../apis/client'
 import {
   getTwoFactorStatus,
   enableTwoFactor,
