@@ -1,6 +1,5 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import { useAuth } from '../context/AuthContext'
 import heroPoster from '../assets/3GirlsSmilingInHouse.png'
 import heroVideo from '../assets/1775513061936710.mp4'
 
