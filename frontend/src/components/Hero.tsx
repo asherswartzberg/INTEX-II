@@ -1,10 +1,10 @@
-import { useRef } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
-import heroPoster from '../assets/3GirlsSmilingInHouse.png'
+import { useRef, useState } from 'react'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import heroVideo from '../assets/1775513061936710.mp4'
 
 export default function Hero() {
   const ref = useRef(null)
+  const [videoReady, setVideoReady] = useState(false)
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end start'],
@@ -22,7 +22,7 @@ export default function Hero() {
         <motion.div style={{ scale: videoScale }} className="absolute inset-0">
           <video
             autoPlay muted loop playsInline preload="auto"
-            poster={heroPoster}
+            onCanPlay={() => setVideoReady(true)}
             className="h-full w-full object-cover"
             aria-hidden="true"
           >
@@ -79,6 +79,27 @@ export default function Hero() {
             className="h-10 w-px bg-white/20"
           />
         </motion.div>
+
+        {/* Loading screen — covers hero until video is ready */}
+        <AnimatePresence>
+          {!videoReady && (
+            <motion.div
+              key="loader"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6 }}
+              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black"
+            >
+              <p className="font-display text-2xl tracking-widest text-white/60">FARO SAFEHOUSE</p>
+              <div className="mt-6 h-px w-24 overflow-hidden bg-white/10">
+                <motion.div
+                  animate={{ x: ['-100%', '200%'] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="h-full w-1/2 bg-white/50"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )
