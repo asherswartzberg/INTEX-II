@@ -326,33 +326,6 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
               </div>
             </section>
 
-              {/* Appearance */}
-              <section>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">Appearance</h3>
-                <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-white px-5 py-4 dark:bg-[#222] dark:border-[#333]">
-                  <div>
-                    <p className="text-sm font-medium text-black dark:text-white">Dark mode</p>
-                    <p className="mt-0.5 text-xs text-medium-gray">Preference is saved in a browser cookie.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={toggleTheme}
-                    role="switch"
-                    aria-checked={theme === 'dark'}
-                    aria-label="Toggle dark mode"
-                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ${
-                      theme === 'dark' ? '!bg-white' : '!bg-border'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 rounded-full shadow-sm transition-transform duration-200 ${
-                        theme === 'dark' ? 'translate-x-6 !bg-black' : 'translate-x-1 !bg-white'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </section>
-
               {/* Two-Factor Authentication */}
               <section>
                 <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">Two-Factor Authentication</h3>
@@ -497,7 +470,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                   <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-medium-gray">User Management</h3>
                   <button
                     onClick={() => (showForm ? (setShowForm(false), resetForm()) : openCreateForm())}
-                    className="rounded-lg !bg-[#333] px-4 py-2 text-xs font-semibold !text-white transition-all hover:!bg-[#555] hover:scale-105 active:scale-95"
+                    className="rounded-lg border border-black/10 bg-black px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-black/85 hover:shadow-md active:scale-95 dark:border-white/15 dark:!bg-gray-200 dark:!text-black dark:hover:!bg-gray-300"
                   >
                     {showForm ? 'Cancel' : '+ Create User'}
                   </button>
@@ -509,17 +482,17 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                       <h4 className="text-sm font-semibold text-black dark:text-white">
                         {editingUser ? 'Edit user' : 'Create user'}
                       </h4>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowForm(false)
-                          resetForm()
-                        }}
-                        className="text-xs font-medium text-medium-gray hover:text-black dark:hover:text-white"
-                      >
-                        Close
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowForm(false)
+                            resetForm()
+                          }}
+                          className="rounded-md px-2 py-1 text-xs font-medium text-medium-gray transition-colors hover:bg-off-white hover:text-black dark:hover:bg-[#2a2a2a] dark:hover:text-white"
+                        >
+                          Close
+                        </button>
+                      </div>
 
                     {formError && (
                       <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -558,21 +531,21 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                       className="mt-3 w-full rounded-lg border border-border bg-off-white px-3 py-2.5 text-sm dark:bg-[#111] dark:border-[#333] dark:text-white"
                     />
 
-                    <div className="mt-3 flex gap-2">
-                      {(['Admin', 'Staff'] as const).map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => setFormRole(r)}
-                          className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
-                            formRole === r
-                              ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
-                              : 'border-border text-medium-gray hover:border-gray-400 dark:border-[#333]'
-                          }`}
-                        >
-                          {r}
-                        </button>
-                      ))}
+                      <div className="mt-3 flex gap-2">
+                        {(['Admin', 'Staff'] as const).map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => setFormRole(r)}
+                            className={`flex-1 rounded-lg border py-2 text-sm font-medium transition-colors ${
+                              formRole === r
+                                ? 'border-black bg-black text-white shadow-sm dark:border-gray-200 dark:!bg-gray-200 dark:!text-black dark:hover:!bg-gray-300'
+                                : 'border-border bg-white text-medium-gray hover:border-gray-400 hover:bg-off-white dark:border-[#555] dark:bg-[#333] dark:text-gray-200 dark:hover:border-[#777] dark:hover:bg-[#3a3a3a] dark:hover:text-white'
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
                     </div>
 
                     {formRole === 'Staff' && (
@@ -608,7 +581,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="mt-4 w-full rounded-lg !bg-[#333] py-2.5 text-sm font-semibold !text-white transition-all hover:!bg-[#555] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60"
+                      className="mt-4 w-full rounded-lg border border-black/10 bg-black py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-black/85 hover:shadow-md active:scale-[0.99] disabled:opacity-60 dark:border-white/15 dark:!bg-gray-200 dark:!text-black dark:hover:!bg-gray-300"
                     >
                       {saving ? (editingUser ? 'Saving...' : 'Creating...') : editingUser ? 'Save Changes' : 'Create User'}
                     </button>
