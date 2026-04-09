@@ -104,13 +104,23 @@ export async function loginUser(
     if (text.includes('RequiresTwoFactor') || text.includes('requiresTwoFactor')) {
       throw new TwoFactorRequiredError()
     }
-    // Try to parse a friendly error from the response
-    let msg = 'Invalid email or password.'
+    // Check whether the email exists to give a precise error message
     try {
-      const data = JSON.parse(text)
-      msg = data?.detail ?? data?.title ?? data?.message ?? msg
-    } catch { /* not JSON */ }
-    throw new Error(msg)
+      const checkRes = await fetch(`${getApiBaseUrl()}/api/auth/check-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (checkRes.ok) {
+        const { exists } = await checkRes.json() as { exists: boolean }
+        throw new Error(exists ? 'Incorrect password.' : 'No account found with that email address.')
+      }
+    } catch (inner) {
+      if (inner instanceof Error && (inner.message === 'Incorrect password.' || inner.message === 'No account found with that email address.')) {
+        throw inner
+      }
+    }
+    throw new Error('Invalid email or password.')
   }
 }
 

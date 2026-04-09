@@ -3,6 +3,18 @@ import { apiRequest, type QueryParams } from "./client";
 
 const ROOT = "/api/EducationRecords";
 
+export interface EducationSummary {
+  totalRecords: number;
+  averageAttendanceRate: number | null;
+  averageProgressPercent: number | null;
+  enrollmentBreakdown: { status: string; count: number }[];
+  completionBreakdown: { status: string; count: number }[];
+}
+
+export function fetchEducationSummary(signal?: AbortSignal) {
+  return apiRequest<EducationSummary>(`${ROOT}/summary`, { method: "GET", signal });
+}
+
 export function fetchEducationRecordsForResident(
   residentId: number,
   signal?: AbortSignal,
