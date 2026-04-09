@@ -1,10 +1,13 @@
-import { useRef, useState } from 'react'
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import heroVideo from '../assets/1775513061936710.mp4'
+import { useRef } from 'react'
+import { motion, useScroll, useTransform } from 'framer-motion'
+import heroVideo from '../assets/hero-video.mp4'
 
-export default function Hero() {
+interface HeroProps {
+  onVideoReady: () => void
+}
+
+export default function Hero({ onVideoReady }: HeroProps) {
   const ref = useRef(null)
-  const [videoReady, setVideoReady] = useState(false)
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end start'],
@@ -13,7 +16,7 @@ export default function Hero() {
   const videoScale = useTransform(scrollYProgress, [0, 1], [1, 1.3])
   const textOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0])
   const textY = useTransform(scrollYProgress, [0, 0.5], [0, -80])
-  const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [0.35, 0.85])
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.6], [0, 0.75])
 
   return (
     <div ref={ref} className="relative h-[200vh]">
@@ -22,7 +25,7 @@ export default function Hero() {
         <motion.div style={{ scale: videoScale }} className="absolute inset-0">
           <video
             autoPlay muted loop playsInline preload="auto"
-            onCanPlay={() => setVideoReady(true)}
+            onCanPlay={onVideoReady}
             className="h-full w-full object-cover"
             aria-hidden="true"
           >
@@ -80,26 +83,6 @@ export default function Hero() {
           />
         </motion.div>
 
-        {/* Loading screen — shows until video is ready */}
-        <AnimatePresence>
-          {!videoReady && (
-            <motion.div
-              key="loader"
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
-              className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black"
-            >
-              <p className="font-display text-2xl tracking-widest text-white/60">FARO SAFEHOUSE</p>
-              <div className="mt-6 h-px w-24 overflow-hidden bg-white/10">
-                <motion.div
-                  animate={{ x: ['-100%', '200%'] }}
-                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
-                  className="h-full w-1/2 bg-white/50"
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   )
