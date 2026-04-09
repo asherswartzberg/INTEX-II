@@ -5,6 +5,8 @@ import type { SocialMediaPost } from '../types/SocialMediaPost'
 import type { SocialMediaRecommendation } from '../types/SocialMediaRecommendation'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+function splitWords(s: string | null | undefined): string { if (!s) return '—'; return s.replace(/([A-Z])/g, ' $1').trim() }
+
 
 function fmtNum(n: number | null) {
   if (n == null) return '—'
@@ -166,6 +168,7 @@ export default function AdminSocialMedia() {
   const [topRecs, setTopRecs] = useState<SocialMediaRecommendation[]>([])
   const [platformRecsMap, setPlatformRecsMap] = useState<Record<string, SocialMediaRecommendation[]>>({})
   const [explorePlatform, setExplorePlatform] = useState<string | null>(null)
+  const [showExplore, setShowExplore] = useState(false)
   const [recLoading, setRecLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [platformFilter, setPlatformFilter] = useState('All')
@@ -207,6 +210,57 @@ export default function AdminSocialMedia() {
     if (explorePlatform) return platformRecsMap[explorePlatform] ?? []
     return topRecs
   }, [topRecs, explorePlatform, platformRecsMap])
+
+  // Best hour to post for today's hero recommendation, derived from historical posts
+  const todayBestHour = useMemo(() => {
+    if (!todayRec) return null
+    const relevant = posts.filter(p =>
+      p.platform === todayRec.platform &&
+      p.dayOfWeek?.trim() === todayRec.dayOfWeek &&
+      p.postHour != null
+    )
+    if (relevant.length === 0) return null
+    const byHour: Record<number, { sum: number; count: number }> = {}
+    relevant.forEach(p => {
+      const h = p.postHour!
+      if (!byHour[h]) byHour[h] = { sum: 0, count: 0 }
+      byHour[h].count++
+      byHour[h].sum += p.engagementRate ?? 0
+    })
+    const best = Object.entries(byHour)
+      .map(([h, d]) => ({ hour: Number(h), avg: d.sum / d.count }))
+      .sort((a, b) => b.avg - a.avg)[0]
+    if (!best) return null
+    const h = best.hour
+    const suffix = h >= 12 ? 'pm' : 'am'
+    const display = h === 0 ? '12am' : h === 12 ? '12pm' : h > 12 ? `${h - 12}${suffix}` : `${h}${suffix}`
+    return display
+  }, [todayRec, posts])
+
+  // Pre-compute best hour per platform+day from historical posts
+  const bestHourMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    const byKey: Record<string, Record<number, { sum: number; count: number }>> = {}
+    posts.forEach(p => {
+      if (!p.platform || !p.dayOfWeek || p.postHour == null) return
+      const key = `${p.platform}|${p.dayOfWeek.trim()}`
+      if (!byKey[key]) byKey[key] = {}
+      const h = p.postHour
+      if (!byKey[key][h]) byKey[key][h] = { sum: 0, count: 0 }
+      byKey[key][h].count++
+      byKey[key][h].sum += p.engagementRate ?? 0
+    })
+    Object.entries(byKey).forEach(([key, hours]) => {
+      const best = Object.entries(hours)
+        .map(([h, d]) => ({ hour: Number(h), avg: d.sum / d.count }))
+        .sort((a, b) => b.avg - a.avg)[0]
+      if (!best) return
+      const h = best.hour
+      const suffix = h >= 12 ? 'pm' : 'am'
+      map[key] = h === 0 ? '12am' : h === 12 ? '12pm' : h > 12 ? `${h - 12}${suffix}` : `${h}${suffix}`
+    })
+    return map
+  }, [posts])
 
   const filtered = useMemo(() =>
     platformFilter === 'All' ? posts : posts.filter((p) => p.platform === platformFilter),
@@ -327,7 +381,7 @@ export default function AdminSocialMedia() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Social Media Analytics</h1>
         <p className="mt-0.5 text-sm text-gray-400">
-          Performance across all platforms{posts.length > 0 ? ` · ${posts.length} posts tracked` : ''}
+          Performance across all platforms{posts.length > 0 ? ` · ${posts.length} total posts` : ''}
         </p>
       </div>
 
@@ -460,27 +514,37 @@ export default function AdminSocialMedia() {
                             <PlatformIcon platform={todayRec.platform ?? ''} className="h-6 w-6 text-white" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Best post for {TODAY}</p>
-                            <p className="text-base font-bold text-white">{todayRec.platform}</p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="text-2xl font-bold text-white">{todayRec.predictedDonationReferrals?.toFixed(1) ?? '—'}</p>
-                            <p className="text-[10px] text-white/60">pred. referrals</p>
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/60">
+                              Best post for {TODAY}
+                            </p>
+                            <p className="text-base font-bold text-white">
+                              {todayRec.platform}{todayRec.mediaType ? ` · ${todayRec.mediaType}` : ''}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4 bg-white px-5 py-4 dark:bg-[#1a1a1a]">
                           <div className="flex-1">
                             <p className="text-base font-bold text-gray-900 dark:text-white">
-                              Post a {todayRec.postType?.toLowerCase()} about {todayRec.contentTopic}
+                              {splitWords(todayRec.postType)} about {splitWords(todayRec.contentTopic)}
                             </p>
-                            <div className="mt-2 flex flex-wrap gap-1.5">
-                              {[todayRec.mediaType, todayRec.dayOfWeek].filter(Boolean).map(tag => (
-                                <span key={tag} className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-[#2a2a2a] dark:text-gray-300">{tag}</span>
-                              ))}
-                              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-600 dark:bg-blue-950 dark:text-blue-300">
-                                {todayRec.predictedEngagementRate != null ? (todayRec.predictedEngagementRate * 100).toFixed(1) + '% engagement' : ''}
-                              </span>
+                            {todayBestHour && (
+                              <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                                Best time to post: {todayBestHour}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-4">
+                            <p className="text-sm font-semibold text-gray-400 dark:text-gray-500">Predicted:</p>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-gray-900 dark:text-white">{todayRec.predictedDonationReferrals?.toFixed(1) ?? '—'}</p>
+                              <p className="text-[10px] text-gray-400">referrals</p>
                             </div>
+                            {todayRec.predictedEngagementRate != null && (
+                              <div className="text-center">
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{(todayRec.predictedEngagementRate * 100).toFixed(1)}%</p>
+                                <p className="text-[10px] text-gray-400">engagement</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -489,8 +553,20 @@ export default function AdminSocialMedia() {
 
                   {/* ── Explore by platform ── */}
                   <div>
+                    <button
+                      onClick={() => { setShowExplore(v => !v); setExplorePlatform(null) }}
+                      className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:border-[#333] dark:bg-[#222] dark:text-gray-300 dark:hover:bg-[#2a2a2a]"
+                    >
+                      <span>Explore other posting options</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${showExplore ? 'rotate-180' : ''}`}>
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </button>
+
+                    {showExplore && (
+                    <div className="mt-3">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Explore by platform</p>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Filter by platform</p>
                       {platformStats.map(s => {
                         const brand = PLATFORM_BRAND[s.platform]
                         const isActive = explorePlatform === s.platform
@@ -527,20 +603,23 @@ export default function AdminSocialMedia() {
                               </div>
                               <div className="px-3 pt-2.5 pb-1">
                                 <p className="text-xs font-semibold leading-snug text-gray-800 dark:text-gray-200">
-                                  {r.postType?.toLowerCase()} about {r.contentTopic}
+                                  {splitWords(r.postType)} about {splitWords(r.contentTopic)}
                                 </p>
-                                <p className="mt-0.5 text-[10px] text-gray-400">{r.mediaType} · {r.dayOfWeek}</p>
+                                <p className="mt-0.5 text-[10px] text-gray-400">
+                                  {splitWords(r.mediaType)} · performs best on {r.dayOfWeek}'s
+                                  {(() => { const t = bestHourMap[`${r.platform}|${r.dayOfWeek}`]; return t ? ` at ${t}` : '' })()}
+                                </p>
                               </div>
                               <div className="grid grid-cols-2 divide-x divide-gray-100 border-t border-gray-100 dark:divide-[#333] dark:border-[#333]">
                                 <div className="px-2 py-1.5 text-center">
                                   <p className="text-xs font-bold text-green-600 dark:text-green-400">{r.predictedDonationReferrals?.toFixed(1) ?? '—'}</p>
-                                  <p className="text-[9px] text-gray-400">referrals</p>
+                                  <p className="text-[9px] text-gray-400">pred. referrals</p>
                                 </div>
                                 <div className="px-2 py-1.5 text-center">
                                   <p className="text-xs font-bold text-blue-600 dark:text-blue-400">
                                     {r.predictedEngagementRate != null ? (r.predictedEngagementRate * 100).toFixed(1) + '%' : '—'}
                                   </p>
-                                  <p className="text-[9px] text-gray-400">engagement</p>
+                                  <p className="text-[9px] text-gray-400">pred. engagement</p>
                                 </div>
                               </div>
                             </div>
@@ -549,8 +628,10 @@ export default function AdminSocialMedia() {
                     </div>
                     {explorePlatform && (
                       <p className="mt-2 text-[11px] text-gray-400">
-                        Showing top 3 for {explorePlatform} · <button onClick={() => setExplorePlatform(null)} className="underline hover:text-gray-600">clear</button>
+                        Showing top 3 for {explorePlatform} · <button onClick={() => setExplorePlatform(null)} className="underline hover:text-gray-600">show top 6 overall</button>
                       </p>
+                    )}
+                    </div>
                     )}
                   </div>
                 </div>
@@ -766,11 +847,11 @@ export default function AdminSocialMedia() {
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-1.5">
                             <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">
-                              {p.contentTopic ?? '—'}
+                              {splitWords(p.contentTopic)}
                             </span>
                             {p.postType && (
                               <span className="rounded-full bg-gray-200 px-2 py-0.5 text-[10px] text-gray-500 dark:bg-[#333] dark:text-gray-400">
-                                {p.postType}
+                                {splitWords(p.postType)}
                               </span>
                             )}
                             {p.isBoosted && (
