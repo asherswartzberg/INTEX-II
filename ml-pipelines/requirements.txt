@@ -1,0 +1,27 @@
+# requirements.txt — Python dependencies for ML pipeline scripts
+# Install with: pip install -r requirements.txt
+
+# Core data science
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Machine learning
+scikit-learn>=1.3.0
+joblib>=1.3.0
+
+# Statistical helpers (VIF, Durbin-Watson, Breusch-Pagan in notebooks)
+statsmodels>=0.14.0
+
+# Scientific computing (Q-Q plots, bivariate tests in notebooks)
+scipy>=1.10.0
+
+# Database connectivity
+sqlalchemy>=2.0.0
+pyodbc>=4.0.39
+
+# Visualisation (notebooks only — not needed for scripts)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Jupyter kernel (required by VS Code to run notebook cells)
+ipykernel>=6.20.0
