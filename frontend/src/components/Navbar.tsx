@@ -129,7 +129,7 @@ export default function Navbar() {
           </li>
           <li>
             <Link
-              to={isDonor ? '/donor' : '/login'}
+              to={isAdminOrStaff ? '/admin/donors' : isDonor ? '/donor' : '/login'}
               className={`btn-wipe rounded-full px-5 py-2 text-[15px] font-semibold transition-all duration-300 ${
                 scrolled ? 'bg-black text-white' : 'bg-white text-black'
               }`}
@@ -204,7 +204,7 @@ export default function Navbar() {
               </Link>
             )}
             <Link
-              to={isDonor ? '/donor' : '/login'}
+              to={isAdminOrStaff ? '/admin/donors' : isDonor ? '/donor' : '/login'}
               onClick={() => setMenuOpen(false)}
               className="mt-6 rounded-full bg-white px-8 py-3 text-sm font-semibold text-black"
             >

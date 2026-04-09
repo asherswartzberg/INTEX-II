@@ -118,11 +118,12 @@ export default function SolutionSection() {
       {/* ─── Desktop: sticky scroll ─── */}
       <section
         ref={containerRef}
-        id="work"
         aria-labelledby="solution-heading-desktop"
         className="relative hidden bg-off-white xl:block"
         style={{ height: `${(pillars.length + 1) * 100}vh` }}
       >
+        {/* Anchor positioned where card 01 is fully visible, not at the blank section start */}
+        <div id="work" aria-hidden="true" className="absolute pointer-events-none" style={{ top: '40vh' }} />
         <div className="sticky top-0 flex h-screen flex-col overflow-hidden">
           <div className="flex items-end justify-between px-16 pt-28">
             <div>
