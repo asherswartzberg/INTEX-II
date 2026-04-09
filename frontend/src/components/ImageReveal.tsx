@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import girlSmiling from '../assets/girlSmilingInPark.png'
+import girlSmiling from '../assets/girlSmilingInPark.jpg'
 
 export default function ImageReveal() {
   const ref = useRef(null)

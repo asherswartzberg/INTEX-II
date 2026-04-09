@@ -18,12 +18,18 @@ export default function Hero() {
   return (
     <div ref={ref} className="relative h-[200vh]">
       <div className="sticky top-0 h-screen overflow-hidden">
-        {/* Video — zooms on scroll */}
+        {/* Fallback poster — always visible until video is ready */}
+        <div className="absolute inset-0">
+          <img src={heroPoster} alt="" className="h-full w-full object-cover" aria-hidden="true" />
+        </div>
+
+        {/* Video — fades in once it can play */}
         <motion.div style={{ scale: videoScale }} className="absolute inset-0">
           <video
             autoPlay muted loop playsInline preload="auto"
             onCanPlay={() => setVideoReady(true)}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-opacity duration-700"
+            style={{ opacity: videoReady ? 1 : 0 }}
             aria-hidden="true"
           >
             <source src={heroVideo} type="video/mp4" />
