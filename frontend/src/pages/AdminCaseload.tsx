@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'react-router'
 import { createResident, deleteResident, fetchResidents, updateResident } from '../apis/residentsApi'
 import { fetchResidentRiskScores } from '../apis/residentRiskScoresApi'
 import { fetchEducationRecordsForResident } from '../apis/educationRecordsApi'
@@ -12,12 +13,12 @@ import { useAuth } from '../context/AuthContext'
 
 const RISK_STYLE: Record<string, string> = {
   Critical: 'bg-red-100 text-red-700',
-  High: 'bg-orange-100 text-orange-700',
-  Medium: 'bg-yellow-100 text-yellow-700',
+  High: 'bg-red-100 text-red-700',
+  Medium: 'bg-amber-100 text-amber-700',
   Low: 'bg-green-100 text-green-700',
 }
 
-const INCIDENT_RISK_STYLE: Record<string, string> = {
+const PREDICTED_RISK_STYLE: Record<string, string> = {
   'Low Risk': 'bg-green-100 text-green-700',
   'Moderate Risk': 'bg-amber-100 text-amber-700',
   'High Risk': 'bg-red-100 text-red-700',
@@ -99,6 +100,7 @@ function blankResident(): Resident {
 export default function AdminCaseload() {
   const { authSession } = useAuth()
   const isAdmin = authSession.roles.includes('Admin')
+  const [searchParams, setSearchParams] = useSearchParams()
   const [residents, setResidents] = useState<Resident[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -118,10 +120,25 @@ export default function AdminCaseload() {
   const [healthRecords, setHealthRecords] = useState<HealthWellbeingRecord[]>([])
   const [eduOpen, setEduOpen] = useState(false)
   const [healthOpen, setHealthOpen] = useState(false)
+  const [sortByRisk, setSortByRisk] = useState(() => searchParams.get('sort') === 'predictedRisk')
 
   useEffect(() => {
     fetchResidentRiskScores().then(setRiskScores).catch(console.error)
   }, [])
+
+  // Auto-select resident from URL query param
+  const autoSelectIdRef = React.useRef(searchParams.get('resident'))
+  useEffect(() => {
+    const rid = autoSelectIdRef.current
+    if (rid && residents.length > 0) {
+      const found = residents.find(r => r.residentId === Number(rid))
+      if (found) {
+        setSelected(found)
+        autoSelectIdRef.current = null
+        setSearchParams(prev => { prev.delete('resident'); return prev }, { replace: true })
+      }
+    }
+  }, [residents, setSearchParams])
 
   useEffect(() => {
     if (!selected) {
@@ -181,7 +198,20 @@ export default function AdminCaseload() {
     void refreshResidents()
   }, [refreshResidents])
 
-  const filtered = residents
+  const riskScoreMap = useMemo(() => {
+    const m = new Map<number, ResidentRiskScore>()
+    riskScores.forEach(rs => m.set(rs.residentId, rs))
+    return m
+  }, [riskScores])
+
+  const filtered = useMemo(() => {
+    if (!sortByRisk) return residents
+    return [...residents].sort((a, b) => {
+      const sa = riskScoreMap.get(a.residentId)?.incidentRiskScore ?? -1
+      const sb = riskScoreMap.get(b.residentId)?.incidentRiskScore ?? -1
+      return sb - sa
+    })
+  }, [residents, sortByRisk, riskScoreMap])
 
   const safehouseOptions = useMemo(
     () =>
@@ -320,6 +350,17 @@ export default function AdminCaseload() {
               {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
 
+            <button
+              onClick={() => { setSortByRisk(prev => !prev); setPage(1) }}
+              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                sortByRisk
+                  ? 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-600 dark:bg-orange-950 dark:text-orange-300'
+                  : 'border-border bg-white text-gray-600 hover:bg-gray-50 dark:border-[#333] dark:bg-[#111] dark:text-gray-300'
+              }`}
+            >
+              {sortByRisk ? 'Sorted by Risk ↓' : 'Sort by Risk'}
+            </button>
+
             <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">{filtered.length} records</span>
           </div>
         </div>
@@ -336,9 +377,11 @@ export default function AdminCaseload() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-white dark:bg-[#1a1a1a]">
                 <tr className="border-b border-gray-100 dark:border-[#333]">
-                  {['CASE NO', 'CODE', 'SAFEHOUSE', 'STATUS', 'RISK LEVEL', 'INCIDENT RISK', 'CATEGORY', 'ADMITTED', 'SOCIAL WORKER'].map((h) => (
-                    <th key={h} scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">
-                      {h}
+                  {['CASE NO', 'CODE', 'SAFEHOUSE', 'STATUS', 'CURRENT RISK', 'PREDICTED RISK', 'CATEGORY', 'ADMITTED', 'SOCIAL WORKER'].map((h) => (
+                    <th key={h} scope="col" className={`px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400 ${h === 'PREDICTED RISK' ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200' : ''}`}
+                      onClick={h === 'PREDICTED RISK' ? () => { setSortByRisk(prev => !prev); setPage(1) } : undefined}
+                    >
+                      {h}{h === 'PREDICTED RISK' ? (sortByRisk ? ' ↓' : '') : ''}
                     </th>
                   ))}
                 </tr>
@@ -371,7 +414,7 @@ export default function AdminCaseload() {
                           const rs = riskScores.find((s) => s.residentId === r.residentId)
                           const label = rs?.riskLabel
                           return label ? (
-                            <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${INCIDENT_RISK_STYLE[label] ?? 'bg-gray-100 text-gray-500'}`}>
+                            <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${PREDICTED_RISK_STYLE[label] ?? 'bg-gray-100 text-gray-500'}`}>
                               {label}
                             </span>
                           ) : '—'
@@ -486,7 +529,7 @@ export default function AdminCaseload() {
               <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3">
                 <p className="mb-2 text-xs font-semibold text-gray-400">PREDICTED INCIDENT RISK</p>
                 <div className="flex items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${INCIDENT_RISK_STYLE[selectedReadiness.riskLabel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${PREDICTED_RISK_STYLE[selectedReadiness.riskLabel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
                     {selectedReadiness.riskLabel ?? '—'}
                   </span>
                   {selectedReadiness.incidentRiskScore != null && (

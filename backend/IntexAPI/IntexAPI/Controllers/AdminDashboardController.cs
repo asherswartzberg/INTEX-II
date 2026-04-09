@@ -67,14 +67,15 @@ public class AdminDashboardController : ControllerBase
             .Take(15)
             .ToListAsync(cancellationToken);
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var upcomingConferencesQuery = (
             from plan in _db.InterventionPlans.AsNoTracking()
-            where plan.CaseConferenceDate != null
+            where plan.CaseConferenceDate != null && plan.CaseConferenceDate >= today
             join r in _db.Residents.AsNoTracking() on plan.ResidentId equals r.ResidentId into rj
             from r in rj.DefaultIfEmpty()
             let residentSafehouseId = r.SafehouseId
             where isAdmin || residentSafehouseId == null || visibleSafehouseIds.Contains(residentSafehouseId.Value)
-            orderby plan.CaseConferenceDate descending
+            orderby plan.CaseConferenceDate ascending
             select new UpcomingCaseConferenceDto(
                 plan.PlanId,
                 plan.ResidentId,
