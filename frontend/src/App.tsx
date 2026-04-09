@@ -21,8 +21,8 @@ import { ThemeProvider } from './context/ThemeContext'
 
 function App() {
   return (
-    <ThemeProvider>
     <CookieConsentProvider>
+    <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
           <a href="#main-content" className="skip-link">Skip to main content</a>
@@ -69,8 +69,8 @@ function App() {
           <CookieConsentBanner />
         </BrowserRouter>
       </AuthProvider>
-    </CookieConsentProvider>
     </ThemeProvider>
+    </CookieConsentProvider>
   )
 }
 

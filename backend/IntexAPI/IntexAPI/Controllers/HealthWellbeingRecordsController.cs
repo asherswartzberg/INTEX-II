@@ -71,7 +71,8 @@ public class HealthWellbeingRecordsController : ControllerBase
         [FromBody] HealthWellbeingRecord entity,
         CancellationToken cancellationToken)
     {
-        entity.HealthRecordId = 0;
+        var maxId = await _db.HealthWellbeingRecords.MaxAsync(e => (int?)e.HealthRecordId, cancellationToken) ?? 0;
+        entity.HealthRecordId = maxId + 1;
         _db.HealthWellbeingRecords.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.HealthRecordId }, entity);

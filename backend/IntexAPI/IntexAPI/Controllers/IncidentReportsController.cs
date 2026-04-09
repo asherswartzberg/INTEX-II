@@ -86,7 +86,8 @@ public class IncidentReportsController : ControllerBase
         [FromBody] IncidentReport entity,
         CancellationToken cancellationToken)
     {
-        entity.IncidentId = 0;
+        var maxId = await _db.IncidentReports.MaxAsync(e => (int?)e.IncidentId, cancellationToken) ?? 0;
+        entity.IncidentId = maxId + 1;
         _db.IncidentReports.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.IncidentId }, entity);

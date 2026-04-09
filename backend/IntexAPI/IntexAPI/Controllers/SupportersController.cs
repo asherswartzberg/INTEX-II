@@ -72,7 +72,8 @@ public class SupportersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Supporter>> Create([FromBody] Supporter entity, CancellationToken cancellationToken)
     {
-        entity.SupporterId = 0;
+        var maxId = await _db.Supporters.MaxAsync(e => (int?)e.SupporterId, cancellationToken) ?? 0;
+        entity.SupporterId = maxId + 1;
         _db.Supporters.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.SupporterId }, entity);

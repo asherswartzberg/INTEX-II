@@ -16,6 +16,21 @@ export interface ExternalAuthProvider {
   displayName: string
 }
 
+export interface TwoFactorStatus {
+  sharedKey: string | null
+  recoveryCodesLeft: number
+  recoveryCodes: string[] | null
+  isTwoFactorEnabled: boolean
+  isMachineRemembered: boolean
+}
+
+export class TwoFactorRequiredError extends Error {
+  constructor() {
+    super('Two-factor authentication is required.')
+    this.name = 'TwoFactorRequiredError'
+  }
+}
+
 const anonymousSession: AuthSession = {
   isAuthenticated: false,
   userName: null,
@@ -63,6 +78,8 @@ export async function loginUser(
   email: string,
   password: string,
   rememberMe: boolean,
+  twoFactorCode?: string,
+  twoFactorRecoveryCode?: string,
 ): Promise<void> {
   const params = new URLSearchParams()
   if (rememberMe) {
@@ -71,15 +88,29 @@ export async function loginUser(
     params.set('useSessionCookies', 'true')
   }
 
+  const body: Record<string, string> = { email, password }
+  if (twoFactorCode) body.twoFactorCode = twoFactorCode
+  if (twoFactorRecoveryCode) body.twoFactorRecoveryCode = twoFactorRecoveryCode
+
   const res = await fetch(`${getApiBaseUrl()}/api/identity/login?${params}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(body),
   })
 
   if (!res.ok) {
-    throw new Error(await readApiError(res, 'Invalid email or password.'))
+    const text = await res.text().catch(() => '')
+    if (text.includes('RequiresTwoFactor') || text.includes('requiresTwoFactor')) {
+      throw new TwoFactorRequiredError()
+    }
+    // Try to parse a friendly error from the response
+    let msg = 'Invalid email or password.'
+    try {
+      const data = JSON.parse(text)
+      msg = data?.detail ?? data?.title ?? data?.message ?? msg
+    } catch { /* not JSON */ }
+    throw new Error(msg)
   }
 }
 
@@ -122,4 +153,41 @@ export async function getExternalProviders(): Promise<ExternalAuthProvider[]> {
 export function buildExternalLoginUrl(provider: string, returnPath = '/admin'): string {
   const params = new URLSearchParams({ provider, returnPath })
   return `${getApiBaseUrl()}/api/auth/external-login?${params}`
+}
+
+// ── Two-Factor Authentication ────────────────────────────
+
+async function postTwoFactorRequest(payload: object): Promise<TwoFactorStatus> {
+  const res = await fetch(`${getApiBaseUrl()}/api/identity/manage/2fa`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    throw new Error(await readApiError(res, 'Unable to update MFA settings.'))
+  }
+
+  return res.json()
+}
+
+export async function getTwoFactorStatus(): Promise<TwoFactorStatus> {
+  return postTwoFactorRequest({})
+}
+
+export async function enableTwoFactor(twoFactorCode: string): Promise<TwoFactorStatus> {
+  return postTwoFactorRequest({
+    enable: true,
+    twoFactorCode,
+    resetRecoveryCodes: true,
+  })
+}
+
+export async function disableTwoFactor(): Promise<TwoFactorStatus> {
+  return postTwoFactorRequest({ enable: false })
+}
+
+export async function resetRecoveryCodes(): Promise<TwoFactorStatus> {
+  return postTwoFactorRequest({ resetRecoveryCodes: true })
 }

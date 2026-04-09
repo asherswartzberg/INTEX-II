@@ -72,7 +72,9 @@ public class ProcessRecordingsController : ControllerBase
         [FromBody] ProcessRecording entity,
         CancellationToken cancellationToken)
     {
-        entity.RecordingId = 0;
+        var maxId = await _db.ProcessRecordings
+            .MaxAsync(r => (int?)r.RecordingId, cancellationToken) ?? 0;
+        entity.RecordingId = maxId + 1;
         _db.ProcessRecordings.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = entity.RecordingId }, entity);
