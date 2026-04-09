@@ -37,6 +37,7 @@ export default function Admin() {
   const [residentRisks, setResidentRisks] = useState<ResidentRiskScore[]>([])
   const [incidents, setIncidents] = useState<IncidentReport[]>([])
   const [residents, setResidents] = useState<Resident[]>([])
+
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 

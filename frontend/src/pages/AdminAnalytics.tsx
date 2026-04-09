@@ -11,6 +11,8 @@ import {
   fetchResidentOutcomes,
   fetchReintegrationSummary,
 } from '../apis'
+import { fetchEducationSummary } from '../apis/educationRecordsApi'
+import type { EducationSummary } from '../apis/educationRecordsApi'
 import { useAuth } from '../context/AuthContext'
 import type {
   AdminDashboardDto,
@@ -91,6 +93,7 @@ const DEFAULT_LAYOUTS = {
     { i: 'incidents', x: 1, y: 10, w: 1, h: 4, minH: 3 },
     { i: 'recent-donations', x: 2, y: 10, w: 1, h: 4, minH: 3 },
     { i: 'safehouse-performance', x: 0, y: 14, w: 3, h: 5, minH: 4 },
+    { i: 'education', x: 0, y: 19, w: 2, h: 5, minH: 4 },
   ],
   md: [
     { i: 'kpi', x: 0, y: 0, w: 2, h: 2 },
@@ -102,6 +105,7 @@ const DEFAULT_LAYOUTS = {
     { i: 'incidents', x: 1, y: 18, w: 1, h: 4 },
     { i: 'recent-donations', x: 0, y: 22, w: 2, h: 5 },
     { i: 'safehouse-performance', x: 0, y: 27, w: 2, h: 5, minH: 4 },
+    { i: 'education', x: 0, y: 32, w: 2, h: 5, minH: 4 },
   ],
   sm: [
     { i: 'kpi', x: 0, y: 0, w: 1, h: 2 },
@@ -113,6 +117,7 @@ const DEFAULT_LAYOUTS = {
     { i: 'incidents', x: 0, y: 22, w: 1, h: 4 },
     { i: 'recent-donations', x: 0, y: 26, w: 1, h: 5 },
     { i: 'safehouse-performance', x: 0, y: 31, w: 1, h: 6, minH: 4 },
+    { i: 'education', x: 0, y: 37, w: 1, h: 5, minH: 4 },
   ],
 }
 
@@ -308,6 +313,7 @@ export default function AdminAnalytics() {
   const [outcomes, setOutcomes] = useState<OutcomeTrendPointDto[]>([])
   const [performance, setPerformance] = useState<SafehousePerformanceDto[]>([])
   const [reintegration, setReintegration] = useState<ReintegrationStatusCountDto[]>([])
+  const [educationSummary, setEducationSummary] = useState<EducationSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -317,6 +323,7 @@ export default function AdminAnalytics() {
     'resident-health-trends': 'Resident Health Over Time',
     'recent-donations': 'Recent Donations',
     'safehouse-performance': 'Safehouse Performance', incidents: 'Incident History', reintegration: 'Reintegration', conferences: 'Conferences',
+    education: 'Education Overview',
   }
   const hiddenCookieKey = `analytics_hidden_${authSession.email ?? 'default'}`
   const [hiddenWidgets, setHiddenWidgets] = useState<Set<string>>(() => {
@@ -375,10 +382,11 @@ export default function AdminAnalytics() {
       fetchResidentOutcomes().catch(() => [] as OutcomeTrendPointDto[]),
       fetchSafehousePerformance().catch(() => [] as SafehousePerformanceDto[]),
       fetchReintegrationSummary().catch(() => [] as ReintegrationStatusCountDto[]),
+      fetchEducationSummary().catch(() => null),
     ])
-      .then(([d, allocs, inc, tr, out, perf, reint]) => {
+      .then(([d, allocs, inc, tr, out, perf, reint, edu]) => {
         if (cancelled) return
-        setData(d); setAllocations(allocs); setIncidents(inc); setTrends(tr); setOutcomes(out); setPerformance(perf); setReintegration(reint)
+        setData(d); setAllocations(allocs); setIncidents(inc); setTrends(tr); setOutcomes(out); setPerformance(perf); setReintegration(reint); setEducationSummary(edu)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -697,6 +705,94 @@ export default function AdminAnalytics() {
                     <span className="text-xs text-gray-500">{fmtDateFull(c.caseConferenceDate)}</span>
                   </div>
                 ))}
+              </div>
+            )}
+          </Widget>
+        </div>
+      ),
+    },
+    {
+      id: 'education',
+      element: (
+        <div key="education">
+          <Widget title="Education Overview">
+            {!educationSummary ? (
+              <p className="text-sm text-gray-400">No education data available.</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg bg-off-white px-3 py-3 text-center dark:bg-[#111]">
+                    <p className="text-xl font-bold text-gray-900 dark:text-white">{educationSummary.totalRecords}</p>
+                    <p className="mt-0.5 text-[10px] text-gray-400">Total Records</p>
+                  </div>
+                  <div className="rounded-lg bg-off-white px-3 py-3 text-center dark:bg-[#111]">
+                    <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      {educationSummary.averageAttendanceRate != null ? `${educationSummary.averageAttendanceRate}%` : '—'}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-gray-400">Avg Attendance</p>
+                  </div>
+                  <div className="rounded-lg bg-off-white px-3 py-3 text-center dark:bg-[#111]">
+                    <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                      {educationSummary.averageProgressPercent != null ? `${educationSummary.averageProgressPercent}%` : '—'}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-gray-400">Avg Progress</p>
+                  </div>
+                </div>
+
+                {educationSummary.averageProgressPercent != null && (
+                  <div>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Overall Progress</span>
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{educationSummary.averageProgressPercent}%</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-[#333]">
+                      <div className="h-2 rounded-full bg-green-500" style={{ width: `${Math.min(educationSummary.averageProgressPercent, 100)}%` }} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  {educationSummary.completionBreakdown.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Completion</p>
+                      <div className="space-y-1.5">
+                        {educationSummary.completionBreakdown.map(({ status, count }) => {
+                          const p = Math.round((count / educationSummary.totalRecords) * 100)
+                          const color = status === 'Completed' ? 'bg-green-500' : status === 'InProgress' ? 'bg-amber-500' : 'bg-gray-400'
+                          const label = status === 'InProgress' ? 'In Progress' : status === 'NotStarted' ? 'Not Started' : status
+                          return (
+                            <div key={status} className="flex items-center gap-2">
+                              <span className="w-20 truncate text-xs text-gray-600 dark:text-gray-300">{label}</span>
+                              <div className="flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-[#333]" style={{ height: 5 }}>
+                                <div className={`h-full rounded-full ${color}`} style={{ width: `${p}%` }} />
+                              </div>
+                              <span className="w-7 text-right text-xs text-gray-400">{count}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {educationSummary.enrollmentBreakdown.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Enrollment</p>
+                      <div className="space-y-1.5">
+                        {educationSummary.enrollmentBreakdown.map(({ status, count }) => {
+                          const p = Math.round((count / educationSummary.totalRecords) * 100)
+                          return (
+                            <div key={status} className="flex items-center gap-2">
+                              <span className="w-20 truncate text-xs text-gray-600 dark:text-gray-300">{status}</span>
+                              <div className="flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-[#333]" style={{ height: 5 }}>
+                                <div className="h-full rounded-full bg-blue-500" style={{ width: `${p}%` }} />
+                              </div>
+                              <span className="w-7 text-right text-xs text-gray-400">{count}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </Widget>
