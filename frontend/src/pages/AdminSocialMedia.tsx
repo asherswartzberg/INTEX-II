@@ -639,59 +639,6 @@ export default function AdminSocialMedia() {
             </div>
           </div>
 
-          {/* ── Platform hero cards ───────────────────────────────────────── */}
-          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
-            {platformStats.map((s) => {
-              const brand = PLATFORM_BRAND[s.platform]
-              const isSelected = platformFilter === s.platform
-              return (
-                <button
-                  key={s.platform}
-                  onClick={() => setPlatformFilter(isSelected ? 'All' : s.platform)}
-                  className="group overflow-hidden rounded-xl bg-white text-left shadow-sm transition-all hover:shadow-md dark:bg-[#1a1a1a]"
-                  style={{
-                    border: isSelected
-                      ? `2px solid ${brand?.hex ?? '#6b7280'}`
-                      : '1px solid #f3f4f6',
-                  }}
-                >
-                  {/* Brand color top bar */}
-                  <div className="h-1.5" style={{ backgroundColor: brand?.hex ?? '#94a3b8' }} />
-                  <div className="p-3">
-                    {/* Icon + name */}
-                    <div className="mb-2.5 flex items-center gap-2">
-                      <div
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
-                        style={{ backgroundColor: brand?.hex ?? '#94a3b8' }}
-                      >
-                        <PlatformIcon platform={s.platform} className="h-3.5 w-3.5 text-white" />
-                      </div>
-                      <span className="truncate text-xs font-bold text-gray-800 dark:text-gray-100">{s.platform}</span>
-                    </div>
-                    {/* Reach */}
-                    <p className="text-lg font-bold leading-tight text-gray-900 dark:text-white">{fmtNum(s.reach)}</p>
-                    <p className="text-[10px] text-gray-400">{s.count} posts</p>
-                    {/* Avg engagement */}
-                    <p className="mt-2 text-sm font-bold" style={{ color: brand?.hex ?? '#6b7280' }}>
-                      {(s.avgEngRate * 100).toFixed(1)}%
-                    </p>
-                    <p className="text-[10px] text-gray-400">avg engagement</p>
-                    {/* Sparkline */}
-                    <div className="mt-2">
-                      <Sparkline values={s.sparkline} color={brand?.hex ?? '#94a3b8'} />
-                    </div>
-                    {s.referrals > 0 && (
-                      <p className="mt-1 text-[10px] font-semibold text-green-600 dark:text-green-400">
-                        {s.referrals} referrals
-                      </p>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-
           {/* ── Heatmap + Content mix ─────────────────────────────────────── */}
           <div className="mb-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
             {/* Best time to post heatmap */}
@@ -805,6 +752,38 @@ export default function AdminSocialMedia() {
                 </div>
               )}
             </Widget>
+          </div>
+
+          {/* ── Platform hero cards ───────────────────────────────────────── */}
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+            {platformStats.map((s) => {
+              const brand = PLATFORM_BRAND[s.platform]
+              const isSelected = platformFilter === s.platform
+              return (
+                <button
+                  key={s.platform}
+                  onClick={() => setPlatformFilter(isSelected ? 'All' : s.platform)}
+                  className="group overflow-hidden rounded-xl bg-white text-left shadow-sm transition-all hover:shadow-md dark:bg-[#1a1a1a]"
+                  style={{ border: isSelected ? `2px solid ${brand?.hex ?? '#6b7280'}` : '1px solid #f3f4f6' }}
+                >
+                  <div className="h-1.5" style={{ backgroundColor: brand?.hex ?? '#94a3b8' }} />
+                  <div className="p-3">
+                    <div className="mb-2.5 flex items-center gap-2">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: brand?.hex ?? '#94a3b8' }}>
+                        <PlatformIcon platform={s.platform} className="h-3.5 w-3.5 text-white" />
+                      </div>
+                      <span className="truncate text-xs font-bold text-gray-800 dark:text-gray-100">{s.platform}</span>
+                    </div>
+                    <p className="text-lg font-bold leading-tight text-gray-900 dark:text-white">{fmtNum(s.reach)}</p>
+                    <p className="text-[10px] text-gray-400">{s.count} posts</p>
+                    <p className="mt-2 text-sm font-bold" style={{ color: brand?.hex ?? '#6b7280' }}>{(s.avgEngRate * 100).toFixed(1)}%</p>
+                    <p className="text-[10px] text-gray-400">avg engagement</p>
+                    <div className="mt-2"><Sparkline values={s.sparkline} color={brand?.hex ?? '#94a3b8'} /></div>
+                    {s.referrals > 0 && <p className="mt-1 text-[10px] font-semibold text-green-600 dark:text-green-400">{s.referrals} referrals</p>}
+                  </div>
+                </button>
+              )
+            })}
           </div>
 
           {/* ── Top posts ─────────────────────────────────────────────────── */}
