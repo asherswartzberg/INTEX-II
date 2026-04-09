@@ -1,11 +1,15 @@
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
+import { Link } from 'react-router'
 import { motion, useScroll, useTransform } from 'framer-motion'
+import { useAuth } from '../context/AuthContext'
 import heroPoster from '../assets/placeholder.jpg'
 import heroVideo from '../assets/1775513061936710.mp4'
 
 export default function Hero() {
+  const { isAuthenticated, authSession } = useAuth()
+  const isDonor = authSession.roles.includes('Donor')
+  const donateLink = isDonor ? '/donor' : isAuthenticated ? '/' : '/login'
   const ref = useRef(null)
-  const [videoReady, setVideoReady] = useState(false)
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ['start start', 'end start'],
@@ -19,18 +23,12 @@ export default function Hero() {
   return (
     <div ref={ref} className="relative h-[200vh]">
       <div className="sticky top-0 h-screen overflow-hidden">
-        {/* Fallback poster — always visible until video is ready */}
-        <div className="absolute inset-0">
-          <img src={heroPoster} alt="" className="h-full w-full object-cover" aria-hidden="true" />
-        </div>
-
-        {/* Video — fades in once it can play */}
+        {/* Video — zooms on scroll */}
         <motion.div style={{ scale: videoScale }} className="absolute inset-0">
           <video
             autoPlay muted loop playsInline preload="auto"
-            onCanPlay={() => setVideoReady(true)}
-            className="h-full w-full object-cover transition-opacity duration-700"
-            style={{ opacity: videoReady ? 1 : 0 }}
+            poster={heroPoster}
+            className="h-full w-full object-cover"
             aria-hidden="true"
           >
             <source src={heroVideo} type="video/mp4" />
@@ -59,12 +57,12 @@ export default function Hero() {
           </p>
 
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
-            <a
-              href="#donate"
+            <Link
+              to={donateLink}
               className="btn-wipe-light-grey rounded-full bg-white px-7 py-3 text-sm font-semibold text-black transition-all hover:-translate-y-0.5"
             >
               Support our mission
-            </a>
+            </Link>
             <a
               href="#about"
               className="rounded-full border border-white/20 px-7 py-3 text-sm font-medium text-white transition-all hover:border-white/50"
