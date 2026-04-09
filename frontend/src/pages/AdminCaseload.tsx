@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { createResident, deleteResident, fetchResidents, updateResident } from '../apis/residentsApi'
 import { fetchResidentRiskScores } from '../apis/residentRiskScoresApi'
+import { fetchEducationRecordsForResident } from '../apis/educationRecordsApi'
+import { fetchHealthRecordsForResident } from '../apis/healthWellbeingRecordsApi'
 import type { Resident } from '../types/Resident'
 import type { ResidentRiskScore } from '../types/ResidentRiskScore'
+import type { EducationRecord } from '../types/EducationRecord'
+import type { HealthWellbeingRecord } from '../types/HealthWellbeingRecord'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { useAuth } from '../context/AuthContext'
 
@@ -110,10 +114,26 @@ export default function AdminCaseload() {
   const [creating, setCreating] = useState(false)
   const [formData, setFormData] = useState<Resident>(blankResident())
   const [riskScores, setRiskScores] = useState<ResidentRiskScore[]>([])
+  const [eduRecords, setEduRecords] = useState<EducationRecord[]>([])
+  const [healthRecords, setHealthRecords] = useState<HealthWellbeingRecord[]>([])
+  const [eduOpen, setEduOpen] = useState(false)
+  const [healthOpen, setHealthOpen] = useState(false)
 
   useEffect(() => {
     fetchResidentRiskScores().then(setRiskScores).catch(console.error)
   }, [])
+
+  useEffect(() => {
+    if (!selected) {
+      setEduRecords([])
+      setHealthRecords([])
+      setEduOpen(false)
+      setHealthOpen(false)
+      return
+    }
+    fetchEducationRecordsForResident(selected.residentId).then(setEduRecords).catch(() => setEduRecords([]))
+    fetchHealthRecordsForResident(selected.residentId).then(setHealthRecords).catch(() => setHealthRecords([]))
+  }, [selected?.residentId])
 
   const selectedRef = React.useRef(selected)
   selectedRef.current = selected
@@ -333,7 +353,7 @@ export default function AdminCaseload() {
                       onClick={() => setSelected(r)}
                       className={`cursor-pointer transition-colors hover:bg-off-white dark:hover:bg-[#222] ${selected?.residentId === r.residentId ? 'bg-off-white dark:bg-[#262626]' : ''}`}
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">{r.caseControlNo ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{r.caseControlNo ?? '—'}</td>
                       <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-100">{r.internalCode ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400">SH-{r.safehouseId ?? '?'}</td>
                       <td className="px-4 py-3">
@@ -493,6 +513,96 @@ export default function AdminCaseload() {
               {selected.hasSpecialNeeds && <p className="text-xs text-amber-600">Diagnosis: {selected.specialNeedsDiagnosis ?? 'Noted'}</p>}
             </div>
           )}
+
+          {/* Education Records */}
+          <div className="mt-4">
+            <button
+              onClick={() => setEduOpen(!eduOpen)}
+              className="flex w-full items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-left transition-colors hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]"
+            >
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">EDUCATION RECORDS ({eduRecords.length})</p>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-400 transition-transform ${eduOpen ? 'rotate-180' : ''}`}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {eduOpen && (
+              <div className="mt-2 space-y-3">
+                {eduRecords.length === 0 ? (
+                  <p className="px-1 text-xs text-gray-400">No education records found.</p>
+                ) : (
+                  eduRecords
+                    .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
+                    .map(rec => (
+                      <div key={rec.educationRecordId} className="rounded-lg border border-gray-100 bg-white px-4 py-3 dark:border-[#333] dark:bg-[#1a1a1a]">
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            rec.completionStatus === 'Completed' ? 'bg-green-100 text-green-700' :
+                            rec.completionStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                            'bg-gray-100 text-gray-500'
+                          }`}>{rec.completionStatus ?? '—'}</span>
+                        </div>
+                        <dl className="space-y-1.5 text-xs">
+                          {rec.educationLevel && <div className="flex justify-between"><dt className="text-gray-400">Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.educationLevel}</dd></div>}
+                          {rec.schoolName && <div className="flex justify-between"><dt className="text-gray-400">School</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.schoolName}</dd></div>}
+                          {rec.enrollmentStatus && <div className="flex justify-between"><dt className="text-gray-400">Enrollment</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.enrollmentStatus}</dd></div>}
+                          {rec.attendanceRate != null && <div className="flex justify-between"><dt className="text-gray-400">Attendance</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.attendanceRate.toFixed(1)}%</dd></div>}
+                          {rec.progressPercent != null && <div className="flex justify-between"><dt className="text-gray-400">Progress</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.progressPercent.toFixed(1)}%</dd></div>}
+                        </dl>
+                      </div>
+                    ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Health Records */}
+          <div className="mt-4">
+            <button
+              onClick={() => setHealthOpen(!healthOpen)}
+              className="flex w-full items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-left transition-colors hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]"
+            >
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">HEALTH RECORDS ({healthRecords.length})</p>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-400 transition-transform ${healthOpen ? 'rotate-180' : ''}`}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {healthOpen && (
+              <div className="mt-2 space-y-3">
+                {healthRecords.length === 0 ? (
+                  <p className="px-1 text-xs text-gray-400">No health records found.</p>
+                ) : (
+                  healthRecords
+                    .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
+                    .map(rec => (
+                      <div key={rec.healthRecordId} className="rounded-lg border border-gray-100 bg-white px-4 py-3 dark:border-[#333] dark:bg-[#1a1a1a]">
+                        <p className="mb-2 text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</p>
+                        <dl className="space-y-1.5 text-xs">
+                          {rec.generalHealthScore != null && <div className="flex justify-between"><dt className="text-gray-400">Health Score</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.generalHealthScore.toFixed(1)}</dd></div>}
+                          {rec.nutritionScore != null && <div className="flex justify-between"><dt className="text-gray-400">Nutrition</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.nutritionScore.toFixed(1)}</dd></div>}
+                          {rec.sleepQualityScore != null && <div className="flex justify-between"><dt className="text-gray-400">Sleep Quality</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.sleepQualityScore.toFixed(1)}</dd></div>}
+                          {rec.energyLevelScore != null && <div className="flex justify-between"><dt className="text-gray-400">Energy Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.energyLevelScore.toFixed(1)}</dd></div>}
+                          {(rec.heightCm != null || rec.weightKg != null) && (
+                            <div className="flex justify-between">
+                              <dt className="text-gray-400">Height / Weight</dt>
+                              <dd className="font-medium text-gray-600 dark:text-gray-300">
+                                {rec.heightCm != null ? `${rec.heightCm.toFixed(1)} cm` : '—'} / {rec.weightKg != null ? `${rec.weightKg.toFixed(1)} kg` : '—'}
+                              </dd>
+                            </div>
+                          )}
+                          {rec.bmi != null && <div className="flex justify-between"><dt className="text-gray-400">BMI</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.bmi.toFixed(1)}</dd></div>}
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {rec.medicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Medical ✓</span>}
+                            {rec.dentalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Dental ✓</span>}
+                            {rec.psychologicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Psych ✓</span>}
+                          </div>
+                        </dl>
+                      </div>
+                    ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
