@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router'
 import { fetchSupporters } from '../apis/supportersApi'
 import { fetchDonationsForSupporter } from '../apis/supportersApi'
 import { deleteSupporter } from '../apis/supportersApi'
@@ -66,11 +67,12 @@ function allocColor(area: string | null) {
 const PAGE_SIZE = 8
 
 export default function AdminDonors() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [supporters, setSupporters] = useState<Supporter[]>([])
   const [loadingList, setLoadingList] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string>('All')
-  const [sortBy, setSortBy] = useState<'name' | 'churnRisk'>('name')
+  const [sortBy, setSortBy] = useState<'name' | 'churnRisk'>(() => searchParams.get('sort') === 'churnRisk' ? 'churnRisk' : 'name')
 
   const [riskScores, setRiskScores] = useState<DonorRiskScore[]>([])
 
@@ -97,7 +99,7 @@ export default function AdminDonors() {
   // Load supporter list
   useEffect(() => {
     setLoadingList(true)
-    fetchSupporters()
+    fetchSupporters({ pageSize: 200 })
       .then(setSupporters)
       .catch(console.error)
       .finally(() => setLoadingList(false))
@@ -107,6 +109,20 @@ export default function AdminDonors() {
   useEffect(() => {
     fetchDonorRiskScores().then(setRiskScores).catch(console.error)
   }, [])
+
+  // Auto-select donor from URL query param
+  const autoSelectDonorRef = React.useRef(searchParams.get('donor'))
+  useEffect(() => {
+    const did = autoSelectDonorRef.current
+    if (did && supporters.length > 0) {
+      const found = supporters.find(s => s.supporterId === Number(did))
+      if (found) {
+        setSelected(found)
+        autoSelectDonorRef.current = null
+        setSearchParams(prev => { prev.delete('donor'); return prev }, { replace: true })
+      }
+    }
+  }, [supporters, setSearchParams])
 
   // Load detail when supporter selected
   useEffect(() => {

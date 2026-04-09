@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { Link } from 'react-router'
 import {
   ApiError,
@@ -7,39 +7,80 @@ import {
   fetchResidentRiskScores,
   fetchIncidentReports,
   fetchResidents,
+  fetchSafehouses,
+  createIncidentReport,
+  updateIncidentReport,
 } from '../apis'
 import type { AdminDashboardDto } from '../types/apiDtos'
 import type { DonorRiskScore } from '../types/DonorRiskScore'
 import type { ResidentRiskScore } from '../types/ResidentRiskScore'
 import type { IncidentReport } from '../types/IncidentReport'
 import type { Resident } from '../types/Resident'
+import type { Safehouse } from '../types/Safehouse'
+import { useAuth } from '../context/AuthContext'
+import ConfirmDialog from '../components/ConfirmDialog'
+
+const SEVERITY_ORDER: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 }
+const INCIDENT_TYPES = ['Medical', 'Security', 'RunawayAttempt', 'Behavioral', 'SelfHarm', 'ConflictWithPeer', 'PropertyDamage']
+const SEVERITIES = ['Critical', 'High', 'Medium', 'Low']
 
 function fmtDate(s: string | null) {
   if (!s) return '—'
   return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function Card({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function Card({ id, title, icon, actions, children }: { id?: string; title: string; icon: React.ReactNode; actions?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+    <div id={id} className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
       <div className="flex items-center gap-2.5 border-b border-gray-50 px-5 py-3.5 dark:border-[#333]">
         <span className="text-gray-400 dark:text-gray-500">{icon}</span>
         <h2 className="text-sm font-semibold text-gray-800 dark:text-white">{title}</h2>
+        {actions && <div className="ml-auto">{actions}</div>}
       </div>
       <div className="p-5">{children}</div>
     </div>
   )
 }
 
+function blankIncident(): IncidentReport {
+  return {
+    incidentId: 0,
+    residentId: null,
+    safehouseId: null,
+    incidentDate: todayISO(),
+    incidentType: null,
+    severity: null,
+    description: null,
+    responseTaken: null,
+    resolved: false,
+    resolutionDate: null,
+    reportedBy: null,
+    followUpRequired: false,
+  }
+}
+
 export default function Admin() {
+  const { authSession } = useAuth()
+  const isAdmin = authSession.roles.includes('Admin')
+
   const [dashboard, setDashboard] = useState<AdminDashboardDto | null>(null)
   const [donorRisks, setDonorRisks] = useState<DonorRiskScore[]>([])
   const [residentRisks, setResidentRisks] = useState<ResidentRiskScore[]>([])
   const [incidents, setIncidents] = useState<IncidentReport[]>([])
   const [residents, setResidents] = useState<Resident[]>([])
-
+  const [safehouses, setSafehouses] = useState<Safehouse[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const [selectedIncident, setSelectedIncident] = useState<IncidentReport | null>(null)
+  const [confirmResolve, setConfirmResolve] = useState(false)
+  const [creatingIncident, setCreatingIncident] = useState(false)
+  const [incidentForm, setIncidentForm] = useState<IncidentReport>(blankIncident())
+  const [savingIncident, setSavingIncident] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -49,14 +90,16 @@ export default function Admin() {
       fetchResidentRiskScores().catch(() => [] as ResidentRiskScore[]),
       fetchIncidentReports({ pageSize: 500 }).catch(() => [] as IncidentReport[]),
       fetchResidents({ pageSize: 500 }).catch(() => [] as Resident[]),
+      fetchSafehouses().catch(() => [] as Safehouse[]),
     ])
-      .then(([dash, dr, rr, inc, res]) => {
+      .then(([dash, dr, rr, inc, res, sh]) => {
         if (cancelled) return
         setDashboard(dash)
         setDonorRisks(dr)
         setResidentRisks(rr)
         setIncidents(inc)
         setResidents(res)
+        setSafehouses(sh)
       })
       .catch((err: unknown) => {
         if (cancelled) return
@@ -81,18 +124,60 @@ export default function Admin() {
 
   const highRiskResidents = useMemo(
     () => residentRisks
-      .filter(r => r.riskLabel === 'High Risk')
+      .filter(r => {
+        if (r.riskLabel !== 'High Risk') return false
+        const resident = residentMap.get(r.residentId)
+        return resident?.caseStatus === 'Active'
+      })
       .sort((a, b) => (b.incidentRiskScore ?? 0) - (a.incidentRiskScore ?? 0)),
-    [residentRisks],
+    [residentRisks, residentMap],
   )
 
   const unresolvedIncidents = useMemo(
     () => incidents
       .filter(i => i.resolved === false)
-      .sort((a, b) => new Date(b.incidentDate ?? 0).getTime() - new Date(a.incidentDate ?? 0).getTime())
-      .slice(0, 10),
+      .sort((a, b) => (SEVERITY_ORDER[a.severity ?? ''] ?? 99) - (SEVERITY_ORDER[b.severity ?? ''] ?? 99)),
     [incidents],
   )
+
+  const unresolvedTotal = useMemo(
+    () => incidents.filter(i => i.resolved === false).length,
+    [incidents],
+  )
+
+  const handleResolve = useCallback(async () => {
+    if (!selectedIncident) return
+    setSavingIncident(true)
+    try {
+      const updated: IncidentReport = {
+        ...selectedIncident,
+        resolved: true,
+        resolutionDate: todayISO(),
+      }
+      await updateIncidentReport(selectedIncident.incidentId, updated)
+      setIncidents(prev => prev.map(i => i.incidentId === selectedIncident.incidentId ? updated : i))
+      setSelectedIncident(null)
+      setConfirmResolve(false)
+    } catch (err) {
+      console.error('Resolve failed', err)
+    } finally {
+      setSavingIncident(false)
+    }
+  }, [selectedIncident])
+
+  const handleCreateIncident = useCallback(async () => {
+    setSavingIncident(true)
+    try {
+      const created = await createIncidentReport(incidentForm)
+      setIncidents(prev => [...prev, created])
+      setCreatingIncident(false)
+      setIncidentForm(blankIncident())
+    } catch (err) {
+      console.error('Create failed', err)
+    } finally {
+      setSavingIncident(false)
+    }
+  }, [incidentForm])
 
   if (loading) return (
     <div className="min-h-screen bg-off-white dark:bg-[#111] p-8">
@@ -127,28 +212,29 @@ export default function Admin() {
 
       {/* KPI strip */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+        <Link to="/admin/caseload" className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboard.totalActiveResidents}</p>
           <p className="mt-0.5 text-xs text-gray-400">Active Residents</p>
-        </div>
-        <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+        </Link>
+        <button onClick={() => document.getElementById('card-donors')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm text-left transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
           <p className="text-2xl font-bold text-red-600 dark:text-red-400">{highRiskDonors.length}</p>
           <p className="mt-0.5 text-xs text-gray-400">Donors at Churn Risk</p>
-        </div>
-        <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+        </button>
+        <button onClick={() => document.getElementById('card-residents')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm text-left transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
           <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{highRiskResidents.length}</p>
           <p className="mt-0.5 text-xs text-gray-400">High-Risk Residents</p>
-        </div>
-        <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
-          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{unresolvedIncidents.length}</p>
+        </button>
+        <button onClick={() => document.getElementById('card-incidents')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm text-left transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
+          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{unresolvedTotal}</p>
           <p className="mt-0.5 text-xs text-gray-400">Unresolved Incidents</p>
-        </div>
+        </button>
       </div>
 
       {/* Alert cards */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Donor Churn Alerts */}
         <Card
+          id="card-donors"
           title={`Donor Churn Alerts (${highRiskDonors.length})`}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -160,8 +246,8 @@ export default function Admin() {
             <p className="text-sm text-gray-400">No donors flagged as high churn risk.</p>
           ) : (
             <div className="space-y-0 divide-y divide-gray-50 dark:divide-[#333]">
-              {highRiskDonors.slice(0, 8).map(d => (
-                <div key={d.supporterId} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+              {highRiskDonors.slice(0, 5).map(d => (
+                <Link key={d.supporterId} to={`/admin/donors?donor=${d.supporterId}`} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:bg-gray-50 dark:hover:bg-[#222] -mx-5 px-5">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{d.displayName ?? 'Unknown'}</p>
                     <p className="text-xs text-gray-400">{d.supporterType ?? '—'} · Last active {d.recencyDays ?? '?'} days ago</p>
@@ -170,11 +256,11 @@ export default function Admin() {
                   <span className="shrink-0 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">
                     {d.churnRiskScore != null ? `${Math.round(d.churnRiskScore * 100)}%` : 'High'}
                   </span>
-                </div>
+                </Link>
               ))}
-              {highRiskDonors.length > 8 && (
+              {highRiskDonors.length > 5 && (
                 <div className="pt-3">
-                  <Link to="/admin/donors" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                  <Link to="/admin/donors?sort=churnRisk" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
                     View all {highRiskDonors.length} at-risk donors →
                   </Link>
                 </div>
@@ -185,6 +271,7 @@ export default function Admin() {
 
         {/* Resident Incident Risk Alerts */}
         <Card
+          id="card-residents"
           title={`Resident Incident Risk (${highRiskResidents.length})`}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -194,13 +281,13 @@ export default function Admin() {
           }
         >
           {highRiskResidents.length === 0 ? (
-            <p className="text-sm text-gray-400">No residents flagged as high incident risk.</p>
+            <p className="text-sm text-gray-400">No active residents flagged as high incident risk.</p>
           ) : (
             <div className="space-y-0 divide-y divide-gray-50 dark:divide-[#333]">
-              {highRiskResidents.slice(0, 8).map(r => {
+              {highRiskResidents.slice(0, 5).map(r => {
                 const resident = residentMap.get(r.residentId)
                 return (
-                  <div key={r.residentId} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <Link key={r.residentId} to={`/admin/caseload?resident=${r.residentId}`} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:bg-gray-50 dark:hover:bg-[#222] -mx-5 px-5">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {resident?.internalCode ?? resident?.caseControlNo ?? `Resident #${r.residentId}`}
@@ -213,12 +300,12 @@ export default function Admin() {
                     <span className="shrink-0 rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-700 dark:bg-orange-950 dark:text-orange-300">
                       {r.incidentRiskScore != null ? `${Math.round(r.incidentRiskScore * 100)}%` : 'High'}
                     </span>
-                  </div>
+                  </Link>
                 )
               })}
-              {highRiskResidents.length > 8 && (
+              {highRiskResidents.length > 5 && (
                 <div className="pt-3">
-                  <Link to="/admin/caseload" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                  <Link to="/admin/caseload?sort=predictedRisk" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
                     View all {highRiskResidents.length} high-risk residents →
                   </Link>
                 </div>
@@ -229,16 +316,26 @@ export default function Admin() {
 
         {/* Unresolved Incidents */}
         <Card
-          title={`Unresolved Incidents (${incidents.filter(i => i.resolved === false).length})`}
+          id="card-incidents"
+          title={`Unresolved Incidents (${unresolvedTotal})`}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           }
+          actions={isAdmin ? (
+            <button
+              onClick={() => { setCreatingIncident(true); setIncidentForm(blankIncident()) }}
+              className="rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+            >
+              + Report Incident
+            </button>
+          ) : undefined}
         >
           {unresolvedIncidents.length === 0 ? (
             <p className="text-sm text-gray-400">All incidents resolved.</p>
           ) : (
+            <div className="max-h-[320px] overflow-y-auto -mx-5 px-5">
             <div className="space-y-0 divide-y divide-gray-50 dark:divide-[#333]">
               {unresolvedIncidents.map(inc => {
                 const resident = inc.residentId ? residentMap.get(inc.residentId) : null
@@ -248,7 +345,7 @@ export default function Admin() {
                     ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
                     : 'bg-gray-100 text-gray-600 dark:bg-[#2a2a2a] dark:text-gray-400'
                 return (
-                  <div key={inc.incidentId} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <button key={inc.incidentId} onClick={() => setSelectedIncident(inc)} className="flex w-full items-start justify-between gap-3 py-3 first:pt-0 last:pb-0 text-left transition-colors hover:bg-gray-50 dark:hover:bg-[#222] -mx-5 px-5">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{inc.incidentType ?? 'Incident'}</p>
                       <p className="text-xs text-gray-400">
@@ -258,9 +355,10 @@ export default function Admin() {
                     <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${severityColor}`}>
                       {inc.severity ?? '—'}
                     </span>
-                  </div>
+                  </button>
                 )
               })}
+            </div>
             </div>
           )}
         </Card>
@@ -296,6 +394,202 @@ export default function Admin() {
           )}
         </Card>
       </div>
+
+      {/* Incident Detail Modal */}
+      {selectedIncident && !confirmResolve && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={() => setSelectedIncident(null)}>
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-[#1a1a1a]" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Incident Detail</h3>
+              <button onClick={() => setSelectedIncident(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <dl className="space-y-3 text-sm">
+              {[
+                ['Type', selectedIncident.incidentType],
+                ['Severity', selectedIncident.severity],
+                ['Date', fmtDate(selectedIncident.incidentDate)],
+                ['Resident', (() => {
+                  const r = selectedIncident.residentId ? residentMap.get(selectedIncident.residentId) : null
+                  return r?.internalCode ?? (selectedIncident.residentId ? `#${selectedIncident.residentId}` : '—')
+                })()],
+                ['Safehouse', selectedIncident.safehouseId ? `SH-${selectedIncident.safehouseId}` : '—'],
+                ['Reported By', selectedIncident.reportedBy],
+                ['Follow-up Required', selectedIncident.followUpRequired ? 'Yes' : 'No'],
+              ].map(([label, value]) => (
+                <div key={label as string} className="flex justify-between gap-4">
+                  <dt className="text-gray-400 dark:text-gray-500 shrink-0">{label}</dt>
+                  <dd className="text-right font-medium text-gray-700 dark:text-gray-200">{value ?? '—'}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {selectedIncident.description && (
+              <div className="mt-4">
+                <p className="mb-1 text-xs font-semibold text-gray-400 dark:text-gray-500">DESCRIPTION</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{selectedIncident.description}</p>
+              </div>
+            )}
+
+            {selectedIncident.responseTaken && (
+              <div className="mt-4">
+                <p className="mb-1 text-xs font-semibold text-gray-400 dark:text-gray-500">RESPONSE TAKEN</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{selectedIncident.responseTaken}</p>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setSelectedIncident(null)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-[#444] dark:text-gray-300 dark:hover:bg-[#222]">
+                Close
+              </button>
+              {isAdmin && !selectedIncident.resolved && (
+                <button
+                  onClick={() => setConfirmResolve(true)}
+                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+                >
+                  Mark Resolved
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resolve Confirmation */}
+      <ConfirmDialog
+        open={confirmResolve}
+        title="Resolve incident"
+        message={`Are you sure you want to mark this ${selectedIncident?.incidentType ?? 'incident'} as resolved?`}
+        onConfirm={handleResolve}
+        onCancel={() => setConfirmResolve(false)}
+      />
+
+      {/* Create Incident Modal */}
+      {creatingIncident && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4" onClick={() => setCreatingIncident(false)}>
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-[#1a1a1a]" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Report New Incident</h3>
+              <button onClick={() => setCreatingIncident(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Resident</label>
+                <select
+                  value={incidentForm.residentId ?? ''}
+                  onChange={e => setIncidentForm(prev => ({ ...prev, residentId: e.target.value ? Number(e.target.value) : null }))}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"
+                >
+                  <option value="">Select resident...</option>
+                  {residents
+                    .filter(r => r.caseStatus === 'Active')
+                    .sort((a, b) => (a.internalCode ?? a.caseControlNo ?? '').localeCompare(b.internalCode ?? b.caseControlNo ?? ''))
+                    .map(r => (
+                      <option key={r.residentId} value={r.residentId}>
+                        {r.internalCode ?? r.caseControlNo ?? `#${r.residentId}`}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Safehouse</label>
+                <select
+                  value={incidentForm.safehouseId ?? ''}
+                  onChange={e => setIncidentForm(prev => ({ ...prev, safehouseId: e.target.value ? Number(e.target.value) : null }))}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"
+                >
+                  <option value="">Select safehouse...</option>
+                  {safehouses
+                    .sort((a, b) => (a.safehouseCode ?? '').localeCompare(b.safehouseCode ?? ''))
+                    .map(s => (
+                      <option key={s.safehouseId} value={s.safehouseId}>
+                        {s.safehouseCode ?? `SH-${s.safehouseId}`}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Incident Date</label>
+                <input
+                  type="date"
+                  value={incidentForm.incidentDate ?? ''}
+                  onChange={e => setIncidentForm(prev => ({ ...prev, incidentDate: e.target.value || null }))}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Incident Type</label>
+                <select
+                  value={incidentForm.incidentType ?? ''}
+                  onChange={e => setIncidentForm(prev => ({ ...prev, incidentType: e.target.value || null }))}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"
+                >
+                  <option value="">Select type...</option>
+                  {INCIDENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Severity</label>
+                <select
+                  value={incidentForm.severity ?? ''}
+                  onChange={e => setIncidentForm(prev => ({ ...prev, severity: e.target.value || null }))}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"
+                >
+                  <option value="">Select severity...</option>
+                  {SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Description</label>
+                <textarea
+                  value={incidentForm.description ?? ''}
+                  onChange={e => setIncidentForm(prev => ({ ...prev, description: e.target.value || null }))}
+                  placeholder="Describe the incident..."
+                  className="min-h-20 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reported By</label>
+                <input
+                  type="text"
+                  value={incidentForm.reportedBy ?? ''}
+                  onChange={e => setIncidentForm(prev => ({ ...prev, reportedBy: e.target.value || null }))}
+                  placeholder="Name of reporter"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button onClick={() => setCreatingIncident(false)} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-[#444] dark:text-gray-300 dark:hover:bg-[#222]">
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateIncident}
+                disabled={savingIncident || !incidentForm.incidentType || !incidentForm.severity}
+                className="rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              >
+                {savingIncident ? 'Saving...' : 'Report Incident'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

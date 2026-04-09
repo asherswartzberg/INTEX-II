@@ -20,14 +20,15 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import (AdaBoostRegressor, BaggingRegressor,
+                             GradientBoostingRegressor, RandomForestRegressor)
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import KFold, cross_val_score, train_test_split
+from sklearn.model_selection import GridSearchCV, KFold, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.tree import DecisionTreeRegressor  # noqa: F401 — kept for notebook parity
+from sklearn.tree import DecisionTreeRegressor
 
 import config
 import utils_db
@@ -135,6 +136,10 @@ def train(df: pd.DataFrame):
     preprocessor, num_cols, cat_cols = build_preprocessor(X_train)
 
     models = {
+        "Decision Tree": Pipeline(steps=[
+            ("prep", preprocessor),
+            ("reg", DecisionTreeRegressor(max_depth=4, min_samples_leaf=10, random_state=config.SEED)),
+        ]),
         "Linear Regression": Pipeline(steps=[
             ("prep", preprocessor),
             ("reg", LinearRegression()),
@@ -142,6 +147,16 @@ def train(df: pd.DataFrame):
         "Random Forest": Pipeline(steps=[
             ("prep", preprocessor),
             ("reg", RandomForestRegressor(n_estimators=200, max_depth=6, min_samples_leaf=10, max_features="sqrt", random_state=config.SEED)),
+        ]),
+        "Bagging": Pipeline(steps=[
+            ("prep", preprocessor),
+            ("reg", BaggingRegressor(estimator=DecisionTreeRegressor(max_depth=4, random_state=config.SEED),
+                                    n_estimators=100, random_state=config.SEED, n_jobs=-1)),
+        ]),
+        "AdaBoost": Pipeline(steps=[
+            ("prep", preprocessor),
+            ("reg", AdaBoostRegressor(estimator=DecisionTreeRegressor(max_depth=3, random_state=config.SEED),
+                                     n_estimators=200, learning_rate=0.5, random_state=config.SEED)),
         ]),
         "Gradient Boosting": Pipeline(steps=[
             ("prep", preprocessor),
@@ -166,11 +181,43 @@ def train(df: pd.DataFrame):
 
     cv_df = pd.DataFrame(cv_results).sort_values("CV MAE Mean")
 
-    # Select and refit best model
-    best_model_name = cv_df.iloc[0]["Model"]
-    best_model = models[best_model_name]
-    best_model.fit(X_train, y_train)
-    print(f"\nSelected model: {best_model_name}")
+    # Hyperparameter tuning on top 2 models
+    param_grids = {
+        "Random Forest": {
+            "reg__n_estimators": [100, 200],
+            "reg__max_depth": [4, 6, 8],
+            "reg__min_samples_leaf": [5, 10, 20],
+        },
+        "Gradient Boosting": {
+            "reg__n_estimators": [100, 200],
+            "reg__max_depth": [2, 3, 4],
+            "reg__learning_rate": [0.01, 0.05, 0.1],
+            "reg__min_samples_leaf": [5, 10, 20],
+        },
+    }
+    best_tuned_models = {}
+    for name in ["Random Forest", "Gradient Boosting"]:
+        grid = GridSearchCV(models[name], param_grids[name], cv=cv,
+                            scoring="neg_mean_absolute_error", n_jobs=-1, refit=True)
+        grid.fit(X_train, y_train)
+        best_tuned_models[name] = grid
+        print(f"Tuned {name}: CV MAE = {-grid.best_score_:.2f} | {grid.best_params_}")
+
+    # Select best model (tuned or default)
+    best_tuned_name = max(best_tuned_models, key=lambda k: best_tuned_models[k].best_score_)
+    best_tuned_mae = -best_tuned_models[best_tuned_name].best_score_
+    best_initial_mae = cv_df.iloc[0]["CV MAE Mean"]
+    best_initial_name = cv_df.iloc[0]["Model"]
+
+    if best_tuned_mae <= best_initial_mae:
+        best_model_name = best_tuned_name
+        best_model = best_tuned_models[best_tuned_name].best_estimator_
+        print(f"\nSelected model: {best_model_name} (tuned, CV MAE: {best_tuned_mae:.2f})")
+    else:
+        best_model_name = best_initial_name
+        best_model = models[best_model_name]
+        best_model.fit(X_train, y_train)
+        print(f"\nSelected model: {best_model_name} (default params)")
 
     # Baseline: predict the training mean
     baseline_pred = np.full(len(y_test), y_train.mean())
