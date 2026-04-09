@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import heroPoster from '../assets/placeholder.png'
+import heroPoster from '../assets/placeholder.jpg'
 import heroVideo from '../assets/1775513061936710.mp4'
 
 export default function Hero() {
