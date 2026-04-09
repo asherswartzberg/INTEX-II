@@ -11,6 +11,7 @@ export interface PublicImpactSummaryDto {
   activeResidentsCount: number;
   safehouseCount: number;
   totalDonationsAllTime: number;
+  totalGirlsServed: number;
   latestPublishedSnapshots: PublicImpactSnapshotSummaryDto[];
 }
 

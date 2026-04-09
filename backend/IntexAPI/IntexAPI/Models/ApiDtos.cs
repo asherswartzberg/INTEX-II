@@ -5,6 +5,7 @@ public record PublicImpactSummaryDto(
     int ActiveResidentsCount,
     int SafehouseCount,
     double TotalDonationsAllTime,
+    int TotalGirlsServed,
     IReadOnlyList<PublicImpactSnapshotSummaryDto> LatestPublishedSnapshots);
 
 public record PublicImpactSnapshotSummaryDto(

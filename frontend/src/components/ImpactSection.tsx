@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useAnimateInView } from '../hooks/useAnimateInView'
 import { useCountUp } from '../hooks/useCountUp'
 import { fetchPublicImpactSummary } from '../apis/publicImpactApi'
@@ -13,8 +13,8 @@ const fallbackStats = [
   { value: 98, suffix: '%', label: 'Completion rate' },
 ]
 
-function ImpactStat({ value, suffix, label, trigger, index }: {
-  value: number; suffix: string; label: string; trigger: boolean; index: number
+function ImpactStat({ value, suffix, prefix, label, trigger, index }: {
+  value: number; suffix: string; prefix?: string; label: string; trigger: boolean; index: number
 }) {
   const count = useCountUp(value, trigger)
   return (
@@ -25,8 +25,8 @@ function ImpactStat({ value, suffix, label, trigger, index }: {
       role="group"
       aria-label={`${value}${suffix} — ${label}`}
     >
-      <p className="text-5xl font-bold text-black md:text-6xl lg:text-7xl" aria-hidden="true">
-        {count}<span className="text-medium-gray">{suffix}</span>
+      <p className="text-4xl font-bold text-black md:text-5xl" aria-hidden="true">
+        {prefix}<span>{count.toLocaleString()}</span><span className="text-medium-gray">{suffix}</span>
       </p>
       <p className="mt-2 text-sm text-medium-gray">{label}</p>
     </motion.div>
@@ -44,25 +44,16 @@ export default function ImpactSection() {
     ? [
         { value: impact.activeResidentsCount, suffix: '', label: 'Active residents' },
         { value: impact.safehouseCount, suffix: '', label: 'Safe homes operating' },
-        { value: Math.round(impact.totalDonationsAllTime), suffix: '', label: 'Total donated ($)' },
-        { value: impact.latestPublishedSnapshots.length, suffix: '', label: 'Impact reports published' },
+        { value: Math.round(impact.totalDonationsAllTime), suffix: '', label: 'Total donated', prefix: '$' },
+        { value: impact.totalGirlsServed, suffix: '+', label: 'Girls served' },
       ]
     : fallbackStats
 
-  const sectionRef = useRef(null)
   const { ref: viewRef, isInView } = useAnimateInView({ amount: 0.15 })
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start end', 'end start'],
-  })
 
-  const imageX = useTransform(scrollYProgress, [0, 1], [50, -50])
-  const imageRotate = useTransform(scrollYProgress, [0, 1], [-1, 1])
-  const quoteX = useTransform(scrollYProgress, [0, 1], [-20, 20])
 
   return (
     <section
-      ref={sectionRef}
       id="impact"
       aria-labelledby="impact-heading"
       className="relative z-10 overflow-hidden bg-white py-40 md:py-52"
@@ -80,38 +71,47 @@ export default function ImpactSection() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-8 gap-y-16 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-12 gap-y-16 lg:grid-cols-4">
           {impactStats.map((stat, i) => (
             <ImpactStat key={stat.label} {...stat} trigger={isInView} index={i} />
           ))}
         </div>
 
-        {/* Floating image — reduced drift on mobile */}
+        {/* Cinematic reveal image with quote overlay */}
         <motion.div
-          style={{ x: imageX, rotate: imageRotate }}
-          className="mt-20 w-full overflow-hidden rounded-sm md:mt-28 md:-mr-16 md:ml-auto md:w-2/3 lg:w-1/2"
+          initial={{ clipPath: 'inset(18% 8% round 4px)' }}
+          whileInView={{ clipPath: 'inset(0% 0% round 0px)' }}
+          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true, amount: 0.3 }}
+          className="relative mt-20 w-full overflow-hidden md:mt-28"
+          style={{ aspectRatio: '16/9' }}
         >
-          <img
+          <motion.img
+            initial={{ scale: 1.18 }}
+            whileInView={{ scale: 1 }}
+            transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+            viewport={{ once: true, amount: 0.3 }}
             src={girlsLookingAtSky}
-            alt="Girls in a group circle at the safehouse"
-            className="w-full object-cover aspect-[16/10]"
+            alt="Girls looking at the sky at the safehouse"
+            className="h-full w-full object-cover"
             loading="lazy"
           />
+          {/* Dark gradient for quote legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          {/* Quote — bottom right */}
+          <motion.blockquote
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6, ease: 'easeOut' }}
+            viewport={{ once: true, amount: 0.3 }}
+            className="absolute top-8 left-8 max-w-xl text-left md:top-12 md:left-12 md:max-w-2xl"
+          >
+            <p className="font-display text-3xl leading-[1.2] tracking-[-0.02em] text-white md:text-5xl">
+              "We create fun memories, we fight for justice, and we acknowledge God in all we do."
+            </p>
+            <footer className="mt-3 text-sm text-white/60">— Faro Safehouse</footer>
+          </motion.blockquote>
         </motion.div>
-
-        <motion.blockquote
-          style={{ x: quoteX }}
-          className="mt-20 max-w-xl border-l border-black pl-8"
-        >
-          <p className="text-lg leading-[1.7] text-dark-gray md:text-xl">
-            "We are full of hope, love and new beginnings.
-            We treat each other as family where each individual
-            is seen, heard, and loved."
-          </p>
-          <footer className="mt-4 text-sm text-medium-gray">
-            — Faro Safehouse
-          </footer>
-        </motion.blockquote>
       </div>
     </section>
   )

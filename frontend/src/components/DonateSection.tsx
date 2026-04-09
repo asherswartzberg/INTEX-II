@@ -24,7 +24,7 @@ export default function DonateSection() {
       ref={sectionRef}
       id="donate"
       aria-labelledby="donate-heading"
-      className="relative overflow-hidden bg-black py-44 md:py-56"
+      className="relative overflow-hidden bg-black py-24 md:py-32"
     >
       <div ref={viewRef} className="mx-auto max-w-7xl px-6 md:px-10">
         <div id="donate-heading" className="mb-20">
