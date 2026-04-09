@@ -19,12 +19,13 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import (AdaBoostClassifier, BaggingClassifier,
+                             GradientBoostingClassifier, RandomForestClassifier)
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (accuracy_score, classification_report,
-                             f1_score, roc_auc_score)
-from sklearn.model_selection import (RepeatedStratifiedKFold,
+                             f1_score, log_loss, roc_auc_score)
+from sklearn.model_selection import (GridSearchCV, RepeatedStratifiedKFold,
                                      cross_val_score, train_test_split)
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -200,6 +201,16 @@ def train(df_model: pd.DataFrame):
             ("prep", preprocessor),
             ("clf", RandomForestClassifier(n_estimators=200, max_depth=4, min_samples_leaf=5, max_features="sqrt", random_state=config.SEED)),
         ]),
+        "Bagging": Pipeline(steps=[
+            ("prep", preprocessor),
+            ("clf", BaggingClassifier(estimator=DecisionTreeClassifier(max_depth=3, random_state=config.SEED),
+                                     n_estimators=100, random_state=config.SEED, n_jobs=-1)),
+        ]),
+        "AdaBoost": Pipeline(steps=[
+            ("prep", preprocessor),
+            ("clf", AdaBoostClassifier(estimator=DecisionTreeClassifier(max_depth=1, random_state=config.SEED),
+                                      n_estimators=200, learning_rate=0.5, random_state=config.SEED)),
+        ]),
         "Gradient Boosting": Pipeline(steps=[
             ("prep", preprocessor),
             ("clf", GradientBoostingClassifier(n_estimators=200, max_depth=3, learning_rate=0.05, min_samples_leaf=5, subsample=0.8, random_state=config.SEED)),
@@ -222,11 +233,43 @@ def train(df_model: pd.DataFrame):
 
     cv_df = pd.DataFrame(cv_results).sort_values("CV ROC-AUC Mean", ascending=False)
 
-    # Select and refit best model
-    best_model_name = cv_df.iloc[0]["Model"]
-    best_model = models[best_model_name]
-    best_model.fit(X_train, y_train)
-    print(f"\nSelected model: {best_model_name}")
+    # Hyperparameter tuning on top 2 ensemble models
+    param_grids = {
+        "Random Forest": {
+            "clf__n_estimators": [100, 200],
+            "clf__max_depth": [3, 4, 5],
+            "clf__min_samples_leaf": [3, 5, 10],
+        },
+        "Gradient Boosting": {
+            "clf__n_estimators": [100, 200],
+            "clf__max_depth": [2, 3, 4],
+            "clf__learning_rate": [0.01, 0.05, 0.1],
+            "clf__min_samples_leaf": [3, 5, 10],
+        },
+    }
+    best_tuned_models = {}
+    for name in ["Random Forest", "Gradient Boosting"]:
+        grid = GridSearchCV(models[name], param_grids[name], cv=cv,
+                            scoring="roc_auc", n_jobs=-1, refit=True)
+        grid.fit(X_train, y_train)
+        best_tuned_models[name] = grid
+        print(f"Tuned {name}: CV ROC-AUC = {grid.best_score_:.3f} | {grid.best_params_}")
+
+    # Select best model (tuned or default)
+    best_tuned_name = max(best_tuned_models, key=lambda k: best_tuned_models[k].best_score_)
+    best_tuned_score = best_tuned_models[best_tuned_name].best_score_
+    best_initial_score = cv_df.iloc[0]["CV ROC-AUC Mean"]
+    best_initial_name = cv_df.iloc[0]["Model"]
+
+    if best_tuned_score >= best_initial_score:
+        best_model_name = best_tuned_name
+        best_model = best_tuned_models[best_tuned_name].best_estimator_
+        print(f"\nSelected model: {best_model_name} (tuned, CV ROC-AUC: {best_tuned_score:.3f})")
+    else:
+        best_model_name = best_initial_name
+        best_model = models[best_model_name]
+        best_model.fit(X_train, y_train)
+        print(f"\nSelected model: {best_model_name} (default params)")
 
     # Baseline: always predict majority class
     majority     = int(y_train.mode()[0])
@@ -240,12 +283,23 @@ def train(df_model: pd.DataFrame):
     final_f1      = f1_score(y_test, y_pred_final, zero_division=0)
     final_roc_auc = roc_auc_score(y_test, y_prob_final)
 
-    print(f"\nTest set — Accuracy: {final_acc:.3f} | F1: {final_f1:.3f} | ROC-AUC: {final_roc_auc:.3f}")
+    final_ll = log_loss(y_test, y_prob_final)
+
+    print(f"\nTest set — Accuracy: {final_acc:.3f} | F1: {final_f1:.3f} | ROC-AUC: {final_roc_auc:.3f} | Log Loss: {final_ll:.4f}")
     print(f"Baseline accuracy: {baseline_acc:.3f}")
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred_final,
                                 target_names=["Active", "At Risk"],
                                 zero_division=0))
+
+    # Overfitting check
+    y_pred_train = best_model.predict(X_train)
+    y_prob_train = best_model.predict_proba(X_train)[:, 1]
+    train_acc = accuracy_score(y_train, y_pred_train)
+    train_roc = roc_auc_score(y_train, y_prob_train)
+    print(f"Overfitting check:")
+    print(f"  Train Accuracy: {train_acc:.3f} | Test: {final_acc:.3f} | Gap: {train_acc - final_acc:.3f}")
+    print(f"  Train ROC-AUC:  {train_roc:.3f} | Test: {final_roc_auc:.3f} | Gap: {train_roc - final_roc_auc:.3f}")
 
     return (best_model, best_model_name, feature_cols,
             X_train, X_test, y_train, y_test,
