@@ -1,6 +1,7 @@
 using IntexAPI.Data;
 using IntexAPI.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,10 +14,12 @@ namespace IntexAPI.Controllers;
 public class SupportersController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly UserManager<ApplicationUser> _userManager;
 
-    public SupportersController(AppDbContext db)
+    public SupportersController(AppDbContext db, UserManager<ApplicationUser> userManager)
     {
         _db = db;
+        _userManager = userManager;
     }
 
     [HttpGet]
@@ -102,6 +105,10 @@ public class SupportersController : ControllerBase
         var existing = await _db.Supporters.FindAsync(new object[] { id }, cancellationToken);
         if (existing is null)
             return NotFound();
+
+        var linkedUsers = _userManager.Users.Where(u => u.SupporterId == id).ToList();
+        foreach (var user in linkedUsers)
+            await _userManager.DeleteAsync(user);
 
         _db.Supporters.Remove(existing);
         await _db.SaveChangesAsync(cancellationToken);
