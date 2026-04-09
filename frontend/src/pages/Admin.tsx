@@ -33,9 +33,9 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
-function Card({ title, icon, actions, children }: { title: string; icon: React.ReactNode; actions?: React.ReactNode; children: React.ReactNode }) {
+function Card({ id, title, icon, actions, children }: { id?: string; title: string; icon: React.ReactNode; actions?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+    <div id={id} className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
       <div className="flex items-center gap-2.5 border-b border-gray-50 px-5 py-3.5 dark:border-[#333]">
         <span className="text-gray-400 dark:text-gray-500">{icon}</span>
         <h2 className="text-sm font-semibold text-gray-800 dark:text-white">{title}</h2>
@@ -136,8 +136,7 @@ export default function Admin() {
   const unresolvedIncidents = useMemo(
     () => incidents
       .filter(i => i.resolved === false)
-      .sort((a, b) => (SEVERITY_ORDER[a.severity ?? ''] ?? 99) - (SEVERITY_ORDER[b.severity ?? ''] ?? 99))
-      .slice(0, 10),
+      .sort((a, b) => (SEVERITY_ORDER[a.severity ?? ''] ?? 99) - (SEVERITY_ORDER[b.severity ?? ''] ?? 99)),
     [incidents],
   )
 
@@ -213,28 +212,29 @@ export default function Admin() {
 
       {/* KPI strip */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+        <Link to="/admin/caseload" className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboard.totalActiveResidents}</p>
           <p className="mt-0.5 text-xs text-gray-400">Active Residents</p>
-        </div>
-        <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+        </Link>
+        <button onClick={() => document.getElementById('card-donors')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm text-left transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
           <p className="text-2xl font-bold text-red-600 dark:text-red-400">{highRiskDonors.length}</p>
           <p className="mt-0.5 text-xs text-gray-400">Donors at Churn Risk</p>
-        </div>
-        <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+        </button>
+        <button onClick={() => document.getElementById('card-residents')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm text-left transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
           <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{highRiskResidents.length}</p>
           <p className="mt-0.5 text-xs text-gray-400">High-Risk Residents</p>
-        </div>
-        <div className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm dark:bg-[#1a1a1a] dark:border-[#333]">
+        </button>
+        <button onClick={() => document.getElementById('card-incidents')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm text-left transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{unresolvedTotal}</p>
           <p className="mt-0.5 text-xs text-gray-400">Unresolved Incidents</p>
-        </div>
+        </button>
       </div>
 
       {/* Alert cards */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Donor Churn Alerts */}
         <Card
+          id="card-donors"
           title={`Donor Churn Alerts (${highRiskDonors.length})`}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -246,7 +246,7 @@ export default function Admin() {
             <p className="text-sm text-gray-400">No donors flagged as high churn risk.</p>
           ) : (
             <div className="space-y-0 divide-y divide-gray-50 dark:divide-[#333]">
-              {highRiskDonors.slice(0, 8).map(d => (
+              {highRiskDonors.slice(0, 5).map(d => (
                 <Link key={d.supporterId} to={`/admin/donors?donor=${d.supporterId}`} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:bg-gray-50 dark:hover:bg-[#222] -mx-5 px-5">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{d.displayName ?? 'Unknown'}</p>
@@ -258,7 +258,7 @@ export default function Admin() {
                   </span>
                 </Link>
               ))}
-              {highRiskDonors.length > 8 && (
+              {highRiskDonors.length > 5 && (
                 <div className="pt-3">
                   <Link to="/admin/donors?sort=churnRisk" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
                     View all {highRiskDonors.length} at-risk donors →
@@ -271,6 +271,7 @@ export default function Admin() {
 
         {/* Resident Incident Risk Alerts */}
         <Card
+          id="card-residents"
           title={`Resident Incident Risk (${highRiskResidents.length})`}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -283,7 +284,7 @@ export default function Admin() {
             <p className="text-sm text-gray-400">No active residents flagged as high incident risk.</p>
           ) : (
             <div className="space-y-0 divide-y divide-gray-50 dark:divide-[#333]">
-              {highRiskResidents.slice(0, 8).map(r => {
+              {highRiskResidents.slice(0, 5).map(r => {
                 const resident = residentMap.get(r.residentId)
                 return (
                   <Link key={r.residentId} to={`/admin/caseload?resident=${r.residentId}`} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:bg-gray-50 dark:hover:bg-[#222] -mx-5 px-5">
@@ -302,7 +303,7 @@ export default function Admin() {
                   </Link>
                 )
               })}
-              {highRiskResidents.length > 8 && (
+              {highRiskResidents.length > 5 && (
                 <div className="pt-3">
                   <Link to="/admin/caseload?sort=predictedRisk" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
                     View all {highRiskResidents.length} high-risk residents →
@@ -315,6 +316,7 @@ export default function Admin() {
 
         {/* Unresolved Incidents */}
         <Card
+          id="card-incidents"
           title={`Unresolved Incidents (${unresolvedTotal})`}
           icon={
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -333,6 +335,7 @@ export default function Admin() {
           {unresolvedIncidents.length === 0 ? (
             <p className="text-sm text-gray-400">All incidents resolved.</p>
           ) : (
+            <div className="max-h-[320px] overflow-y-auto -mx-5 px-5">
             <div className="space-y-0 divide-y divide-gray-50 dark:divide-[#333]">
               {unresolvedIncidents.map(inc => {
                 const resident = inc.residentId ? residentMap.get(inc.residentId) : null
@@ -355,6 +358,7 @@ export default function Admin() {
                   </button>
                 )
               })}
+            </div>
             </div>
           )}
         </Card>
