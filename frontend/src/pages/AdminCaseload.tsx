@@ -396,7 +396,7 @@ export default function AdminCaseload() {
                       onClick={() => setSelected(r)}
                       className={`cursor-pointer transition-colors hover:bg-off-white dark:hover:bg-[#222] ${selected?.residentId === r.residentId ? 'bg-off-white dark:bg-[#262626]' : ''}`}
                     >
-                      <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{r.caseControlNo ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{r.caseControlNo ?? '—'}</td>
                       <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-100">{r.internalCode ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-500 dark:text-gray-400">SH-{r.safehouseId ?? '?'}</td>
                       <td className="px-4 py-3">
