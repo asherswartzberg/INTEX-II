@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
-import { Outlet, useOutletContext, useSearchParams } from 'react-router'
+import { Outlet, useNavigate, useOutletContext, useSearchParams } from 'react-router'
 import { fetchResidents } from '../apis/residentsApi'
 import { fetchResidentRiskScores } from '../apis/residentRiskScoresApi'
 import type { Resident } from '../types/Resident'
@@ -13,6 +13,8 @@ export interface CaseloadContext {
   isAdmin: boolean
   riskScoreMap: Map<number, ResidentRiskScore>
   refreshResidents: () => Promise<void>
+  /** Information tab registers this so "+ New Resident" can open the create modal; cleared on unmount. */
+  registerNewResidentHandler: (fn: (() => void) | null) => void
 }
 
 export function useCaseloadContext() {
@@ -36,7 +38,12 @@ const PAGE_SIZE = 15
 export default function AdminCaseloadLayout() {
   const { authSession } = useAuth()
   const isAdmin = authSession.roles.includes('Admin')
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const newResidentHandlerRef = React.useRef<(() => void) | null>(null)
+  const registerNewResidentHandler = useCallback((fn: (() => void) | null) => {
+    newResidentHandlerRef.current = fn
+  }, [])
   const [residents, setResidents] = useState<Resident[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -124,18 +131,38 @@ export default function AdminCaseloadLayout() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const ctx: CaseloadContext = { selected, setSelected, residents, isAdmin, riskScoreMap, refreshResidents }
+  const ctx: CaseloadContext = {
+    selected,
+    setSelected,
+    residents,
+    isAdmin,
+    riskScoreMap,
+    refreshResidents,
+    registerNewResidentHandler,
+  }
 
   return (
     <div className="flex h-full gap-3 overflow-hidden p-3 bg-off-white dark:bg-[#111]">
       {/* Resident table panel */}
       <div className={`flex flex-col rounded-xl overflow-hidden bg-white shadow-sm ring-1 ring-black/5 dark:bg-[#1a1a1a] dark:ring-white/5 w-full md:w-[480px] md:shrink-0 ${selected ? 'hidden md:flex' : 'flex'}`}>
         <div className="border-b border-border bg-white px-6 py-4 dark:border-[#333] dark:bg-[#1a1a1a]">
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">Caseload Inventory</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">Core resident case management records</p>
             </div>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (newResidentHandlerRef.current) newResidentHandlerRef.current()
+                  else navigate('/admin/caseload/information', { state: { openCreate: true } })
+                }}
+                className="shrink-0 rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+              >
+                + New Resident
+              </button>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 md:gap-3">
             <div className="relative w-full sm:w-auto">

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 import { createResident, deleteResident, updateResident } from '../apis/residentsApi'
 import { fetchEducationRecordsForResident } from '../apis/educationRecordsApi'
 import { fetchHealthRecordsForResident } from '../apis/healthWellbeingRecordsApi'
@@ -58,8 +59,12 @@ function blankResident(): Resident {
   }
 }
 
+type RecordsPanel = 'none' | 'education' | 'health'
+
 export default function AdminCaseload() {
-  const { selected, setSelected, isAdmin, riskScoreMap, refreshResidents } = useCaseloadContext()
+  const { selected, setSelected, isAdmin, riskScoreMap, refreshResidents, registerNewResidentHandler } = useCaseloadContext()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -69,8 +74,7 @@ export default function AdminCaseload() {
   const [formData, setFormData] = useState<Resident>(blankResident())
   const [eduRecords, setEduRecords] = useState<EducationRecord[]>([])
   const [healthRecords, setHealthRecords] = useState<HealthWellbeingRecord[]>([])
-  const [eduOpen, setEduOpen] = useState(false)
-  const [healthOpen, setHealthOpen] = useState(false)
+  const [recordsPanel, setRecordsPanel] = useState<RecordsPanel>('none')
 
   useEffect(() => {
     if (!selected) {
@@ -81,6 +85,33 @@ export default function AdminCaseload() {
     fetchEducationRecordsForResident(selected.residentId).then(setEduRecords).catch(() => setEduRecords([]))
     fetchHealthRecordsForResident(selected.residentId).then(setHealthRecords).catch(() => setHealthRecords([]))
   }, [selected?.residentId])
+
+  useEffect(() => {
+    setRecordsPanel('none')
+  }, [selected?.residentId])
+
+  const openCreate = useCallback(() => {
+    setCreating(true)
+    setEditing(null)
+    setFormData(blankResident())
+  }, [])
+
+  useEffect(() => {
+    if (!isAdmin) {
+      registerNewResidentHandler(null)
+      return
+    }
+    registerNewResidentHandler(openCreate)
+    return () => registerNewResidentHandler(null)
+  }, [isAdmin, openCreate, registerNewResidentHandler])
+
+  useEffect(() => {
+    const st = location.state as { openCreate?: boolean } | undefined
+    if (st?.openCreate && isAdmin) {
+      openCreate()
+      navigate(`${location.pathname}${location.search}`, { replace: true, state: {} })
+    }
+  }, [location.state, location.pathname, location.search, navigate, openCreate, isAdmin])
 
   const handleDelete = useCallback(async () => {
     if (!confirmDelete) return
@@ -94,12 +125,6 @@ export default function AdminCaseload() {
       setConfirmDelete(null)
     }
   }, [confirmDelete, refreshResidents, selected, setSelected])
-
-  function openCreate() {
-    setCreating(true)
-    setEditing(null)
-    setFormData(blankResident())
-  }
 
   function openEdit(resident: Resident) {
     setCreating(false)
@@ -158,11 +183,6 @@ export default function AdminCaseload() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-4 p-8">
         <p className="text-sm text-gray-400">Select a resident to view their information.</p>
-        {isAdmin && (
-          <button onClick={openCreate} className="rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white transition hover:bg-dark-gray dark:bg-white dark:text-black dark:hover:bg-gray-200">
-            + New Resident
-          </button>
-        )}
         {(creating || editing) && renderModal()}
       </div>
     )
@@ -242,7 +262,6 @@ export default function AdminCaseload() {
           <div className="flex items-center gap-2">
             {isAdmin && (
               <>
-                <button onClick={openCreate} className="rounded-lg bg-black px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-dark-gray dark:bg-white dark:text-black dark:hover:bg-gray-200">+ New Resident</button>
                 <button onClick={() => openEdit(selected)} className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-[#444] dark:bg-transparent dark:text-gray-300">Edit</button>
                 <button onClick={() => setConfirmDelete(selected)} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900 dark:bg-transparent dark:text-red-400">Delete</button>
               </>
@@ -264,10 +283,10 @@ export default function AdminCaseload() {
             ) : null)}
           </dl>
 
-          {/* Inline sections: flags, predicted risk, special needs */}
-          <div className="mt-4 flex flex-wrap items-start gap-4">
+          {/* Stacked: case flags, then predicted risk (always below flags row), then special needs */}
+          <div className="mt-4 flex w-full flex-col gap-4">
             {subCategories(selected).length > 0 && (
-              <div>
+              <div className="w-full">
                 <p className="mb-1.5 text-xs font-semibold text-gray-400">CASE FLAGS</p>
                 <div className="flex flex-wrap gap-1.5">
                   {subCategories(selected).map((c) => (
@@ -278,7 +297,7 @@ export default function AdminCaseload() {
             )}
 
             {riskScore && (
-              <div>
+              <div className="w-full">
                 <p className="mb-1.5 text-xs font-semibold text-gray-400">PREDICTED RISK</p>
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${PREDICTED_RISK_STYLE[riskScore.riskLabel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>{riskScore.riskLabel ?? '—'}</span>
@@ -289,7 +308,7 @@ export default function AdminCaseload() {
             )}
 
             {(selected.isPwd || selected.hasSpecialNeeds) && (
-              <div>
+              <div className="w-full">
                 <p className="mb-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">SPECIAL NEEDS</p>
                 {selected.isPwd && <p className="text-xs text-amber-600 dark:text-amber-300">PWD: {selected.pwdType ?? 'Yes'}</p>}
                 {selected.hasSpecialNeeds && <p className="text-xs text-amber-600 dark:text-amber-300">Diagnosis: {selected.specialNeedsDiagnosis ?? 'Noted'}</p>}
@@ -298,89 +317,91 @@ export default function AdminCaseload() {
           </div>
         </div>
 
-        {/* Education & Health — collapsible, side by side on desktop */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* Education Records */}
-          <div className="min-w-0">
-            <button
-              type="button"
-              onClick={() => setEduOpen(prev => !prev)}
-              className="flex w-full items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-left transition-colors hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]"
-            >
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Education Records <span className="normal-case font-normal text-gray-400">({eduRecords.length})</span></span>
-              <svg className={`shrink-0 text-gray-400 transition-transform duration-200 ${eduOpen ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {eduOpen && (
-              <div className="mt-2 space-y-2.5">
-                {eduRecords.length === 0 ? (
-                  <p className="px-4 py-3 text-xs text-gray-400">No education records found.</p>
-                ) : (
-                  [...eduRecords]
-                    .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
-                    .map(rec => (
-                      <div key={rec.educationRecordId} className="rounded-lg border border-gray-100 px-3 py-2.5 dark:border-[#333]">
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${rec.completionStatus === 'Completed' ? 'bg-green-100 text-green-700' : rec.completionStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{rec.completionStatus ?? '—'}</span>
-                        </div>
-                        <dl className="space-y-1 text-xs">
-                          {rec.educationLevel && <div className="flex justify-between"><dt className="text-gray-400">Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.educationLevel}</dd></div>}
-                          {rec.schoolName && <div className="flex justify-between"><dt className="text-gray-400">School</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.schoolName}</dd></div>}
-                          {rec.enrollmentStatus && <div className="flex justify-between"><dt className="text-gray-400">Enrollment</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.enrollmentStatus}</dd></div>}
-                          {rec.attendanceRate != null && <div className="flex justify-between"><dt className="text-gray-400">Attendance</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.attendanceRate.toFixed(1)}%</dd></div>}
-                          {rec.progressPercent != null && <div className="flex justify-between"><dt className="text-gray-400">Progress</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.progressPercent.toFixed(1)}%</dd></div>}
-                        </dl>
+        {/* Education OR Health — mutually exclusive, full width */}
+        <div className="w-full space-y-2">
+          <button
+            type="button"
+            onClick={() => setRecordsPanel((p) => (p === 'education' ? 'none' : 'education'))}
+            className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-left transition-colors ${
+              recordsPanel === 'education'
+                ? 'bg-gray-100 dark:bg-[#2a2a2a]'
+                : 'bg-gray-50 hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]'
+            }`}
+          >
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Education Records <span className="normal-case font-normal text-gray-400">({eduRecords.length})</span></span>
+            <svg className={`shrink-0 text-gray-400 transition-transform duration-200 ${recordsPanel === 'education' ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+          </button>
+          {recordsPanel === 'education' && (
+            <div className="w-full space-y-2.5 pb-1">
+              {eduRecords.length === 0 ? (
+                <p className="px-1 py-2 text-xs text-gray-400">No education records found.</p>
+              ) : (
+                [...eduRecords]
+                  .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
+                  .map(rec => (
+                    <div key={rec.educationRecordId} className="rounded-lg border border-gray-100 px-3 py-2.5 dark:border-[#333]">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${rec.completionStatus === 'Completed' ? 'bg-green-100 text-green-700' : rec.completionStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{rec.completionStatus ?? '—'}</span>
                       </div>
-                    ))
-                )}
-              </div>
-            )}
-          </div>
+                      <dl className="space-y-1 text-xs">
+                        {rec.educationLevel && <div className="flex justify-between"><dt className="text-gray-400">Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.educationLevel}</dd></div>}
+                        {rec.schoolName && <div className="flex justify-between"><dt className="text-gray-400">School</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.schoolName}</dd></div>}
+                        {rec.enrollmentStatus && <div className="flex justify-between"><dt className="text-gray-400">Enrollment</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.enrollmentStatus}</dd></div>}
+                        {rec.attendanceRate != null && <div className="flex justify-between"><dt className="text-gray-400">Attendance</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.attendanceRate.toFixed(1)}%</dd></div>}
+                        {rec.progressPercent != null && <div className="flex justify-between"><dt className="text-gray-400">Progress</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.progressPercent.toFixed(1)}%</dd></div>}
+                      </dl>
+                    </div>
+                  ))
+              )}
+            </div>
+          )}
 
-          {/* Health Records */}
-          <div className="min-w-0">
-            <button
-              type="button"
-              onClick={() => setHealthOpen(prev => !prev)}
-              className="flex w-full items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-left transition-colors hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]"
-            >
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Health Records <span className="normal-case font-normal text-gray-400">({healthRecords.length})</span></span>
-              <svg className={`shrink-0 text-gray-400 transition-transform duration-200 ${healthOpen ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-            </button>
-            {healthOpen && (
-              <div className="mt-2 space-y-2.5">
-                {healthRecords.length === 0 ? (
-                  <p className="px-4 py-3 text-xs text-gray-400">No health records found.</p>
-                ) : (
-                  [...healthRecords]
-                    .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
-                    .map(rec => (
-                      <div key={rec.healthRecordId} className="rounded-lg border border-gray-100 px-3 py-2.5 dark:border-[#333]">
-                        <p className="mb-1.5 text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</p>
-                        <dl className="space-y-1 text-xs">
-                          {rec.generalHealthScore != null && <div className="flex justify-between"><dt className="text-gray-400">Health Score</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.generalHealthScore.toFixed(1)}</dd></div>}
-                          {rec.nutritionScore != null && <div className="flex justify-between"><dt className="text-gray-400">Nutrition</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.nutritionScore.toFixed(1)}</dd></div>}
-                          {rec.sleepQualityScore != null && <div className="flex justify-between"><dt className="text-gray-400">Sleep Quality</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.sleepQualityScore.toFixed(1)}</dd></div>}
-                          {rec.energyLevelScore != null && <div className="flex justify-between"><dt className="text-gray-400">Energy Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.energyLevelScore.toFixed(1)}</dd></div>}
-                          {(rec.heightCm != null || rec.weightKg != null) && (
-                            <div className="flex justify-between">
-                              <dt className="text-gray-400">Ht / Wt</dt>
-                              <dd className="font-medium text-gray-600 dark:text-gray-300">{rec.heightCm != null ? `${rec.heightCm.toFixed(1)} cm` : '—'} / {rec.weightKg != null ? `${rec.weightKg.toFixed(1)} kg` : '—'}</dd>
-                            </div>
-                          )}
-                          {rec.bmi != null && <div className="flex justify-between"><dt className="text-gray-400">BMI</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.bmi.toFixed(1)}</dd></div>}
-                          <div className="flex flex-wrap gap-1.5 pt-1">
-                            {rec.medicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Medical ✓</span>}
-                            {rec.dentalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Dental ✓</span>}
-                            {rec.psychologicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Psych ✓</span>}
+          <button
+            type="button"
+            onClick={() => setRecordsPanel((p) => (p === 'health' ? 'none' : 'health'))}
+            className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-left transition-colors ${
+              recordsPanel === 'health'
+                ? 'bg-gray-100 dark:bg-[#2a2a2a]'
+                : 'bg-gray-50 hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]'
+            }`}
+          >
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Health Records <span className="normal-case font-normal text-gray-400">({healthRecords.length})</span></span>
+            <svg className={`shrink-0 text-gray-400 transition-transform duration-200 ${recordsPanel === 'health' ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+          </button>
+          {recordsPanel === 'health' && (
+            <div className="w-full space-y-2.5 pb-1">
+              {healthRecords.length === 0 ? (
+                <p className="px-1 py-2 text-xs text-gray-400">No health records found.</p>
+              ) : (
+                [...healthRecords]
+                  .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
+                  .map(rec => (
+                    <div key={rec.healthRecordId} className="rounded-lg border border-gray-100 px-3 py-2.5 dark:border-[#333]">
+                      <p className="mb-1.5 text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</p>
+                      <dl className="space-y-1 text-xs">
+                        {rec.generalHealthScore != null && <div className="flex justify-between"><dt className="text-gray-400">Health Score</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.generalHealthScore.toFixed(1)}</dd></div>}
+                        {rec.nutritionScore != null && <div className="flex justify-between"><dt className="text-gray-400">Nutrition</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.nutritionScore.toFixed(1)}</dd></div>}
+                        {rec.sleepQualityScore != null && <div className="flex justify-between"><dt className="text-gray-400">Sleep Quality</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.sleepQualityScore.toFixed(1)}</dd></div>}
+                        {rec.energyLevelScore != null && <div className="flex justify-between"><dt className="text-gray-400">Energy Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.energyLevelScore.toFixed(1)}</dd></div>}
+                        {(rec.heightCm != null || rec.weightKg != null) && (
+                          <div className="flex justify-between">
+                            <dt className="text-gray-400">Ht / Wt</dt>
+                            <dd className="font-medium text-gray-600 dark:text-gray-300">{rec.heightCm != null ? `${rec.heightCm.toFixed(1)} cm` : '—'} / {rec.weightKg != null ? `${rec.weightKg.toFixed(1)} kg` : '—'}</dd>
                           </div>
-                        </dl>
-                      </div>
-                    ))
-                )}
-              </div>
-            )}
-          </div>
+                        )}
+                        {rec.bmi != null && <div className="flex justify-between"><dt className="text-gray-400">BMI</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.bmi.toFixed(1)}</dd></div>}
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {rec.medicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Medical ✓</span>}
+                          {rec.dentalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Dental ✓</span>}
+                          {rec.psychologicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Psych ✓</span>}
+                        </div>
+                      </dl>
+                    </div>
+                  ))
+              )}
+            </div>
+          )}
         </div>
       </div>
 
