@@ -58,32 +58,79 @@ function safehouseOptionLabel(sh: Safehouse): string {
   return `SH-${sh.safehouseId}`
 }
 
+/** Local calendar date for `<input type="date">` values. */
+function todayYmd(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const mo = String(d.getMonth() + 1).padStart(2, '0')
+  const da = String(d.getDate()).padStart(2, '0')
+  return `${y}-${mo}-${da}`
+}
+
+/** Age string aligned with lighthouse CSV samples, e.g. `15 Years 9 months`. */
+function formatAgeYearsMonths(dobIso: string, reference: Date = new Date()): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dobIso.trim())
+  if (!m) return '0 Years 0 months'
+  const by = Number(m[1])
+  const bm = Number(m[2]) - 1
+  const bd = Number(m[3])
+  const dob = new Date(by, bm, bd)
+  if (dob.getFullYear() !== by || dob.getMonth() !== bm || dob.getDate() !== bd) return '0 Years 0 months'
+  let years = reference.getFullYear() - by
+  let months = reference.getMonth() - bm
+  if (reference.getDate() < bd) months--
+  if (months < 0) {
+    years--
+    months += 12
+  }
+  if (years < 0) return '0 Years 0 months'
+  return `${years} Years ${months} months`
+}
+
+/** Distinct values from lighthouse residents.csv */
+const REINTEGRATION_TYPES = [
+  'Adoption (Domestic)',
+  'Adoption (Inter-Country)',
+  'Family Reunification',
+  'Foster Care',
+  'Independent Living',
+  'None',
+] as const
+
+const REINTEGRATION_STATUSES = ['Completed', 'In Progress', 'Not Started', 'On Hold'] as const
+
+const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'] as const
+
 const INPUT_CLASS =
   'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100'
 
-const REQUIRED_RESIDENT_FIELDS: { key: keyof Resident; label: string }[] = [
+/** Required fields for the visible create form only (hidden/auto fields omitted). */
+const REQUIRED_RESIDENT_FIELDS_CREATE: { key: keyof Resident; label: string }[] = [
   { key: 'caseControlNo', label: 'Case control number' },
   { key: 'internalCode', label: 'Internal code' },
   { key: 'safehouseId', label: 'Safehouse' },
   { key: 'caseStatus', label: 'Case status' },
-  { key: 'sex', label: 'Sex' },
   { key: 'dateOfBirth', label: 'Date of birth' },
-  { key: 'birthStatus', label: 'Birth status' },
-  { key: 'placeOfBirth', label: 'Place of birth' },
-  { key: 'religion', label: 'Religion' },
   { key: 'caseCategory', label: 'Case category' },
-  { key: 'dateOfAdmission', label: 'Date of admission' },
-  { key: 'ageUponAdmission', label: 'Age upon admission' },
-  { key: 'presentAge', label: 'Present age' },
-  { key: 'lengthOfStay', label: 'Length of stay' },
   { key: 'referralSource', label: 'Referral source' },
   { key: 'assignedSocialWorker', label: 'Assigned social worker' },
-  { key: 'initialCaseAssessment', label: 'Initial case assessment' },
   { key: 'reintegrationType', label: 'Reintegration type' },
   { key: 'reintegrationStatus', label: 'Reintegration status' },
   { key: 'initialRiskLevel', label: 'Initial risk level' },
   { key: 'currentRiskLevel', label: 'Current risk level' },
+]
+
+const REQUIRED_RESIDENT_FIELDS_EDIT: { key: keyof Resident; label: string }[] = [
+  ...REQUIRED_RESIDENT_FIELDS_CREATE,
+  { key: 'dateOfAdmission', label: 'Date of admission' },
   { key: 'dateEnrolled', label: 'Date enrolled' },
+  { key: 'birthStatus', label: 'Birth status' },
+  { key: 'placeOfBirth', label: 'Place of birth' },
+  { key: 'religion', label: 'Religion' },
+  { key: 'ageUponAdmission', label: 'Age upon admission' },
+  { key: 'presentAge', label: 'Present age' },
+  { key: 'lengthOfStay', label: 'Length of stay' },
+  { key: 'initialCaseAssessment', label: 'Initial case assessment' },
 ]
 
 function blankResident(): Resident {
@@ -145,7 +192,18 @@ export default function AdminCaseload() {
     setValidationError(null)
     setCreating(true)
     setEditing(null)
-    setFormData(blankResident())
+    const today = todayYmd()
+    setFormData({
+      ...blankResident(),
+      sex: 'F',
+      dateOfAdmission: today,
+      dateEnrolled: today,
+      birthStatus: 'Unknown',
+      placeOfBirth: 'Unknown',
+      religion: 'Unknown',
+      lengthOfStay: 'Unknown',
+      initialCaseAssessment: 'Unknown',
+    })
   }, [])
 
   useEffect(() => {
@@ -210,16 +268,24 @@ export default function AdminCaseload() {
       setSaving(true)
       setError(null)
       setValidationError(null)
-      const missing = REQUIRED_RESIDENT_FIELDS.filter(({ key }) => {
-        const value = formData[key]
-        if (typeof value === 'string') return value.trim().length === 0
-        return value === null || value === undefined
-      }).map(({ label }) => label)
+      const requiredFields = creating ? REQUIRED_RESIDENT_FIELDS_CREATE : REQUIRED_RESIDENT_FIELDS_EDIT
+      const missing = requiredFields
+        .filter(({ key }) => {
+          const value = formData[key]
+          if (typeof value === 'string') return value.trim().length === 0
+          return value === null || value === undefined
+        })
+        .map(({ label }) => label)
       if (missing.length > 0) {
         setValidationError(`Please complete required fields: ${missing.join(', ')}`)
         return
       }
-      const payload = {
+      const refDate = new Date()
+      const ageFromDob = formData.dateOfBirth
+        ? formatAgeYearsMonths(formData.dateOfBirth, refDate)
+        : '0 Years 0 months'
+
+      let payload: Resident = {
         ...formData,
         caseControlNo: formData.caseControlNo || null,
         internalCode: formData.internalCode || null,
@@ -231,6 +297,24 @@ export default function AdminCaseload() {
         dateOfBirth: formData.dateOfBirth || null,
         dateOfAdmission: formData.dateOfAdmission || null,
       }
+
+      if (creating) {
+        const today = todayYmd()
+        payload = {
+          ...payload,
+          sex: 'F',
+          dateOfAdmission: today,
+          dateEnrolled: today,
+          birthStatus: 'Unknown',
+          placeOfBirth: 'Unknown',
+          religion: 'Unknown',
+          lengthOfStay: 'Unknown',
+          initialCaseAssessment: 'Unknown',
+          ageUponAdmission: ageFromDob,
+          presentAge: ageFromDob,
+        }
+      }
+
       if (editing) {
         await updateResident(editing.residentId, payload)
       } else {
@@ -348,64 +432,104 @@ export default function AdminCaseload() {
               </select>
             </div>
             <div>
-              <label htmlFor="resident-reintegration" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reintegration status *</label>
-              <input id="resident-reintegration" value={formData.reintegrationStatus ?? ''} onChange={(e) => setField('reintegrationStatus', e.target.value || null)} className={INPUT_CLASS} />
+              <label htmlFor="resident-reintegration-type" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reintegration type *</label>
+              <select
+                id="resident-reintegration-type"
+                value={formData.reintegrationType ?? ''}
+                onChange={(e) => setField('reintegrationType', e.target.value || null)}
+                className={INPUT_CLASS}
+              >
+                <option value="">Select…</option>
+                {REINTEGRATION_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="resident-reintegration-status" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reintegration status *</label>
+              <select
+                id="resident-reintegration-status"
+                value={formData.reintegrationStatus ?? ''}
+                onChange={(e) => setField('reintegrationStatus', e.target.value || null)}
+                className={INPUT_CLASS}
+              >
+                <option value="">Select…</option>
+                {REINTEGRATION_STATUSES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label htmlFor="resident-dob" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of birth *</label>
               <input id="resident-dob" type="date" value={formData.dateOfBirth ?? ''} onChange={(e) => setField('dateOfBirth', e.target.value || null)} className={INPUT_CLASS} />
             </div>
-            <div>
-              <label htmlFor="resident-admission" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of admission *</label>
-              <input id="resident-admission" type="date" value={formData.dateOfAdmission ?? ''} onChange={(e) => setField('dateOfAdmission', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-sex" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Sex *</label>
-              <input id="resident-sex" value={formData.sex ?? ''} onChange={(e) => setField('sex', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-birth-status" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Birth status *</label>
-              <input id="resident-birth-status" value={formData.birthStatus ?? ''} onChange={(e) => setField('birthStatus', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-place-of-birth" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Place of birth *</label>
-              <input id="resident-place-of-birth" value={formData.placeOfBirth ?? ''} onChange={(e) => setField('placeOfBirth', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-religion" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Religion *</label>
-              <input id="resident-religion" value={formData.religion ?? ''} onChange={(e) => setField('religion', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-age-upon-admission" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Age upon admission *</label>
-              <input id="resident-age-upon-admission" value={formData.ageUponAdmission ?? ''} onChange={(e) => setField('ageUponAdmission', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-present-age" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Present age *</label>
-              <input id="resident-present-age" value={formData.presentAge ?? ''} onChange={(e) => setField('presentAge', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-length-of-stay" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Length of stay *</label>
-              <input id="resident-length-of-stay" value={formData.lengthOfStay ?? ''} onChange={(e) => setField('lengthOfStay', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-initial-assessment" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Initial case assessment *</label>
-              <input id="resident-initial-assessment" value={formData.initialCaseAssessment ?? ''} onChange={(e) => setField('initialCaseAssessment', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-reintegration-type" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reintegration type *</label>
-              <input id="resident-reintegration-type" value={formData.reintegrationType ?? ''} onChange={(e) => setField('reintegrationType', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
+            {!creating && (
+              <>
+                <div>
+                  <label htmlFor="resident-admission" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of admission *</label>
+                  <input id="resident-admission" type="date" value={formData.dateOfAdmission ?? ''} onChange={(e) => setField('dateOfAdmission', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label htmlFor="resident-date-enrolled" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date enrolled *</label>
+                  <input id="resident-date-enrolled" type="date" value={formData.dateEnrolled ?? ''} onChange={(e) => setField('dateEnrolled', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label htmlFor="resident-birth-status" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Birth status *</label>
+                  <input id="resident-birth-status" value={formData.birthStatus ?? ''} onChange={(e) => setField('birthStatus', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label htmlFor="resident-place-of-birth" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Place of birth *</label>
+                  <input id="resident-place-of-birth" value={formData.placeOfBirth ?? ''} onChange={(e) => setField('placeOfBirth', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label htmlFor="resident-religion" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Religion *</label>
+                  <input id="resident-religion" value={formData.religion ?? ''} onChange={(e) => setField('religion', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label htmlFor="resident-age-upon-admission" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Age upon admission *</label>
+                  <input id="resident-age-upon-admission" value={formData.ageUponAdmission ?? ''} onChange={(e) => setField('ageUponAdmission', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label htmlFor="resident-present-age" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Present age *</label>
+                  <input id="resident-present-age" value={formData.presentAge ?? ''} onChange={(e) => setField('presentAge', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label htmlFor="resident-length-of-stay" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Length of stay *</label>
+                  <input id="resident-length-of-stay" value={formData.lengthOfStay ?? ''} onChange={(e) => setField('lengthOfStay', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+                <div>
+                  <label htmlFor="resident-initial-assessment" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Initial case assessment *</label>
+                  <input id="resident-initial-assessment" value={formData.initialCaseAssessment ?? ''} onChange={(e) => setField('initialCaseAssessment', e.target.value || null)} className={INPUT_CLASS} />
+                </div>
+              </>
+            )}
             <div>
               <label htmlFor="resident-initial-risk" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Initial risk level *</label>
-              <input id="resident-initial-risk" value={formData.initialRiskLevel ?? ''} onChange={(e) => setField('initialRiskLevel', e.target.value || null)} className={INPUT_CLASS} />
+              <select
+                id="resident-initial-risk"
+                value={formData.initialRiskLevel ?? ''}
+                onChange={(e) => setField('initialRiskLevel', e.target.value || null)}
+                className={INPUT_CLASS}
+              >
+                <option value="">Select…</option>
+                {RISK_LEVELS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label htmlFor="resident-current-risk" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Current risk level *</label>
-              <input id="resident-current-risk" value={formData.currentRiskLevel ?? ''} onChange={(e) => setField('currentRiskLevel', e.target.value || null)} className={INPUT_CLASS} />
-            </div>
-            <div>
-              <label htmlFor="resident-date-enrolled" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date enrolled *</label>
-              <input id="resident-date-enrolled" type="date" value={formData.dateEnrolled ?? ''} onChange={(e) => setField('dateEnrolled', e.target.value || null)} className={INPUT_CLASS} />
+              <select
+                id="resident-current-risk"
+                value={formData.currentRiskLevel ?? ''}
+                onChange={(e) => setField('currentRiskLevel', e.target.value || null)}
+                className={INPUT_CLASS}
+              >
+                <option value="">Select…</option>
+                {RISK_LEVELS.map((r) => (
+                  <option key={`cur-${r}`} value={r}>{r}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-300 md:grid-cols-4">

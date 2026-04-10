@@ -97,7 +97,7 @@ public class ResidentsController : ControllerBase
         resident.InternalCode = RequireText(resident.InternalCode, $"R-{DateTime.UtcNow:yyyyMMddHHmmss}");
         resident.SafehouseId ??= 1;
         resident.CaseStatus = RequireText(resident.CaseStatus, "Active");
-        resident.Sex = RequireText(resident.Sex, "Unknown");
+        resident.Sex = RequireText(resident.Sex, "F");
         resident.DateOfBirth ??= today;
         resident.BirthStatus = RequireText(resident.BirthStatus, "Unknown");
         resident.PlaceOfBirth = RequireText(resident.PlaceOfBirth, "Unknown");
@@ -126,7 +126,7 @@ public class ResidentsController : ControllerBase
         resident.LengthOfStay = RequireText(resident.LengthOfStay, "Unknown");
         resident.ReferralSource = RequireText(resident.ReferralSource, "Unknown");
         resident.AssignedSocialWorker = RequireText(resident.AssignedSocialWorker, "Unassigned");
-        resident.InitialCaseAssessment = RequireText(resident.InitialCaseAssessment, "Pending");
+        resident.InitialCaseAssessment = RequireText(resident.InitialCaseAssessment, "Unknown");
         resident.ReintegrationType = RequireText(resident.ReintegrationType, "Unknown");
         resident.ReintegrationStatus = RequireText(resident.ReintegrationStatus, "Pending");
         resident.InitialRiskLevel = RequireText(resident.InitialRiskLevel, "Unknown");

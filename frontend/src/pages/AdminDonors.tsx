@@ -71,6 +71,18 @@ function formatSupporterSaveError(err: unknown): string {
   return err instanceof Error ? err.message : 'Save failed'
 }
 
+/** Distinct values from lighthouse supporters.csv */
+const SUPPORTER_RELATIONSHIP_TYPES = ['International', 'Local', 'PartnerOrganization'] as const
+
+const SUPPORTER_ACQUISITION_CHANNELS = [
+  'Church',
+  'Event',
+  'PartnerReferral',
+  'SocialMedia',
+  'Website',
+  'WordOfMouth',
+] as const
+
 function blankSupporter(): Supporter {
   return {
     supporterId: 0,
@@ -740,11 +752,21 @@ export default function AdminDonors() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Relationship Type *</label>
-                <input type="text" value={formData.relationshipType ?? ''} onChange={e => setFormData(prev => ({ ...prev, relationshipType: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+                <select value={formData.relationshipType ?? ''} onChange={e => setFormData(prev => ({ ...prev, relationshipType: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100">
+                  <option value="">Select…</option>
+                  {SUPPORTER_RELATIONSHIP_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Acquisition Channel *</label>
-                <input type="text" value={formData.acquisitionChannel ?? ''} onChange={e => setFormData(prev => ({ ...prev, acquisitionChannel: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+                <select value={formData.acquisitionChannel ?? ''} onChange={e => setFormData(prev => ({ ...prev, acquisitionChannel: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100">
+                  <option value="">Select…</option>
+                  {SUPPORTER_ACQUISITION_CHANNELS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
