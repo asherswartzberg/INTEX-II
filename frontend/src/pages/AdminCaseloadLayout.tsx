@@ -19,13 +19,6 @@ export function useCaseloadContext() {
   return useOutletContext<CaseloadContext>()
 }
 
-const RISK_STYLE: Record<string, string> = {
-  Critical: 'bg-red-100 text-red-700',
-  High: 'bg-red-100 text-red-700',
-  Medium: 'bg-amber-100 text-amber-700',
-  Low: 'bg-green-100 text-green-700',
-}
-
 const PREDICTED_RISK_STYLE: Record<string, string> = {
   'Low Risk': 'bg-green-100 text-green-700',
   'Moderate Risk': 'bg-amber-100 text-amber-700',
@@ -36,11 +29,6 @@ const STATUS_STYLE: Record<string, string> = {
   Active: 'bg-blue-100 text-blue-700',
   Closed: 'bg-gray-100 text-gray-500',
   Transferred: 'bg-purple-100 text-purple-700',
-}
-
-function fmtDate(s: string | null) {
-  if (!s) return '—'
-  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 const PAGE_SIZE = 15
@@ -136,15 +124,12 @@ export default function AdminCaseloadLayout() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const desktopCol = selected ? 'hidden' : 'hidden md:table-cell'
-  const listWidth = selected ? 'w-full md:w-[480px] md:shrink-0' : 'w-full md:flex-1'
-
   const ctx: CaseloadContext = { selected, setSelected, residents, isAdmin, riskScoreMap, refreshResidents }
 
   return (
     <div className="flex h-full gap-3 overflow-hidden p-3 bg-off-white dark:bg-[#111]">
       {/* Resident table panel */}
-      <div className={`flex flex-col rounded-xl overflow-hidden bg-white shadow-sm ring-1 ring-black/5 dark:bg-[#1a1a1a] dark:ring-white/5 ${listWidth} ${selected ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`flex flex-col rounded-xl overflow-hidden bg-white shadow-sm ring-1 ring-black/5 dark:bg-[#1a1a1a] dark:ring-white/5 w-full md:w-[480px] md:shrink-0 ${selected ? 'hidden md:flex' : 'flex'}`}>
         <div className="border-b border-border bg-white px-6 py-4 dark:border-[#333] dark:bg-[#1a1a1a]">
           <div className="mb-3 flex items-center justify-between">
             <div>
@@ -203,8 +188,6 @@ export default function AdminCaseloadLayout() {
             >
               {sortByRisk ? 'Sorted by Risk ↓' : 'Sort by Risk'}
             </button>
-
-            <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">{filtered.length} records</span>
           </div>
         </div>
 
@@ -220,57 +203,43 @@ export default function AdminCaseloadLayout() {
               <thead className="sticky top-0 bg-white dark:bg-[#1a1a1a]">
                 <tr className="border-b border-gray-100 dark:border-[#333]">
                   <th scope="col" className="w-[3px] p-0" />
-                  <th scope="col" className={`${desktopCol} px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400`}>CASE NO</th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">CODE</th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">SAFEHOUSE</th>
                   <th scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">STATUS</th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">CURRENT RISK</th>
-                  <th scope="col" className={`${desktopCol} cursor-pointer select-none px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200`} onClick={() => { setSortByRisk(prev => !prev); setPage(1) }}>PREDICTED RISK{sortByRisk ? ' ↓' : ''}</th>
-                  <th scope="col" className={`${desktopCol} px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400`}>CATEGORY</th>
-                  <th scope="col" className={`${desktopCol} px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400`}>ADMITTED</th>
-                  <th scope="col" className={`${desktopCol} px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400`}>SOCIAL WORKER</th>
+                  <th scope="col" className="cursor-pointer select-none px-4 py-3 text-left text-xs font-semibold tracking-wide text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" onClick={() => { setSortByRisk(prev => !prev); setPage(1) }}>PREDICTED RISK{sortByRisk ? ' ↓' : ''}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-[#2a2a2a]">
                 {paged.length === 0 ? (
-                  <tr><td colSpan={10} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">No residents found.</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">No residents found.</td></tr>
                 ) : (
-                  paged.map((r) => (
-                    <tr
-                      key={r.residentId}
-                      onClick={() => setSelected(r)}
-                      className={`cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/40 ${selected?.residentId === r.residentId ? 'bg-blue-50 dark:bg-blue-950' : ''}`}
-                    >
-                      <td className={`w-[3px] p-0 transition-colors ${selected?.residentId === r.residentId ? 'bg-blue-600' : 'bg-transparent'}`} />
-                      <td className={`${desktopCol} px-4 py-3 text-gray-500 dark:text-gray-400`}>{r.caseControlNo ?? '—'}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-100">{r.internalCode ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">SH-{r.safehouseId ?? '?'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[r.caseStatus ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
-                          {r.caseStatus ?? '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${RISK_STYLE[r.currentRiskLevel ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
-                          {r.currentRiskLevel ?? '—'}
-                        </span>
-                      </td>
-                      <td className={`${desktopCol} px-4 py-3`}>
-                        {(() => {
-                          const rs = riskScoreMap.get(r.residentId)
-                          const label = rs?.riskLabel
-                          return label ? (
-                            <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${PREDICTED_RISK_STYLE[label] ?? 'bg-gray-100 text-gray-500'}`}>
-                              {label}
+                  paged.map((r) => {
+                    const rs = riskScoreMap.get(r.residentId)
+                    const riskLabel = rs?.riskLabel
+                    return (
+                      <tr
+                        key={r.residentId}
+                        onClick={() => setSelected(r)}
+                        className={`cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/40 ${selected?.residentId === r.residentId ? 'bg-blue-50 dark:bg-blue-950' : ''}`}
+                      >
+                        <td className={`w-[3px] p-0 transition-colors ${selected?.residentId === r.residentId ? 'bg-blue-600' : 'bg-transparent'}`} />
+                        <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-100">{r.internalCode ?? '—'}</td>
+                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400">SH-{r.safehouseId ?? '?'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_STYLE[r.caseStatus ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
+                            {r.caseStatus ?? '—'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {riskLabel ? (
+                            <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ${PREDICTED_RISK_STYLE[riskLabel] ?? 'bg-gray-100 text-gray-500'}`}>
+                              {riskLabel}
                             </span>
-                          ) : '—'
-                        })()}
-                      </td>
-                      <td className={`${desktopCol} px-4 py-3 text-gray-500 dark:text-gray-400`}>{r.caseCategory ?? '—'}</td>
-                      <td className={`${desktopCol} px-4 py-3 text-gray-500 dark:text-gray-400`}>{fmtDate(r.dateOfAdmission)}</td>
-                      <td className={`${desktopCol} px-4 py-3 text-gray-500 dark:text-gray-400`}>{r.assignedSocialWorker ?? '—'}</td>
-                    </tr>
-                  ))
+                          ) : <span className="text-gray-400">—</span>}
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
