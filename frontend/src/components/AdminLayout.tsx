@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Outlet, NavLink, Link, useNavigate } from 'react-router'
+import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router'
 import { useAuth } from '../context/AuthContext'
 import ConfirmDialog from './ConfirmDialog'
 import SettingsPanel from './SettingsPanel'
@@ -14,35 +14,6 @@ const navItems: NavItem[] = [
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
         <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Caseload',
-    to: '/admin/caseload',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Counseling',
-    to: '/admin/counseling',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Visitations',
-    to: '/admin/visitations',
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
     ),
   },
@@ -77,12 +48,28 @@ const navItems: NavItem[] = [
   },
 ]
 
+const caseloadIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
+  </svg>
+)
+
+const caseloadSubItems = [
+  { label: 'Information', to: '/admin/caseload/information' },
+  { label: 'Counseling', to: '/admin/caseload/counseling' },
+  { label: 'Visitations', to: '/admin/caseload/visitations' },
+]
+
 export default function AdminLayout() {
   const { authSession } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [showSignOut, setShowSignOut] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const isCaseloadRoute = location.pathname.startsWith('/admin/caseload')
+  const [caseloadExpanded, setCaseloadExpanded] = useState(isCaseloadRoute)
   return (
     <div data-admin className="flex flex-col h-screen bg-off-white dark:bg-[#111] font-sans overflow-hidden">
 
@@ -166,7 +153,74 @@ export default function AdminLayout() {
         <aside className={`fixed inset-y-0 left-0 z-50 flex w-[240px] shrink-0 flex-col border-r border-border bg-white transition-transform duration-200 md:static md:z-auto md:w-[200px] md:translate-x-0 dark:bg-[#1a1a1a] dark:border-[#333] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             <ul className="space-y-0.5">
-              {navItems.map((item) => (
+              {/* Dashboard */}
+              <li>
+                <NavLink
+                  to={navItems[0].to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-off-white text-black dark:bg-[#2a2a2a] dark:text-white'
+                        : 'text-medium-gray hover:bg-off-white hover:text-black dark:text-gray-400 dark:hover:bg-[#222] dark:hover:text-white'
+                    }`
+                  }
+                >
+                  <span className="shrink-0 opacity-60">{navItems[0].icon}</span>
+                  <span className="flex-1">{navItems[0].label}</span>
+                </NavLink>
+              </li>
+
+              {/* Caseload (expandable) */}
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!caseloadExpanded) {
+                      setCaseloadExpanded(true)
+                      navigate('/admin/caseload/information')
+                    } else {
+                      setCaseloadExpanded(false)
+                    }
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isCaseloadRoute
+                      ? 'bg-off-white text-black dark:bg-[#2a2a2a] dark:text-white'
+                      : 'text-medium-gray hover:bg-off-white hover:text-black dark:text-gray-400 dark:hover:bg-[#222] dark:hover:text-white'
+                  }`}
+                >
+                  <span className="shrink-0 opacity-60">{caseloadIcon}</span>
+                  <span className="flex-1 text-left">Caseload</span>
+                  <svg
+                    className={`shrink-0 opacity-50 transition-transform duration-200 ${caseloadExpanded ? 'rotate-180' : ''}`}
+                    width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {caseloadExpanded && (
+                  <ul className="mt-0.5 space-y-0.5 pl-8">
+                    {caseloadSubItems.map((sub) => (
+                      <li key={sub.to}>
+                        <NavLink
+                          to={sub.to}
+                          className={({ isActive }) =>
+                            `block rounded-lg px-3 py-2 text-sm transition-colors ${
+                              isActive
+                                ? 'font-medium text-black dark:text-white'
+                                : 'text-medium-gray hover:text-black dark:text-gray-400 dark:hover:text-white'
+                            }`
+                          }
+                        >
+                          {sub.label}
+                        </NavLink>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+
+              {/* Remaining nav items */}
+              {navItems.slice(1).map((item) => (
                 <li key={item.to}>
                   <NavLink
                     to={item.to}
