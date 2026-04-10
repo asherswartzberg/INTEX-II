@@ -1,9 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { createResident, deleteResident, updateResident } from '../apis/residentsApi'
+import { fetchSafehouses } from '../apis/safehousesApi'
 import { fetchEducationRecordsForResident } from '../apis/educationRecordsApi'
 import { fetchHealthRecordsForResident } from '../apis/healthWellbeingRecordsApi'
+import { ApiError } from '../apis/client'
 import type { Resident } from '../types/Resident'
+import type { Safehouse } from '../types/Safehouse'
 import type { EducationRecord } from '../types/EducationRecord'
 import type { HealthWellbeingRecord } from '../types/HealthWellbeingRecord'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -38,6 +41,25 @@ function fmtDate(s: string | null) {
   if (!s) return '—'
   return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+function formatResidentSaveError(err: unknown): string {
+  if (err instanceof ApiError) {
+    const detail = err.body?.trim()
+    return detail ? `${err.message}: ${detail.slice(0, 500)}` : err.message
+  }
+  return err instanceof Error ? err.message : 'Save failed'
+}
+
+function safehouseOptionLabel(sh: Safehouse): string {
+  const name = sh.name?.trim()
+  if (name) return name
+  const code = sh.safehouseCode?.trim()
+  if (code) return code
+  return `SH-${sh.safehouseId}`
+}
+
+const INPUT_CLASS =
+  'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100'
 
 function blankResident(): Resident {
   return {
@@ -75,6 +97,8 @@ export default function AdminCaseload() {
   const [eduRecords, setEduRecords] = useState<EducationRecord[]>([])
   const [healthRecords, setHealthRecords] = useState<HealthWellbeingRecord[]>([])
   const [recordsPanel, setRecordsPanel] = useState<RecordsPanel>('none')
+  const [safehouses, setSafehouses] = useState<Safehouse[]>([])
+  const [safehousesLoadError, setSafehousesLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!selected) {
@@ -91,10 +115,30 @@ export default function AdminCaseload() {
   }, [selected?.residentId])
 
   const openCreate = useCallback(() => {
+    setError(null)
     setCreating(true)
     setEditing(null)
     setFormData(blankResident())
   }, [])
+
+  useEffect(() => {
+    if (!creating && !editing) return
+    let cancelled = false
+    setSafehousesLoadError(null)
+    fetchSafehouses()
+      .then((list) => {
+        if (!cancelled) setSafehouses(list)
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setSafehousesLoadError(err instanceof Error ? err.message : 'Failed to load safehouses')
+          setSafehouses([])
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [creating, editing])
 
   useEffect(() => {
     if (!isAdmin) {
@@ -127,6 +171,7 @@ export default function AdminCaseload() {
   }, [confirmDelete, refreshResidents, selected, setSelected])
 
   function openEdit(resident: Resident) {
+    setError(null)
     setCreating(false)
     setEditing(resident)
     setFormData(resident)
@@ -135,6 +180,7 @@ export default function AdminCaseload() {
   async function saveResident() {
     try {
       setSaving(true)
+      setError(null)
       const payload = {
         ...formData,
         caseControlNo: formData.caseControlNo || null,
@@ -156,7 +202,7 @@ export default function AdminCaseload() {
       setCreating(false)
       await refreshResidents()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
+      setError(formatResidentSaveError(err))
     } finally {
       setSaving(false)
     }
@@ -196,20 +242,84 @@ export default function AdminCaseload() {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               {editing ? 'Edit Resident Profile' : 'Create Resident Profile'}
             </h3>
-            <button onClick={() => { setEditing(null); setCreating(false) }} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400">Close</button>
+            <button onClick={() => { setError(null); setEditing(null); setCreating(false) }} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400">Close</button>
           </div>
-          {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+          {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {safehousesLoadError && (
+            <p className="mb-3 text-sm text-amber-600 dark:text-amber-400">{safehousesLoadError}</p>
+          )}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <input value={formData.caseControlNo ?? ''} onChange={(e) => setField('caseControlNo', e.target.value || null)} placeholder="Case control no" className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
-            <input value={formData.internalCode ?? ''} onChange={(e) => setField('internalCode', e.target.value || null)} placeholder="Internal code" className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
-            <input value={formData.assignedSocialWorker ?? ''} onChange={(e) => setField('assignedSocialWorker', e.target.value || null)} placeholder="Assigned social worker" className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
-            <input value={formData.referralSource ?? ''} onChange={(e) => setField('referralSource', e.target.value || null)} placeholder="Referral source" className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
-            <select value={formData.caseStatus ?? ''} onChange={(e) => setField('caseStatus', e.target.value || null)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"><option value="">Case status</option><option>Active</option><option>Closed</option><option>Transferred</option></select>
-            <select value={formData.caseCategory ?? ''} onChange={(e) => setField('caseCategory', e.target.value || null)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100"><option value="">Case category</option><option>Trafficked</option><option>Physical Abuse</option><option>Neglected</option><option>Child Labor</option><option>At Risk</option></select>
-            <input type="number" value={formData.safehouseId ?? ''} onChange={(e) => setField('safehouseId', e.target.value ? Number(e.target.value) : null)} placeholder="Safehouse ID" className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
-            <input value={formData.reintegrationStatus ?? ''} onChange={(e) => setField('reintegrationStatus', e.target.value || null)} placeholder="Reintegration status" className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
-            <input type="date" value={formData.dateOfBirth ?? ''} onChange={(e) => setField('dateOfBirth', e.target.value || null)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
-            <input type="date" value={formData.dateOfAdmission ?? ''} onChange={(e) => setField('dateOfAdmission', e.target.value || null)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+            <div>
+              <label htmlFor="resident-case-control" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case control number</label>
+              <input id="resident-case-control" value={formData.caseControlNo ?? ''} onChange={(e) => setField('caseControlNo', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-internal-code" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Internal code</label>
+              <input id="resident-internal-code" value={formData.internalCode ?? ''} onChange={(e) => setField('internalCode', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-social-worker" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Assigned social worker</label>
+              <input id="resident-social-worker" value={formData.assignedSocialWorker ?? ''} onChange={(e) => setField('assignedSocialWorker', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-referral" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Referral source</label>
+              <input id="resident-referral" value={formData.referralSource ?? ''} onChange={(e) => setField('referralSource', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-case-status" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case status</label>
+              <select id="resident-case-status" value={formData.caseStatus ?? ''} onChange={(e) => setField('caseStatus', e.target.value || null)} className={INPUT_CLASS}>
+                <option value="">Select…</option>
+                <option value="Active">Active</option>
+                <option value="Closed">Closed</option>
+                <option value="Transferred">Transferred</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="resident-case-category" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case category</label>
+              <select id="resident-case-category" value={formData.caseCategory ?? ''} onChange={(e) => setField('caseCategory', e.target.value || null)} className={INPUT_CLASS}>
+                <option value="">Select…</option>
+                <option value="Trafficked">Trafficked</option>
+                <option value="Physical Abuse">Physical Abuse</option>
+                <option value="Neglected">Neglected</option>
+                <option value="Child Labor">Child Labor</option>
+                <option value="At Risk">At Risk</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="resident-safehouse" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Safehouse</label>
+              <select
+                id="resident-safehouse"
+                value={formData.safehouseId ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value
+                  setField('safehouseId', v === '' ? null : Number(v))
+                }}
+                className={INPUT_CLASS}
+              >
+                <option value="">Unassigned</option>
+                {formData.safehouseId != null &&
+                  !safehouses.some((s) => s.safehouseId === formData.safehouseId) && (
+                    <option value={formData.safehouseId}>{`SH-${formData.safehouseId} (current)`}</option>
+                  )}
+                {safehouses.map((sh) => (
+                  <option key={sh.safehouseId} value={sh.safehouseId}>
+                    {safehouseOptionLabel(sh)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="resident-reintegration" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reintegration status</label>
+              <input id="resident-reintegration" value={formData.reintegrationStatus ?? ''} onChange={(e) => setField('reintegrationStatus', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-dob" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of birth</label>
+              <input id="resident-dob" type="date" value={formData.dateOfBirth ?? ''} onChange={(e) => setField('dateOfBirth', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-admission" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of admission</label>
+              <input id="resident-admission" type="date" value={formData.dateOfAdmission ?? ''} onChange={(e) => setField('dateOfAdmission', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-300 md:grid-cols-4">
             {[
@@ -225,9 +335,12 @@ export default function AdminCaseload() {
               </label>
             ))}
           </div>
-          <textarea value={formData.notesRestricted ?? ''} onChange={(e) => setField('notesRestricted', e.target.value || null)} placeholder="Case notes" className="mt-4 min-h-24 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+          <div className="mt-4">
+            <label htmlFor="resident-notes" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case notes</label>
+            <textarea id="resident-notes" value={formData.notesRestricted ?? ''} onChange={(e) => setField('notesRestricted', e.target.value || null)} className="min-h-24 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+          </div>
           <div className="mt-5 flex justify-end gap-2">
-            <button onClick={() => { setEditing(null); setCreating(false) }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 dark:border-[#444] dark:text-gray-300">Cancel</button>
+            <button onClick={() => { setError(null); setEditing(null); setCreating(false) }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 dark:border-[#444] dark:text-gray-300">Cancel</button>
             <button onClick={saveResident} disabled={saving} className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 dark:bg-white dark:text-black">{saving ? 'Saving...' : editing ? 'Update resident' : 'Create resident'}</button>
           </div>
         </div>
