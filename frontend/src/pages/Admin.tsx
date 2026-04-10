@@ -252,7 +252,7 @@ export default function Admin() {
 
       {/* KPI strip */}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Link to="/admin/caseload" className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
+        <Link to="/admin/caseload/information" className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm transition-colors hover:bg-gray-50 dark:bg-[#1a1a1a] dark:border-[#333] dark:hover:bg-[#222]">
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{dashboard.totalActiveResidents}</p>
           <p className="mt-0.5 text-xs text-gray-400">Active Residents</p>
         </Link>
@@ -327,7 +327,7 @@ export default function Admin() {
               {highRiskResidents.slice(0, 5).map(r => {
                 const resident = residentMap.get(r.residentId)
                 return (
-                  <Link key={r.residentId} to={`/admin/caseload?resident=${r.residentId}`} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:bg-gray-50 dark:hover:bg-[#222] -mx-5 px-5">
+                  <Link key={r.residentId} to={`/admin/caseload/information?resident=${r.residentId}`} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0 transition-colors hover:bg-gray-50 dark:hover:bg-[#222] -mx-5 px-5">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {resident?.internalCode ?? resident?.caseControlNo ?? `Resident #${r.residentId}`}
@@ -345,7 +345,7 @@ export default function Admin() {
               })}
               {highRiskResidents.length > 5 && (
                 <div className="pt-3">
-                  <Link to="/admin/caseload?sort=predictedRisk" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                  <Link to="/admin/caseload/information?sort=predictedRisk" className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">
                     View all {highRiskResidents.length} high-risk residents →
                   </Link>
                 </div>

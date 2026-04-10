@@ -12,6 +12,7 @@ import CookiePolicyPage from './pages/CookiePolicyPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import Admin from './pages/Admin'
 import AdminDonors from './pages/AdminDonors'
+import AdminCaseloadLayout from './pages/AdminCaseloadLayout'
 import AdminCaseload from './pages/AdminCaseload'
 import AdminCounseling from './pages/AdminCounseling'
 import AdminVisitations from './pages/AdminVisitations'
@@ -49,9 +50,12 @@ function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<Admin />} />
               <Route path="donors" element={<AdminDonors />} />
-              <Route path="caseload" element={<AdminCaseload />} />
-              <Route path="counseling" element={<AdminCounseling />} />
-              <Route path="visitations" element={<AdminVisitations />} />
+              <Route path="caseload" element={<AdminCaseloadLayout />}>
+                <Route index element={<Navigate to="information" replace />} />
+                <Route path="information" element={<AdminCaseload />} />
+                <Route path="counseling" element={<AdminCounseling />} />
+                <Route path="visitations" element={<AdminVisitations />} />
+              </Route>
               <Route path="social-media" element={<AdminSocialMedia />} />
               <Route path="analytics" element={<AdminAnalytics />} />
               <Route path="reports" element={<Navigate to="analytics" replace />} />
