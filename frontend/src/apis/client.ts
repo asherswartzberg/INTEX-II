@@ -1,5 +1,10 @@
+/**
+ * In dev, use same-origin relative `/api/...` URLs so the Vite dev-server proxy forwards to the backend.
+ * Calling `http://localhost:5180` directly from the app on :5173 is cross-origin and often surfaces as
+ * `TypeError: Failed to fetch` (cookies / CORS). Override with `VITE_API_BASE_URL` for a direct backend URL.
+ */
 const DEFAULT_BASE = import.meta.env.DEV
-  ? "http://localhost:5180"
+  ? ""
   : "https://intex-backend-fvgedfcwcxf8cnc9.australiaeast-01.azurewebsites.net";
 
 export type QueryParams = Record<

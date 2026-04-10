@@ -86,7 +86,7 @@ export default function AdminCaseloadLayout() {
         caseCategory: categoryFilter || undefined,
         search: search || undefined,
         page: 1,
-        pageSize: 500,
+        pageSize: 2000,
       })
       setResidents(rows)
       if (selectedRef.current) {

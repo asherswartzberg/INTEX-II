@@ -9,6 +9,7 @@ import type { DonationAllocation } from '../types/DonationAllocation'
 import type { DonorRiskScore } from '../types/DonorRiskScore'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { useAuth } from '../context/AuthContext'
+import { ApiError } from '../apis/client'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function initials(name: string | null) {
@@ -62,6 +63,14 @@ function allocColor(area: string | null) {
   return ALLOC_COLORS[area] ?? '#6b7280'
 }
 
+function formatSupporterSaveError(err: unknown): string {
+  if (err instanceof ApiError) {
+    const detail = err.body?.trim()
+    return detail ? `${err.message}: ${detail.slice(0, 500)}` : err.message
+  }
+  return err instanceof Error ? err.message : 'Save failed'
+}
+
 function blankSupporter(): Supporter {
   return {
     supporterId: 0,
@@ -107,6 +116,7 @@ export default function AdminDonors() {
   const [creating, setCreating] = useState(false)
   const [formData, setFormData] = useState<Supporter>(blankSupporter())
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const handleDelete = useCallback(async () => {
     if (!confirmDelete) return
@@ -123,18 +133,21 @@ export default function AdminDonors() {
 
   const openCreate = useCallback(() => {
     setFormData(blankSupporter())
+    setSaveError(null)
     setCreating(true)
     setEditing(null)
   }, [])
 
   const openEdit = useCallback((s: Supporter) => {
     setFormData({ ...s })
+    setSaveError(null)
     setEditing(s)
     setCreating(false)
   }, [])
 
   const handleSave = useCallback(async () => {
     setSaving(true)
+    setSaveError(null)
     try {
       if (editing) {
         await updateSupporter(formData.supporterId, formData)
@@ -148,6 +161,7 @@ export default function AdminDonors() {
       }
     } catch (err) {
       console.error('Save failed', err)
+      setSaveError(formatSupporterSaveError(err))
     } finally {
       setSaving(false)
     }
@@ -650,6 +664,10 @@ export default function AdminDonors() {
               {editing ? 'Edit Supporter' : 'New Supporter'}
             </h2>
 
+            {saveError && (
+              <p className="mb-3 text-sm text-red-600 dark:text-red-400">{saveError}</p>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">First Name</label>
@@ -702,7 +720,7 @@ export default function AdminDonors() {
             </div>
 
             <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => { setCreating(false); setEditing(null) }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-[#444] dark:text-gray-300 dark:hover:bg-[#222]">
+              <button onClick={() => { setSaveError(null); setCreating(false); setEditing(null) }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-[#444] dark:text-gray-300 dark:hover:bg-[#222]">
                 Cancel
               </button>
               <button

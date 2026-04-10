@@ -13,6 +13,9 @@ namespace IntexAPI.Controllers;
 [Authorize(Roles = "Admin,Staff")]
 public class ResidentsController : ControllerBase
 {
+    /// <summary>Caseload UI loads a large slice in one request; higher than global <see cref="Pagination.MaxPageSize"/>.</summary>
+    private const int ResidentsListMaxPageSize = 2000;
+
     private readonly AppDbContext _db;
     private readonly FacilityAccessService _facilityAccess;
 
@@ -32,7 +35,9 @@ public class ResidentsController : ControllerBase
         [FromQuery] int pageSize = Pagination.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
-        var (skip, take) = Pagination.ToSkipTake(page, pageSize);
+        var p = page < 1 ? 1 : page;
+        var take = pageSize < 1 ? Pagination.DefaultPageSize : Math.Min(pageSize, ResidentsListMaxPageSize);
+        var skip = (p - 1) * take;
         var q = _db.Residents.AsNoTracking().AsQueryable();
         var allowedSafehouses = await _facilityAccess.GetAccessibleSafehouseIdsAsync(User, cancellationToken);
         if (!User.IsInRole(AuthRoles.Admin))
@@ -83,7 +88,11 @@ public class ResidentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Resident>> Create([FromBody] Resident resident, CancellationToken cancellationToken)
     {
-        var maxId = await _db.Residents.MaxAsync(r => (int?)r.ResidentId, cancellationToken) ?? 0;
+        // Use nullable MAX (SQL returns NULL on empty table). Avoid DefaultIfEmpty()+Max — poor EF translation on SQL Server.
+        var maxNullable = await _db.Residents.AsNoTracking()
+            .Select(r => (int?)r.ResidentId)
+            .MaxAsync(cancellationToken);
+        var maxId = maxNullable ?? 0;
         resident.ResidentId = maxId + 1;
         _db.Residents.Add(resident);
         await _db.SaveChangesAsync(cancellationToken);
