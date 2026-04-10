@@ -75,14 +75,27 @@ public class SupportersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Supporter>> Create([FromBody] Supporter entity, CancellationToken cancellationToken)
     {
+        entity.CreatedAt ??= DateTime.UtcNow;
+
         var maxNullable = await _db.Supporters.AsNoTracking()
             .Select(e => (int?)e.SupporterId)
             .MaxAsync(cancellationToken);
         var maxId = maxNullable ?? 0;
         entity.SupporterId = maxId + 1;
-        _db.Supporters.Add(entity);
-        await _db.SaveChangesAsync(cancellationToken);
-        return CreatedAtAction(nameof(GetById), new { id = entity.SupporterId }, entity);
+        try
+        {
+            _db.Supporters.Add(entity);
+            await _db.SaveChangesAsync(cancellationToken);
+            return CreatedAtAction(nameof(GetById), new { id = entity.SupporterId }, entity);
+        }
+        catch (DbUpdateException ex)
+        {
+            return BadRequest(new
+            {
+                message = "Unable to create supporter.",
+                detail = ex.GetBaseException().Message,
+            });
+        }
     }
 
     [HttpPut("{id:int}")]
