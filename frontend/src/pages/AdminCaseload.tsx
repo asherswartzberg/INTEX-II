@@ -317,88 +317,153 @@ export default function AdminCaseload() {
           </div>
         </div>
 
-        {/* Education OR Health — mutually exclusive, full width */}
-        <div className="w-full space-y-2">
-          <button
-            type="button"
-            onClick={() => setRecordsPanel((p) => (p === 'education' ? 'none' : 'education'))}
-            className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-left transition-colors ${
-              recordsPanel === 'education'
-                ? 'bg-gray-100 dark:bg-[#2a2a2a]'
-                : 'bg-gray-50 hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]'
-            }`}
-          >
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Education Records <span className="normal-case font-normal text-gray-400">({eduRecords.length})</span></span>
-            <svg className={`shrink-0 text-gray-400 transition-transform duration-200 ${recordsPanel === 'education' ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          {recordsPanel === 'education' && (
-            <div className="w-full space-y-2.5 pb-1">
-              {eduRecords.length === 0 ? (
-                <p className="px-1 py-2 text-xs text-gray-400">No education records found.</p>
-              ) : (
-                [...eduRecords]
-                  .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
-                  .map(rec => (
-                    <div key={rec.educationRecordId} className="rounded-lg border border-gray-100 px-3 py-2.5 dark:border-[#333]">
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${rec.completionStatus === 'Completed' ? 'bg-green-100 text-green-700' : rec.completionStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{rec.completionStatus ?? '—'}</span>
-                      </div>
-                      <dl className="space-y-1 text-xs">
-                        {rec.educationLevel && <div className="flex justify-between"><dt className="text-gray-400">Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.educationLevel}</dd></div>}
-                        {rec.schoolName && <div className="flex justify-between"><dt className="text-gray-400">School</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.schoolName}</dd></div>}
-                        {rec.enrollmentStatus && <div className="flex justify-between"><dt className="text-gray-400">Enrollment</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.enrollmentStatus}</dd></div>}
-                        {rec.attendanceRate != null && <div className="flex justify-between"><dt className="text-gray-400">Attendance</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.attendanceRate.toFixed(1)}%</dd></div>}
-                        {rec.progressPercent != null && <div className="flex justify-between"><dt className="text-gray-400">Progress</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.progressPercent.toFixed(1)}%</dd></div>}
-                      </dl>
-                    </div>
-                  ))
-              )}
-            </div>
-          )}
+        {/* Education / Health — side-by-side tabs; content full width below */}
+        <div className="w-full">
+          <div className="flex w-full gap-2">
+            <button
+              type="button"
+              onClick={() => setRecordsPanel((p) => (p === 'education' ? 'none' : 'education'))}
+              className={`min-w-0 flex-1 rounded-lg px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide transition-colors ${
+                recordsPanel === 'education'
+                  ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200 dark:bg-[#2a2a2a] dark:text-white dark:ring-[#444]'
+                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-[#222] dark:text-gray-400 dark:hover:bg-[#2a2a2a]'
+              }`}
+            >
+              <span className="block truncate">Education</span>
+              <span className="mt-0.5 block text-[10px] font-normal normal-case text-gray-400 dark:text-gray-500">{eduRecords.length} record{eduRecords.length !== 1 ? 's' : ''}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRecordsPanel((p) => (p === 'health' ? 'none' : 'health'))}
+              className={`min-w-0 flex-1 rounded-lg px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide transition-colors ${
+                recordsPanel === 'health'
+                  ? 'bg-gray-100 text-gray-900 ring-1 ring-gray-200 dark:bg-[#2a2a2a] dark:text-white dark:ring-[#444]'
+                  : 'bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-[#222] dark:text-gray-400 dark:hover:bg-[#2a2a2a]'
+              }`}
+            >
+              <span className="block truncate">Health</span>
+              <span className="mt-0.5 block text-[10px] font-normal normal-case text-gray-400 dark:text-gray-500">{healthRecords.length} record{healthRecords.length !== 1 ? 's' : ''}</span>
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setRecordsPanel((p) => (p === 'health' ? 'none' : 'health'))}
-            className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-left transition-colors ${
-              recordsPanel === 'health'
-                ? 'bg-gray-100 dark:bg-[#2a2a2a]'
-                : 'bg-gray-50 hover:bg-gray-100 dark:bg-[#222] dark:hover:bg-[#2a2a2a]'
-            }`}
-          >
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Health Records <span className="normal-case font-normal text-gray-400">({healthRecords.length})</span></span>
-            <svg className={`shrink-0 text-gray-400 transition-transform duration-200 ${recordsPanel === 'health' ? 'rotate-180' : ''}`} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
-          </button>
-          {recordsPanel === 'health' && (
-            <div className="w-full space-y-2.5 pb-1">
-              {healthRecords.length === 0 ? (
-                <p className="px-1 py-2 text-xs text-gray-400">No health records found.</p>
-              ) : (
-                [...healthRecords]
-                  .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
-                  .map(rec => (
-                    <div key={rec.healthRecordId} className="rounded-lg border border-gray-100 px-3 py-2.5 dark:border-[#333]">
-                      <p className="mb-1.5 text-xs font-medium text-gray-700 dark:text-gray-200">{fmtDate(rec.recordDate)}</p>
-                      <dl className="space-y-1 text-xs">
-                        {rec.generalHealthScore != null && <div className="flex justify-between"><dt className="text-gray-400">Health Score</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.generalHealthScore.toFixed(1)}</dd></div>}
-                        {rec.nutritionScore != null && <div className="flex justify-between"><dt className="text-gray-400">Nutrition</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.nutritionScore.toFixed(1)}</dd></div>}
-                        {rec.sleepQualityScore != null && <div className="flex justify-between"><dt className="text-gray-400">Sleep Quality</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.sleepQualityScore.toFixed(1)}</dd></div>}
-                        {rec.energyLevelScore != null && <div className="flex justify-between"><dt className="text-gray-400">Energy Level</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.energyLevelScore.toFixed(1)}</dd></div>}
-                        {(rec.heightCm != null || rec.weightKg != null) && (
-                          <div className="flex justify-between">
-                            <dt className="text-gray-400">Ht / Wt</dt>
-                            <dd className="font-medium text-gray-600 dark:text-gray-300">{rec.heightCm != null ? `${rec.heightCm.toFixed(1)} cm` : '—'} / {rec.weightKg != null ? `${rec.weightKg.toFixed(1)} kg` : '—'}</dd>
+          {recordsPanel !== 'none' && (
+            <div className="mt-4 w-full min-w-0 border-t border-gray-100 pt-4 dark:border-[#333]">
+              {recordsPanel === 'education' && (
+                <div className="w-full space-y-4">
+                  {eduRecords.length === 0 ? (
+                    <p className="text-sm text-gray-400">No education records found.</p>
+                  ) : (
+                    [...eduRecords]
+                      .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
+                      .map(rec => (
+                        <div key={rec.educationRecordId} className="w-full min-w-0 rounded-lg border border-gray-100 px-4 py-4 dark:border-[#333]">
+                          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-gray-50 pb-3 dark:border-[#2a2a2a]">
+                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{fmtDate(rec.recordDate)}</span>
+                            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${rec.completionStatus === 'Completed' ? 'bg-green-100 text-green-700' : rec.completionStatus === 'In Progress' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{rec.completionStatus ?? '—'}</span>
                           </div>
-                        )}
-                        {rec.bmi != null && <div className="flex justify-between"><dt className="text-gray-400">BMI</dt><dd className="font-medium text-gray-600 dark:text-gray-300">{rec.bmi.toFixed(1)}</dd></div>}
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                          {rec.medicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Medical ✓</span>}
-                          {rec.dentalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Dental ✓</span>}
-                          {rec.psychologicalCheckupDone && <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Psych ✓</span>}
+                          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
+                            {rec.educationLevel && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Level</dt>
+                                <dd className="mt-0.5 break-words font-medium text-gray-700 dark:text-gray-200">{rec.educationLevel}</dd>
+                              </div>
+                            )}
+                            {rec.schoolName && (
+                              <div className="min-w-0 sm:col-span-2">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">School</dt>
+                                <dd className="mt-0.5 break-words font-medium text-gray-700 dark:text-gray-200">{rec.schoolName}</dd>
+                              </div>
+                            )}
+                            {rec.enrollmentStatus && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Enrollment</dt>
+                                <dd className="mt-0.5 break-words font-medium text-gray-700 dark:text-gray-200">{rec.enrollmentStatus}</dd>
+                              </div>
+                            )}
+                            {rec.attendanceRate != null && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Attendance</dt>
+                                <dd className="mt-0.5 font-medium text-gray-700 dark:text-gray-200">{rec.attendanceRate.toFixed(1)}%</dd>
+                              </div>
+                            )}
+                            {rec.progressPercent != null && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Progress</dt>
+                                <dd className="mt-0.5 font-medium text-gray-700 dark:text-gray-200">{rec.progressPercent.toFixed(1)}%</dd>
+                              </div>
+                            )}
+                          </dl>
                         </div>
-                      </dl>
-                    </div>
-                  ))
+                      ))
+                  )}
+                </div>
+              )}
+              {recordsPanel === 'health' && (
+                <div className="w-full space-y-4">
+                  {healthRecords.length === 0 ? (
+                    <p className="text-sm text-gray-400">No health records found.</p>
+                  ) : (
+                    [...healthRecords]
+                      .sort((a, b) => new Date(b.recordDate ?? 0).getTime() - new Date(a.recordDate ?? 0).getTime())
+                      .map(rec => (
+                        <div key={rec.healthRecordId} className="w-full min-w-0 rounded-lg border border-gray-100 px-4 py-4 dark:border-[#333]">
+                          <div className="mb-4 border-b border-gray-50 pb-3 dark:border-[#2a2a2a]">
+                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{fmtDate(rec.recordDate)}</span>
+                          </div>
+                          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
+                            {rec.generalHealthScore != null && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Health score</dt>
+                                <dd className="mt-0.5 font-medium text-gray-700 dark:text-gray-200">{rec.generalHealthScore.toFixed(1)}</dd>
+                              </div>
+                            )}
+                            {rec.nutritionScore != null && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Nutrition</dt>
+                                <dd className="mt-0.5 font-medium text-gray-700 dark:text-gray-200">{rec.nutritionScore.toFixed(1)}</dd>
+                              </div>
+                            )}
+                            {rec.sleepQualityScore != null && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Sleep quality</dt>
+                                <dd className="mt-0.5 font-medium text-gray-700 dark:text-gray-200">{rec.sleepQualityScore.toFixed(1)}</dd>
+                              </div>
+                            )}
+                            {rec.energyLevelScore != null && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Energy level</dt>
+                                <dd className="mt-0.5 font-medium text-gray-700 dark:text-gray-200">{rec.energyLevelScore.toFixed(1)}</dd>
+                              </div>
+                            )}
+                            {(rec.heightCm != null || rec.weightKg != null) && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">Height / weight</dt>
+                                <dd className="mt-0.5 break-words font-medium text-gray-700 dark:text-gray-200">
+                                  {rec.heightCm != null ? `${rec.heightCm.toFixed(1)} cm` : '—'} / {rec.weightKg != null ? `${rec.weightKg.toFixed(1)} kg` : '—'}
+                                </dd>
+                              </div>
+                            )}
+                            {rec.bmi != null && (
+                              <div className="min-w-0">
+                                <dt className="text-xs text-gray-400 dark:text-gray-500">BMI</dt>
+                                <dd className="mt-0.5 font-medium text-gray-700 dark:text-gray-200">{rec.bmi.toFixed(1)}</dd>
+                              </div>
+                            )}
+                          </dl>
+                          {(rec.medicalCheckupDone || rec.dentalCheckupDone || rec.psychologicalCheckupDone) && (
+                            <div className="mt-4 border-t border-gray-50 pt-3 dark:border-[#2a2a2a]">
+                              <p className="mb-2 text-xs font-semibold text-gray-400 dark:text-gray-500">CHECKUPS</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {rec.medicalCheckupDone && <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-300">Medical</span>}
+                                {rec.dentalCheckupDone && <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-300">Dental</span>}
+                                {rec.psychologicalCheckupDone && <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950 dark:text-green-300">Psychological</span>}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                  )}
+                </div>
               )}
             </div>
           )}
