@@ -20,6 +20,12 @@ function fmtDate(s: string | null) {
   return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+/** Whole units only (API uses int). Drops fractional part and non-digits, blocks negatives. */
+function sanitizeWholeDonationAmount(raw: string): string {
+  const beforeDot = raw.split('.')[0]
+  return beforeDot.replace(/\D/g, '')
+}
+
 // ─── Donate Section ──────────────────────────────────────────────────────────
 function DonateSection({ onRecordSuccess }: { onRecordSuccess: () => void }) {
   const [amount, setAmount] = useState('')
@@ -34,8 +40,8 @@ function DonateSection({ onRecordSuccess }: { onRecordSuccess: () => void }) {
   const handleRecord = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    const num = parseFloat(amount)
-    if (!num || num <= 0) { setError('Enter a valid amount.'); return }
+    const num = parseInt(amount, 10)
+    if (!Number.isFinite(num) || num < 1) { setError('Enter a valid whole-number amount.'); return }
 
     setSubmitting(true)
     try {
@@ -79,8 +85,21 @@ function DonateSection({ onRecordSuccess }: { onRecordSuccess: () => void }) {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-medium-gray" aria-hidden="true">$</span>
                   <input
                     id="donate-amount"
-                    type="number" step="0.01" min="1" placeholder="0.00"
-                    value={amount} onChange={(e) => { setAmount(e.target.value); setRecorded(false) }}
+                    type="number"
+                    inputMode="numeric"
+                    step={1}
+                    min={1}
+                    placeholder="0"
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(sanitizeWholeDonationAmount(e.target.value))
+                      setRecorded(false)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === '.' || e.key === ',' || e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+                        e.preventDefault()
+                      }
+                    }}
                     className="w-full rounded-lg border border-border bg-white py-2.5 pl-7 pr-3 text-sm"
                   />
                 </div>
