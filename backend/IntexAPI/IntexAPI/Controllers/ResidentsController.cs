@@ -25,6 +25,9 @@ public class ResidentsController : ControllerBase
         _facilityAccess = facilityAccess;
     }
 
+    private static string RequireText(string? value, string fallback = "Unknown")
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Resident>>> GetList(
         [FromQuery] string? caseStatus,
@@ -88,6 +91,47 @@ public class ResidentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Resident>> Create([FromBody] Resident resident, CancellationToken cancellationToken)
     {
+        // Production schema has many NOT NULL columns; coalesce nulls defensively.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        resident.CaseControlNo = RequireText(resident.CaseControlNo, "Auto-generated");
+        resident.InternalCode = RequireText(resident.InternalCode, $"R-{DateTime.UtcNow:yyyyMMddHHmmss}");
+        resident.SafehouseId ??= 1;
+        resident.CaseStatus = RequireText(resident.CaseStatus, "Active");
+        resident.Sex = RequireText(resident.Sex, "Unknown");
+        resident.DateOfBirth ??= today;
+        resident.BirthStatus = RequireText(resident.BirthStatus, "Unknown");
+        resident.PlaceOfBirth = RequireText(resident.PlaceOfBirth, "Unknown");
+        resident.Religion = RequireText(resident.Religion, "Unknown");
+        resident.CaseCategory = RequireText(resident.CaseCategory, "Unknown");
+        resident.SubCatOrphaned ??= false;
+        resident.SubCatTrafficked ??= false;
+        resident.SubCatChildLabor ??= false;
+        resident.SubCatPhysicalAbuse ??= false;
+        resident.SubCatSexualAbuse ??= false;
+        resident.SubCatOsaec ??= false;
+        resident.SubCatCicl ??= false;
+        resident.SubCatAtRisk ??= false;
+        resident.SubCatStreetChild ??= false;
+        resident.SubCatChildWithHiv ??= false;
+        resident.IsPwd ??= false;
+        resident.HasSpecialNeeds ??= false;
+        resident.FamilyIs4ps ??= false;
+        resident.FamilySoloParent ??= false;
+        resident.FamilyIndigenous ??= false;
+        resident.FamilyParentPwd ??= false;
+        resident.FamilyInformalSettler ??= false;
+        resident.DateOfAdmission ??= today;
+        resident.AgeUponAdmission = RequireText(resident.AgeUponAdmission, "Unknown");
+        resident.PresentAge = RequireText(resident.PresentAge, "Unknown");
+        resident.LengthOfStay = RequireText(resident.LengthOfStay, "Unknown");
+        resident.ReferralSource = RequireText(resident.ReferralSource, "Unknown");
+        resident.AssignedSocialWorker = RequireText(resident.AssignedSocialWorker, "Unassigned");
+        resident.InitialCaseAssessment = RequireText(resident.InitialCaseAssessment, "Pending");
+        resident.ReintegrationType = RequireText(resident.ReintegrationType, "Unknown");
+        resident.ReintegrationStatus = RequireText(resident.ReintegrationStatus, "Pending");
+        resident.InitialRiskLevel = RequireText(resident.InitialRiskLevel, "Unknown");
+        resident.CurrentRiskLevel = RequireText(resident.CurrentRiskLevel, "Unknown");
+        resident.DateEnrolled ??= today;
         resident.CreatedAt ??= DateTime.UtcNow;
 
         // Use nullable MAX (SQL returns NULL on empty table). Avoid DefaultIfEmpty()+Max — poor EF translation on SQL Server.

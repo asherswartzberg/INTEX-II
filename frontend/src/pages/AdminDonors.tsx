@@ -91,6 +91,18 @@ function blankSupporter(): Supporter {
   }
 }
 
+const REQUIRED_SUPPORTER_FIELDS: { key: keyof Supporter; label: string }[] = [
+  { key: 'displayName', label: 'Display Name' },
+  { key: 'supporterType', label: 'Supporter Type' },
+  { key: 'relationshipType', label: 'Relationship Type' },
+  { key: 'region', label: 'Region' },
+  { key: 'country', label: 'Country' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'status', label: 'Status' },
+  { key: 'acquisitionChannel', label: 'Acquisition Channel' },
+]
+
 // ── Component ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 8
 
@@ -149,6 +161,15 @@ export default function AdminDonors() {
     setSaving(true)
     setSaveError(null)
     try {
+      const missing = REQUIRED_SUPPORTER_FIELDS.filter(({ key }) => {
+        const value = formData[key]
+        if (typeof value === 'string') return value.trim().length === 0
+        return value === null || value === undefined
+      }).map(({ label }) => label)
+      if (missing.length > 0) {
+        setSaveError(`Please complete required fields: ${missing.join(', ')}`)
+        return
+      }
       if (editing) {
         await updateSupporter(formData.supporterId, formData)
         setSupporters(prev => prev.map(s => s.supporterId === formData.supporterId ? formData : s))
@@ -686,7 +707,7 @@ export default function AdminDonors() {
                 <input type="text" value={formData.organizationName ?? ''} onChange={e => setFormData(prev => ({ ...prev, organizationName: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Supporter Type</label>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Supporter Type *</label>
                 <select value={formData.supporterType ?? ''} onChange={e => setFormData(prev => ({ ...prev, supporterType: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100">
                   <option value="">Select...</option>
                   {['MonetaryDonor', 'InKindDonor', 'Partner', 'Volunteer', 'Corporate', 'Foundation'].map(t => (
@@ -695,27 +716,35 @@ export default function AdminDonors() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Status</label>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Status *</label>
                 <select value={formData.status ?? ''} onChange={e => setFormData(prev => ({ ...prev, status: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100">
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Email</label>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Email *</label>
                 <input type="email" value={formData.email ?? ''} onChange={e => setFormData(prev => ({ ...prev, email: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Phone</label>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Phone *</label>
                 <input type="text" value={formData.phone ?? ''} onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Region</label>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Region *</label>
                 <input type="text" value={formData.region ?? ''} onChange={e => setFormData(prev => ({ ...prev, region: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Country</label>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Country *</label>
                 <input type="text" value={formData.country ?? ''} onChange={e => setFormData(prev => ({ ...prev, country: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Relationship Type *</label>
+                <input type="text" value={formData.relationshipType ?? ''} onChange={e => setFormData(prev => ({ ...prev, relationshipType: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Acquisition Channel *</label>
+                <input type="text" value={formData.acquisitionChannel ?? ''} onChange={e => setFormData(prev => ({ ...prev, acquisitionChannel: e.target.value || null }))} className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
               </div>
             </div>
 
@@ -725,7 +754,7 @@ export default function AdminDonors() {
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving || !formData.displayName}
+                disabled={saving}
                 className="rounded-lg bg-[#111827] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
               >
                 {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Supporter'}

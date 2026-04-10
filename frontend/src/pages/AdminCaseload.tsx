@@ -61,6 +61,31 @@ function safehouseOptionLabel(sh: Safehouse): string {
 const INPUT_CLASS =
   'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100'
 
+const REQUIRED_RESIDENT_FIELDS: { key: keyof Resident; label: string }[] = [
+  { key: 'caseControlNo', label: 'Case control number' },
+  { key: 'internalCode', label: 'Internal code' },
+  { key: 'safehouseId', label: 'Safehouse' },
+  { key: 'caseStatus', label: 'Case status' },
+  { key: 'sex', label: 'Sex' },
+  { key: 'dateOfBirth', label: 'Date of birth' },
+  { key: 'birthStatus', label: 'Birth status' },
+  { key: 'placeOfBirth', label: 'Place of birth' },
+  { key: 'religion', label: 'Religion' },
+  { key: 'caseCategory', label: 'Case category' },
+  { key: 'dateOfAdmission', label: 'Date of admission' },
+  { key: 'ageUponAdmission', label: 'Age upon admission' },
+  { key: 'presentAge', label: 'Present age' },
+  { key: 'lengthOfStay', label: 'Length of stay' },
+  { key: 'referralSource', label: 'Referral source' },
+  { key: 'assignedSocialWorker', label: 'Assigned social worker' },
+  { key: 'initialCaseAssessment', label: 'Initial case assessment' },
+  { key: 'reintegrationType', label: 'Reintegration type' },
+  { key: 'reintegrationStatus', label: 'Reintegration status' },
+  { key: 'initialRiskLevel', label: 'Initial risk level' },
+  { key: 'currentRiskLevel', label: 'Current risk level' },
+  { key: 'dateEnrolled', label: 'Date enrolled' },
+]
+
 function blankResident(): Resident {
   return {
     residentId: 0, caseControlNo: null, internalCode: null, safehouseId: null,
@@ -99,6 +124,7 @@ export default function AdminCaseload() {
   const [recordsPanel, setRecordsPanel] = useState<RecordsPanel>('none')
   const [safehouses, setSafehouses] = useState<Safehouse[]>([])
   const [safehousesLoadError, setSafehousesLoadError] = useState<string | null>(null)
+  const [validationError, setValidationError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!selected) {
@@ -116,6 +142,7 @@ export default function AdminCaseload() {
 
   const openCreate = useCallback(() => {
     setError(null)
+    setValidationError(null)
     setCreating(true)
     setEditing(null)
     setFormData(blankResident())
@@ -172,6 +199,7 @@ export default function AdminCaseload() {
 
   function openEdit(resident: Resident) {
     setError(null)
+    setValidationError(null)
     setCreating(false)
     setEditing(resident)
     setFormData(resident)
@@ -181,6 +209,16 @@ export default function AdminCaseload() {
     try {
       setSaving(true)
       setError(null)
+      setValidationError(null)
+      const missing = REQUIRED_RESIDENT_FIELDS.filter(({ key }) => {
+        const value = formData[key]
+        if (typeof value === 'string') return value.trim().length === 0
+        return value === null || value === undefined
+      }).map(({ label }) => label)
+      if (missing.length > 0) {
+        setValidationError(`Please complete required fields: ${missing.join(', ')}`)
+        return
+      }
       const payload = {
         ...formData,
         caseControlNo: formData.caseControlNo || null,
@@ -242,31 +280,32 @@ export default function AdminCaseload() {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               {editing ? 'Edit Resident Profile' : 'Create Resident Profile'}
             </h3>
-            <button onClick={() => { setError(null); setEditing(null); setCreating(false) }} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400">Close</button>
+            <button onClick={() => { setError(null); setValidationError(null); setEditing(null); setCreating(false) }} className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400">Close</button>
           </div>
           {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {validationError && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{validationError}</p>}
           {safehousesLoadError && (
             <p className="mb-3 text-sm text-amber-600 dark:text-amber-400">{safehousesLoadError}</p>
           )}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label htmlFor="resident-case-control" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case control number</label>
+              <label htmlFor="resident-case-control" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case control number *</label>
               <input id="resident-case-control" value={formData.caseControlNo ?? ''} onChange={(e) => setField('caseControlNo', e.target.value || null)} className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="resident-internal-code" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Internal code</label>
+              <label htmlFor="resident-internal-code" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Internal code *</label>
               <input id="resident-internal-code" value={formData.internalCode ?? ''} onChange={(e) => setField('internalCode', e.target.value || null)} className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="resident-social-worker" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Assigned social worker</label>
+              <label htmlFor="resident-social-worker" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Assigned social worker *</label>
               <input id="resident-social-worker" value={formData.assignedSocialWorker ?? ''} onChange={(e) => setField('assignedSocialWorker', e.target.value || null)} className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="resident-referral" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Referral source</label>
+              <label htmlFor="resident-referral" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Referral source *</label>
               <input id="resident-referral" value={formData.referralSource ?? ''} onChange={(e) => setField('referralSource', e.target.value || null)} className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="resident-case-status" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case status</label>
+              <label htmlFor="resident-case-status" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case status *</label>
               <select id="resident-case-status" value={formData.caseStatus ?? ''} onChange={(e) => setField('caseStatus', e.target.value || null)} className={INPUT_CLASS}>
                 <option value="">Select…</option>
                 <option value="Active">Active</option>
@@ -275,7 +314,7 @@ export default function AdminCaseload() {
               </select>
             </div>
             <div>
-              <label htmlFor="resident-case-category" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case category</label>
+              <label htmlFor="resident-case-category" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Case category *</label>
               <select id="resident-case-category" value={formData.caseCategory ?? ''} onChange={(e) => setField('caseCategory', e.target.value || null)} className={INPUT_CLASS}>
                 <option value="">Select…</option>
                 <option value="Trafficked">Trafficked</option>
@@ -286,7 +325,7 @@ export default function AdminCaseload() {
               </select>
             </div>
             <div>
-              <label htmlFor="resident-safehouse" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Safehouse</label>
+              <label htmlFor="resident-safehouse" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Safehouse *</label>
               <select
                 id="resident-safehouse"
                 value={formData.safehouseId ?? ''}
@@ -309,16 +348,64 @@ export default function AdminCaseload() {
               </select>
             </div>
             <div>
-              <label htmlFor="resident-reintegration" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reintegration status</label>
+              <label htmlFor="resident-reintegration" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reintegration status *</label>
               <input id="resident-reintegration" value={formData.reintegrationStatus ?? ''} onChange={(e) => setField('reintegrationStatus', e.target.value || null)} className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="resident-dob" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of birth</label>
+              <label htmlFor="resident-dob" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of birth *</label>
               <input id="resident-dob" type="date" value={formData.dateOfBirth ?? ''} onChange={(e) => setField('dateOfBirth', e.target.value || null)} className={INPUT_CLASS} />
             </div>
             <div>
-              <label htmlFor="resident-admission" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of admission</label>
+              <label htmlFor="resident-admission" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date of admission *</label>
               <input id="resident-admission" type="date" value={formData.dateOfAdmission ?? ''} onChange={(e) => setField('dateOfAdmission', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-sex" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Sex *</label>
+              <input id="resident-sex" value={formData.sex ?? ''} onChange={(e) => setField('sex', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-birth-status" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Birth status *</label>
+              <input id="resident-birth-status" value={formData.birthStatus ?? ''} onChange={(e) => setField('birthStatus', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-place-of-birth" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Place of birth *</label>
+              <input id="resident-place-of-birth" value={formData.placeOfBirth ?? ''} onChange={(e) => setField('placeOfBirth', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-religion" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Religion *</label>
+              <input id="resident-religion" value={formData.religion ?? ''} onChange={(e) => setField('religion', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-age-upon-admission" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Age upon admission *</label>
+              <input id="resident-age-upon-admission" value={formData.ageUponAdmission ?? ''} onChange={(e) => setField('ageUponAdmission', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-present-age" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Present age *</label>
+              <input id="resident-present-age" value={formData.presentAge ?? ''} onChange={(e) => setField('presentAge', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-length-of-stay" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Length of stay *</label>
+              <input id="resident-length-of-stay" value={formData.lengthOfStay ?? ''} onChange={(e) => setField('lengthOfStay', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-initial-assessment" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Initial case assessment *</label>
+              <input id="resident-initial-assessment" value={formData.initialCaseAssessment ?? ''} onChange={(e) => setField('initialCaseAssessment', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-reintegration-type" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Reintegration type *</label>
+              <input id="resident-reintegration-type" value={formData.reintegrationType ?? ''} onChange={(e) => setField('reintegrationType', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-initial-risk" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Initial risk level *</label>
+              <input id="resident-initial-risk" value={formData.initialRiskLevel ?? ''} onChange={(e) => setField('initialRiskLevel', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-current-risk" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Current risk level *</label>
+              <input id="resident-current-risk" value={formData.currentRiskLevel ?? ''} onChange={(e) => setField('currentRiskLevel', e.target.value || null)} className={INPUT_CLASS} />
+            </div>
+            <div>
+              <label htmlFor="resident-date-enrolled" className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">Date enrolled *</label>
+              <input id="resident-date-enrolled" type="date" value={formData.dateEnrolled ?? ''} onChange={(e) => setField('dateEnrolled', e.target.value || null)} className={INPUT_CLASS} />
             </div>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-300 md:grid-cols-4">
@@ -340,7 +427,7 @@ export default function AdminCaseload() {
             <textarea id="resident-notes" value={formData.notesRestricted ?? ''} onChange={(e) => setField('notesRestricted', e.target.value || null)} className="min-h-24 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-[#444] dark:bg-[#111] dark:text-gray-100" />
           </div>
           <div className="mt-5 flex justify-end gap-2">
-            <button onClick={() => { setError(null); setEditing(null); setCreating(false) }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 dark:border-[#444] dark:text-gray-300">Cancel</button>
+            <button onClick={() => { setError(null); setValidationError(null); setEditing(null); setCreating(false) }} className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 dark:border-[#444] dark:text-gray-300">Cancel</button>
             <button onClick={saveResident} disabled={saving} className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-60 dark:bg-white dark:text-black">{saving ? 'Saving...' : editing ? 'Update resident' : 'Create resident'}</button>
           </div>
         </div>

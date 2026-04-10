@@ -22,6 +22,9 @@ public class SupportersController : ControllerBase
         _userManager = userManager;
     }
 
+    private static string RequireText(string? value, string fallback = "Unknown")
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Supporter>>> GetList(
         [FromQuery] string? supporterType,
@@ -75,6 +78,15 @@ public class SupportersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Supporter>> Create([FromBody] Supporter entity, CancellationToken cancellationToken)
     {
+        entity.SupporterType = RequireText(entity.SupporterType, "MonetaryDonor");
+        entity.DisplayName = RequireText(entity.DisplayName, "Unnamed Supporter");
+        entity.RelationshipType = RequireText(entity.RelationshipType, "Local");
+        entity.Region = RequireText(entity.Region, "Unknown");
+        entity.Country = RequireText(entity.Country, "Chile");
+        entity.Email = RequireText(entity.Email, "unknown@example.org");
+        entity.Phone = RequireText(entity.Phone, "Unknown");
+        entity.Status = RequireText(entity.Status, "Active");
+        entity.AcquisitionChannel = RequireText(entity.AcquisitionChannel, "Website");
         entity.CreatedAt ??= DateTime.UtcNow;
 
         var maxNullable = await _db.Supporters.AsNoTracking()
